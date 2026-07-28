@@ -1,0 +1,3450 @@
+{
+  "components": {
+    "schemas": {
+      "AuditEntryResponse": {
+        "description": "One entry from an entity's change history.",
+        "properties": {
+          "action": {
+            "description": "`create`, `update` or `delete`.",
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Their name, or null if the account was deleted. The entry survives it.",
+            "title": "Actor Name"
+          },
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who made the change.",
+            "title": "Actor User Id"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "State after the change.",
+            "title": "After"
+          },
+          "at": {
+            "description": "ISO-8601 UTC.",
+            "title": "At",
+            "type": "string"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "State before the change.",
+            "title": "Before"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "at"
+        ],
+        "title": "AuditEntryResponse",
+        "type": "object"
+      },
+      "CourseCreateRequest": {
+        "description": "A new course.",
+        "properties": {
+          "course_id": {
+            "examples": [
+              "CS301"
+            ],
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Course Id",
+            "type": "string"
+          },
+          "credits": {
+            "default": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Credits",
+            "type": "number"
+          },
+          "max_grade": {
+            "default": 100.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Max Grade",
+            "type": "number"
+          },
+          "max_students": {
+            "default": 30,
+            "exclusiveMinimum": 0.0,
+            "title": "Max Students",
+            "type": "integer"
+          },
+          "name": {
+            "examples": [
+              "Compilers"
+            ],
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "passing_grade": {
+            "default": 60.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Passing Grade",
+            "type": "number"
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Owning teacher. A teacher creating a course owns it by default; only an administrator may set this to somebody else.",
+            "title": "Teacher Id"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          }
+        },
+        "required": [
+          "course_id",
+          "name"
+        ],
+        "title": "CourseCreateRequest",
+        "type": "object"
+      },
+      "CourseResponse": {
+        "description": "A course, with enrolment counts.",
+        "properties": {
+          "course_id": {
+            "description": "Institution-assigned code.",
+            "examples": [
+              "CS101"
+            ],
+            "title": "Course Id",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO-8601 UTC.",
+            "title": "Created At"
+          },
+          "credits": {
+            "description": "Weight in a GPA calculation.",
+            "examples": [
+              5.0
+            ],
+            "title": "Credits",
+            "type": "number"
+          },
+          "enrolled_count": {
+            "default": 0,
+            "description": "Students actively enrolled. Distinct from `graded_count`: a student can be enrolled without having been assessed yet.",
+            "title": "Enrolled Count",
+            "type": "integer"
+          },
+          "graded_count": {
+            "default": 0,
+            "description": "Distinct students holding a grade.",
+            "title": "Graded Count",
+            "type": "integer"
+          },
+          "max_grade": {
+            "description": "Highest achievable score.",
+            "examples": [
+              100.0
+            ],
+            "title": "Max Grade",
+            "type": "number"
+          },
+          "max_students": {
+            "description": "Enrolment capacity.",
+            "examples": [
+              30
+            ],
+            "title": "Max Students",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Display title.",
+            "examples": [
+              "Intro to Programming"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "passing_grade": {
+            "description": "Lowest passing score.",
+            "examples": [
+              60.0
+            ],
+            "title": "Passing Grade",
+            "type": "number"
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Owning teacher's user id.",
+            "title": "Teacher Id"
+          },
+          "teacher_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Owning teacher's name.",
+            "title": "Teacher Name"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Academic term.",
+            "examples": [
+              "2026-SS"
+            ],
+            "title": "Term"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO-8601 UTC.",
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "course_id",
+          "name",
+          "max_grade",
+          "passing_grade",
+          "max_students",
+          "credits"
+        ],
+        "title": "CourseResponse",
+        "type": "object"
+      },
+      "CourseUpdateRequest": {
+        "description": "Changes to a course. Omitted fields are left alone.",
+        "properties": {
+          "credits": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credits"
+          },
+          "max_grade": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Grade"
+          },
+          "max_students": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Students"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "passing_grade": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passing Grade"
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Administrators only — reassigning a course changes who can see it.",
+            "title": "Teacher Id"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          }
+        },
+        "title": "CourseUpdateRequest",
+        "type": "object"
+      },
+      "DashboardResponse": {
+        "description": "Headline numbers, scoped to the caller.\n\nA teacher's dashboard describes their own courses, not the institution.",
+        "properties": {
+          "average_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when nothing is graded — distinct from 0.",
+            "title": "Average Percentage"
+          },
+          "course_count": {
+            "title": "Course Count",
+            "type": "integer"
+          },
+          "distribution": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Grade band label to count, including bands with zero so a chart renders a complete axis.",
+            "title": "Distribution",
+            "type": "object"
+          },
+          "grade_count": {
+            "title": "Grade Count",
+            "type": "integer"
+          },
+          "pass_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when nothing is graded.",
+            "title": "Pass Rate"
+          },
+          "student_count": {
+            "title": "Student Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "student_count",
+          "course_count",
+          "grade_count",
+          "distribution"
+        ],
+        "title": "DashboardResponse",
+        "type": "object"
+      },
+      "EnrollRequest": {
+        "description": "A registration.",
+        "properties": {
+          "student_id": {
+            "examples": [
+              "S001"
+            ],
+            "minLength": 1,
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id"
+        ],
+        "title": "EnrollRequest",
+        "type": "object"
+      },
+      "EnrollmentResponse": {
+        "description": "A student's registration on a course.",
+        "properties": {
+          "course_id": {
+            "description": "The course.",
+            "title": "Course Id",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Student's contact address.",
+            "title": "Email"
+          },
+          "enrolled_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO-8601 UTC.",
+            "title": "Enrolled At"
+          },
+          "enrolled_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who registered them.",
+            "title": "Enrolled By"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Student's given name.",
+            "title": "First Name"
+          },
+          "grade_count": {
+            "default": 0,
+            "description": "Grades in this course. Zero means enrolled but not yet assessed.",
+            "title": "Grade Count",
+            "type": "integer"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Student's family name.",
+            "title": "Last Name"
+          },
+          "status": {
+            "description": "`active`, `withdrawn` or `completed`.",
+            "title": "Status",
+            "type": "string"
+          },
+          "student_id": {
+            "description": "The enrolled student.",
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "course_id",
+          "status"
+        ],
+        "title": "EnrollmentResponse",
+        "type": "object"
+      },
+      "EnrollmentStatusRequest": {
+        "description": "A change of enrolment status.",
+        "properties": {
+          "status": {
+            "description": "`active`, `withdrawn` or `completed`. Withdrawal is a status change rather than a deletion, so grades earned beforehand stay attached.",
+            "examples": [
+              "withdrawn"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "EnrollmentStatusRequest",
+        "type": "object"
+      },
+      "GradeCreateRequest": {
+        "description": "A new grade.",
+        "properties": {
+          "course_id": {
+            "examples": [
+              "CS101"
+            ],
+            "minLength": 1,
+            "title": "Course Id",
+            "type": "string"
+          },
+          "date": {
+            "description": "ISO `YYYY-MM-DD`. `DD-MM-YYYY`, `DD.MM.YYYY` and `DD/MM/YYYY` are also accepted and normalised.",
+            "examples": [
+              "2026-01-15"
+            ],
+            "title": "Date",
+            "type": "string"
+          },
+          "notes": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Notes",
+            "type": "string"
+          },
+          "score": {
+            "description": "Must not exceed the course maximum.",
+            "examples": [
+              85.0
+            ],
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "student_id": {
+            "examples": [
+              "S001"
+            ],
+            "minLength": 1,
+            "title": "Student Id",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "examples": [
+              "Midterm"
+            ],
+            "maxLength": 100,
+            "title": "Title",
+            "type": "string"
+          },
+          "weight": {
+            "default": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "student_id",
+          "course_id",
+          "score",
+          "date"
+        ],
+        "title": "GradeCreateRequest",
+        "type": "object"
+      },
+      "GradeResponse": {
+        "description": "A recorded grade.\n\n`percentage` and `is_passing` are computed server-side deliberately: two clients\nderiving them independently is two chances to disagree with the report the same\nnumbers appear in.",
+        "properties": {
+          "course_id": {
+            "examples": [
+              "CS101"
+            ],
+            "title": "Course Id",
+            "type": "string"
+          },
+          "course_name": {
+            "examples": [
+              "Intro to Programming"
+            ],
+            "title": "Course Name",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "date": {
+            "description": "Award date, ISO `YYYY-MM-DD`.",
+            "examples": [
+              "2026-01-15"
+            ],
+            "title": "Date",
+            "type": "string"
+          },
+          "grade_id": {
+            "description": "Database identifier.",
+            "title": "Grade Id",
+            "type": "integer"
+          },
+          "graded_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who recorded it.",
+            "title": "Graded By"
+          },
+          "is_passing": {
+            "description": "Whether the score reaches the course threshold.",
+            "title": "Is Passing",
+            "type": "boolean"
+          },
+          "max_grade": {
+            "description": "The course maximum.",
+            "examples": [
+              100.0
+            ],
+            "title": "Max Grade",
+            "type": "number"
+          },
+          "notes": {
+            "description": "Free-text remark.",
+            "title": "Notes",
+            "type": "string"
+          },
+          "percentage": {
+            "description": "Score as a percentage of the maximum.",
+            "examples": [
+              85.0
+            ],
+            "title": "Percentage",
+            "type": "number"
+          },
+          "score": {
+            "description": "Points awarded.",
+            "examples": [
+              85.0
+            ],
+            "title": "Score",
+            "type": "number"
+          },
+          "student_id": {
+            "examples": [
+              "S001"
+            ],
+            "title": "Student Id",
+            "type": "string"
+          },
+          "student_name": {
+            "examples": [
+              "Anna Schmidt"
+            ],
+            "title": "Student Name",
+            "type": "string"
+          },
+          "title": {
+            "description": "Assessment name, e.g. `Midterm`. Empty for a single mark.",
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "weight": {
+            "description": "Relative weight in the course average.",
+            "examples": [
+              1.0
+            ],
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "grade_id",
+          "student_id",
+          "student_name",
+          "course_id",
+          "course_name",
+          "title",
+          "score",
+          "max_grade",
+          "percentage",
+          "is_passing",
+          "weight",
+          "date",
+          "notes"
+        ],
+        "title": "GradeResponse",
+        "type": "object"
+      },
+      "GradeUpdateRequest": {
+        "description": "Changes to a grade. Omitted fields are left alone.",
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          }
+        },
+        "title": "GradeUpdateRequest",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LoginRequest": {
+        "description": "Credentials submitted at sign-in.\n\nThe address is **not** format-validated here, for two reasons. Sign-in only looks\nan address up, so a malformed one simply fails to match — rejecting it earlier\nachieves nothing except a different error for \"malformed\" than for \"unknown\",\nwhich tells an attacker something. And `EmailStr` refuses reserved TLDs such as\n`.local` and `.test`, which self-hosted deployments legitimately use; the domain\nmodels own the one email rule this system has, and a second stricter rule at the\nboundary would reject addresses the domain considers valid.",
+        "properties": {
+          "email": {
+            "description": "The account's sign-in address.",
+            "examples": [
+              "a@b.co"
+            ],
+            "minLength": 1,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "description": "The account password. Never logged and never echoed back.",
+            "examples": [
+              "demo-password-2026"
+            ],
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest",
+        "type": "object"
+      },
+      "MessageResponse": {
+        "description": "A bare acknowledgement.\n\nCarries a machine code rather than a sentence, for the same reason errors do:\nthe frontend owns the wording.",
+        "properties": {
+          "code": {
+            "description": "Machine-readable outcome, e.g. SIGNED_OUT.",
+            "title": "Code",
+            "type": "string"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Affected rows, where relevant.",
+            "title": "Count"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "MessageResponse",
+        "type": "object"
+      },
+      "PageResponse_CourseResponse_": {
+        "properties": {
+          "items": {
+            "description": "The rows on this page.",
+            "items": {
+              "$ref": "#/components/schemas/CourseResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "description": "The 1-based page number returned.",
+            "title": "Page",
+            "type": "integer"
+          },
+          "pages": {
+            "description": "Total number of pages.",
+            "title": "Pages",
+            "type": "integer"
+          },
+          "size": {
+            "description": "Rows per page.",
+            "title": "Size",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Rows matching the query overall, ignoring paging.",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages"
+        ],
+        "title": "PageResponse[CourseResponse]",
+        "type": "object"
+      },
+      "PageResponse_GradeResponse_": {
+        "properties": {
+          "items": {
+            "description": "The rows on this page.",
+            "items": {
+              "$ref": "#/components/schemas/GradeResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "description": "The 1-based page number returned.",
+            "title": "Page",
+            "type": "integer"
+          },
+          "pages": {
+            "description": "Total number of pages.",
+            "title": "Pages",
+            "type": "integer"
+          },
+          "size": {
+            "description": "Rows per page.",
+            "title": "Size",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Rows matching the query overall, ignoring paging.",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages"
+        ],
+        "title": "PageResponse[GradeResponse]",
+        "type": "object"
+      },
+      "PageResponse_StudentResponse_": {
+        "properties": {
+          "items": {
+            "description": "The rows on this page.",
+            "items": {
+              "$ref": "#/components/schemas/StudentResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "description": "The 1-based page number returned.",
+            "title": "Page",
+            "type": "integer"
+          },
+          "pages": {
+            "description": "Total number of pages.",
+            "title": "Pages",
+            "type": "integer"
+          },
+          "size": {
+            "description": "Rows per page.",
+            "title": "Size",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Rows matching the query overall, ignoring paging.",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages"
+        ],
+        "title": "PageResponse[StudentResponse]",
+        "type": "object"
+      },
+      "PasswordChangeRequest": {
+        "description": "A password change.\n\nThe current password is required even though the caller is already signed in: an\nunattended browser should not be enough to take an account over permanently.",
+        "properties": {
+          "current_password": {
+            "description": "The existing password.",
+            "minLength": 1,
+            "title": "Current Password",
+            "type": "string"
+          },
+          "new_password": {
+            "description": "The replacement, at least 12 characters. Length is the only rule: composition requirements measurably push people towards Password1! and a sticky note.",
+            "minLength": 12,
+            "title": "New Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "PasswordChangeRequest",
+        "type": "object"
+      },
+      "PreferencesRequest": {
+        "description": "A change to the caller's own display preferences.",
+        "properties": {
+          "full_name": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Display name.",
+            "title": "Full Name"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Language tag, or null to follow the organisation default.",
+            "examples": [
+              "de"
+            ],
+            "title": "Locale"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "light, dark, system, or null to follow the organisation default.",
+            "examples": [
+              "dark"
+            ],
+            "title": "Theme"
+          }
+        },
+        "title": "PreferencesRequest",
+        "type": "object"
+      },
+      "PrincipalResponse": {
+        "description": "The signed-in user, as the frontend needs them.\n\nReturned by sign-in and by ``GET /auth/me``. Carries the resolved locale and\ntheme so the first render is already correct, rather than flashing the default\nand then correcting itself.",
+        "properties": {
+          "email": {
+            "description": "Sign-in address.",
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "description": "Display name.",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "locale": {
+            "description": "Resolved language, after the organisation fallback.",
+            "title": "Locale",
+            "type": "string"
+          },
+          "role": {
+            "description": "One of: student, teacher, admin, superadmin.",
+            "title": "Role",
+            "type": "string"
+          },
+          "student_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The linked student record, if this account has one. Only set for students.",
+            "title": "Student Id"
+          },
+          "theme": {
+            "description": "Resolved colour scheme: light, dark or system.",
+            "title": "Theme",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "The account id.",
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "email",
+          "full_name",
+          "role",
+          "locale",
+          "theme"
+        ],
+        "title": "PrincipalResponse",
+        "type": "object"
+      },
+      "RankedStudentResponse": {
+        "description": "A student in a ranking.",
+        "properties": {
+          "average_percentage": {
+            "title": "Average Percentage",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "name",
+          "average_percentage"
+        ],
+        "title": "RankedStudentResponse",
+        "type": "object"
+      },
+      "SessionResponse": {
+        "description": "One live session, for the profile page's device list.",
+        "properties": {
+          "created_at": {
+            "description": "When the session began, ISO-8601 UTC.",
+            "title": "Created At",
+            "type": "string"
+          },
+          "ip_address": {
+            "description": "Client address at sign-in.",
+            "title": "Ip Address",
+            "type": "string"
+          },
+          "is_current": {
+            "description": "Whether this is the session making the request.",
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last request on this session.",
+            "title": "Last Seen At"
+          },
+          "token_sha256": {
+            "description": "Identifies the session for revocation. This is a hash — the session token itself cannot be recovered from it.",
+            "title": "Token Sha256",
+            "type": "string"
+          },
+          "user_agent": {
+            "description": "Client user agent, for labelling the device.",
+            "title": "User Agent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token_sha256",
+          "created_at",
+          "user_agent",
+          "ip_address",
+          "is_current"
+        ],
+        "title": "SessionResponse",
+        "type": "object"
+      },
+      "StudentCourseResponse": {
+        "description": "A course as it appears on a student's record.",
+        "properties": {
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "credits": {
+            "title": "Credits",
+            "type": "number"
+          },
+          "enrolled_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enrolled At"
+          },
+          "max_grade": {
+            "title": "Max Grade",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "passing_grade": {
+            "title": "Passing Grade",
+            "type": "number"
+          },
+          "status": {
+            "description": "Enrolment status.",
+            "title": "Status",
+            "type": "string"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          }
+        },
+        "required": [
+          "course_id",
+          "name",
+          "credits",
+          "max_grade",
+          "passing_grade",
+          "status"
+        ],
+        "title": "StudentCourseResponse",
+        "type": "object"
+      },
+      "StudentCreateRequest": {
+        "description": "A new student.",
+        "properties": {
+          "email": {
+            "examples": [
+              "nadia@example.com"
+            ],
+            "maxLength": 255,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          },
+          "first_name": {
+            "examples": [
+              "Nadia"
+            ],
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "examples": [
+              "Haddad"
+            ],
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Last Name",
+            "type": "string"
+          },
+          "student_id": {
+            "examples": [
+              "S041"
+            ],
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "first_name",
+          "last_name",
+          "email"
+        ],
+        "title": "StudentCreateRequest",
+        "type": "object"
+      },
+      "StudentResponse": {
+        "description": "A student, with the counts a list view needs.",
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO-8601 UTC.",
+            "title": "Created At"
+          },
+          "email": {
+            "description": "Contact address.",
+            "examples": [
+              "anna@example.com"
+            ],
+            "title": "Email",
+            "type": "string"
+          },
+          "enrolled_count": {
+            "default": 0,
+            "description": "Active enrolments.",
+            "title": "Enrolled Count",
+            "type": "integer"
+          },
+          "first_name": {
+            "description": "Given name.",
+            "examples": [
+              "Anna"
+            ],
+            "title": "First Name",
+            "type": "string"
+          },
+          "grade_count": {
+            "default": 0,
+            "description": "Grades recorded.",
+            "title": "Grade Count",
+            "type": "integer"
+          },
+          "last_name": {
+            "description": "Family name.",
+            "examples": [
+              "Schmidt"
+            ],
+            "title": "Last Name",
+            "type": "string"
+          },
+          "student_id": {
+            "description": "Institution-assigned identifier.",
+            "examples": [
+              "S001"
+            ],
+            "title": "Student Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO-8601 UTC.",
+            "title": "Updated At"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Linked login account, or null. Not every student signs in.",
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "student_id",
+          "first_name",
+          "last_name",
+          "email"
+        ],
+        "title": "StudentResponse",
+        "type": "object"
+      },
+      "StudentUpdateRequest": {
+        "description": "Changes to a student. Omitted fields are left alone.",
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          }
+        },
+        "title": "StudentUpdateRequest",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "\nStudent grade management: students, courses, enrolments, grades, reports and an\nAI assistant.\n\n### Errors\n\nEvery failure returns `application/problem+json` (RFC 9457) carrying a stable\nmachine-readable `code` and a structured `context`:\n\n```json\n{ \"type\": \"about:blank#STUDENT_NOT_FOUND\", \"status\": 404,\n  \"code\": \"STUDENT_NOT_FOUND\", \"detail\": \"No student with id 'S999'.\",\n  \"context\": { \"student_id\": \"S999\" } }\n```\n\n**Clients should render the `code`, not the `detail`.** `detail` is a\ndeveloper-facing string and is only ever English; the interface translates the code\ninto the reader's language. This is why the API ships no message catalogue.\n\n### Authorization\n\nAuthentication is a session cookie (`HttpOnly`, `SameSite=Lax`). Access is filtered\nin the query rather than checked in the handler, so what you can see depends on your\nrole:\n\n| Role | Students | Courses | Grades |\n|---|---|---|---|\n| `student` | only themselves | those they are enrolled on | only their own |\n| `teacher` | those enrolled on a course they own | those they own | within their own courses |\n| `admin` | all | all | all |\n| `superadmin` | all, plus AI provider configuration | all | all |\n\nA list endpoint returns what you may see, never a `403`. Only *actions* beyond your\nrole return `403`.\n",
+    "title": "Grade Tracker API",
+    "version": "2.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/analytics/at-risk": {
+      "get": {
+        "description": "Worst first, since that is the order an intervention list is read in. Ungraded students are excluded: no data is not the same as poor performance.",
+        "operationId": "at_risk_analytics_at_risk_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "threshold",
+            "required": false,
+            "schema": {
+              "default": 60.0,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Threshold",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RankedStudentResponse"
+                  },
+                  "title": "Response At Risk Analytics At Risk Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Students below a threshold",
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/analytics/dashboard": {
+      "get": {
+        "description": "Scoped: a teacher's dashboard describes their own courses, a student's describes their own record.",
+        "operationId": "dashboard_analytics_dashboard_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Headline numbers",
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/analytics/top-students": {
+      "get": {
+        "description": "Students with no grades are excluded rather than ranked as zero.",
+        "operationId": "top_students_analytics_top_students_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RankedStudentResponse"
+                  },
+                  "title": "Response Top Students Analytics Top Students Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Highest-averaging students",
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "description": "Verifies credentials and opens a session, returned as an HttpOnly cookie.\n\nA wrong password and an unknown email produce the same `INVALID_CREDENTIALS` response and take the same time, so neither reveals whether an account exists. Repeated failures from one email and address are locked out temporarily.",
+        "operationId": "login_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "`INVALID_CREDENTIALS` — email or password is wrong."
+          },
+          "403": {
+            "description": "`ACCOUNT_DISABLED` — the account has been deactivated."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "`TOO_MANY_ATTEMPTS` — locked out; see `context.retry_after_seconds`."
+          }
+        },
+        "summary": "Sign in",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "description": "Closes the current session and clears the cookie.",
+        "operationId": "logout_auth_logout_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sign out",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "description": "Returns the signed-in user together with their resolved locale and theme, so the first render is already correct rather than flashing a default.",
+        "operationId": "me_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "`NOT_AUTHENTICATED` — no valid session."
+          }
+        },
+        "summary": "Identify the current user",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/courses": {
+      "get": {
+        "description": "Paginated, sortable and searchable.\n\nResults are filtered to what your role permits: a student sees only themselves, a teacher sees students enrolled on a course they own, an administrator sees everyone. An out-of-scope id returns `404`, not `403` — a `403` would confirm that a record with that id exists.",
+        "operationId": "list_courses_courses_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Size",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`id`, `name`, `term`, `credits` or `created`.",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`id`, `name`, `term`, `credits` or `created`.",
+              "title": "Sort"
+            }
+          },
+          {
+            "description": "Free text over name and id.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free text over name and id.",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "Only this academic term.",
+            "in": "query",
+            "name": "term",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this academic term.",
+              "title": "Term"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponse_CourseResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List courses",
+        "tags": [
+          "Courses"
+        ]
+      },
+      "post": {
+        "description": "A teacher creating a course owns it by default — the alternative is a course they immediately cannot see.",
+        "operationId": "create_course_courses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "`DUPLICATE_ENTRY` — the id is taken."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add a course",
+        "tags": [
+          "Courses"
+        ]
+      }
+    },
+    "/courses/{course_id}": {
+      "delete": {
+        "description": "Delete a course and, by cascade, its grades and enrolments.",
+        "operationId": "delete_course_courses__course_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — you do not own this course."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a course",
+        "tags": [
+          "Courses"
+        ]
+      },
+      "get": {
+        "description": "Fetch one course.",
+        "operationId": "get_course_courses__course_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`COURSE_NOT_FOUND` — unknown, or outside your scope."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fetch one course",
+        "tags": [
+          "Courses"
+        ]
+      },
+      "patch": {
+        "description": "Read access is broader than write access: a student can see a course they are enrolled on and cannot rename it. Reassigning `teacher_id` is administrators only, since it changes who can see the course.",
+        "operationId": "update_course_courses__course_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — you do not own this course."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update a course",
+        "tags": [
+          "Courses"
+        ]
+      }
+    },
+    "/courses/{course_id}/enrollments": {
+      "get": {
+        "description": "Includes students with no grades yet — `grade_count` of zero. That state is the reason enrolments exist as their own table rather than being inferred from grades.",
+        "operationId": "list_enrollments_courses__course_id__enrollments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EnrollmentResponse"
+                  },
+                  "title": "Response List Enrollments Courses  Course Id  Enrollments Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`COURSE_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List a course's register",
+        "tags": [
+          "Courses"
+        ]
+      },
+      "post": {
+        "description": "Enrol a student on a course.",
+        "operationId": "enroll_courses__course_id__enrollments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — you do not own this course."
+          },
+          "409": {
+            "description": "`COURSE_FULL` or `DUPLICATE_ENTRY`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enrol a student",
+        "tags": [
+          "Courses"
+        ]
+      }
+    },
+    "/courses/{course_id}/enrollments/{student_id}": {
+      "delete": {
+        "description": "For correcting a registration made in error. For a student who left, prefer setting the status to `withdrawn` so the record survives.",
+        "operationId": "unenroll_courses__course_id__enrollments__student_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove an enrolment",
+        "tags": [
+          "Courses"
+        ]
+      },
+      "patch": {
+        "description": "Use `withdrawn` for a student who left; the enrolment row and any grades earned before it are retained.",
+        "operationId": "set_enrollment_status_courses__course_id__enrollments__student_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollmentStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change an enrolment's status",
+        "tags": [
+          "Courses"
+        ]
+      }
+    },
+    "/grades": {
+      "get": {
+        "description": "Paginated, sortable and searchable, filtered to what your role permits.\n\nA grade is visible only when **both** its student and its course are. That is why a teacher cannot read a shared student's marks from a colleague's course, even though the student is otherwise in their scope.",
+        "operationId": "list_grades_grades_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Size",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`date`, `score`, `student`, `course`, `title` or `created`; `-` reverses.",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`date`, `score`, `student`, `course`, `title` or `created`; `-` reverses.",
+              "title": "Sort"
+            }
+          },
+          {
+            "description": "Free text over student, course and title.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free text over student, course and title.",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "Only this student's grades.",
+            "in": "query",
+            "name": "student_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this student's grades.",
+              "title": "Student Id"
+            }
+          },
+          {
+            "description": "Only this course's grades.",
+            "in": "query",
+            "name": "course_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this course's grades.",
+              "title": "Course Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponse_GradeResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List grades",
+        "tags": [
+          "Grades"
+        ]
+      },
+      "post": {
+        "description": "The date accepts ISO `YYYY-MM-DD` as well as `DD-MM-YYYY`, `DD.MM.YYYY` and `DD/MM/YYYY`, and is normalised to ISO on the way in.\n\nUse `title` and `weight` for several assessments in one course — a midterm and a final with different weights.",
+        "operationId": "record_grade_grades_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradeCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — you cannot grade this course."
+          },
+          "404": {
+            "description": "`STUDENT_NOT_FOUND` or `COURSE_NOT_FOUND`."
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — score out of range, or an unparseable date."
+          }
+        },
+        "summary": "Record a grade",
+        "tags": [
+          "Grades"
+        ]
+      }
+    },
+    "/grades/{grade_id}": {
+      "delete": {
+        "description": "Soft delete. The row is retained and excluded from reads, because an altered mark is exactly the kind of change a student may later dispute.",
+        "operationId": "retire_grade_grades__grade_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grade_id",
+            "required": true,
+            "schema": {
+              "title": "Grade Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`GRADE_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retire a grade",
+        "tags": [
+          "Grades"
+        ]
+      },
+      "get": {
+        "description": "Fetch one grade.",
+        "operationId": "get_grade_grades__grade_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grade_id",
+            "required": true,
+            "schema": {
+              "title": "Grade Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`GRADE_NOT_FOUND` — unknown, or outside your scope."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fetch one grade",
+        "tags": [
+          "Grades"
+        ]
+      },
+      "patch": {
+        "description": "The previous values are written to the audit trail.",
+        "operationId": "amend_grade_grades__grade_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grade_id",
+            "required": true,
+            "schema": {
+              "title": "Grade Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradeUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — you cannot grade this course."
+          },
+          "404": {
+            "description": "`GRADE_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Amend a grade",
+        "tags": [
+          "Grades"
+        ]
+      }
+    },
+    "/grades/{grade_id}/history": {
+      "get": {
+        "description": "Who changed this mark, when, and from what. Scope is checked first, so the trail cannot be used to read a grade indirectly.",
+        "operationId": "grade_history_grades__grade_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grade_id",
+            "required": true,
+            "schema": {
+              "title": "Grade Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEntryResponse"
+                  },
+                  "title": "Response Grade History Grades  Grade Id  History Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`GRADE_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "A grade's change history",
+        "tags": [
+          "Grades"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Report that the process is up.\n\nReturns:\n    The service version.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness check",
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/org/branding": {
+      "get": {
+        "description": "**Public** — the sign-in page needs the logo and colours before anyone has signed in.\n\nColours carry a `light` and a `dark` variant. The client injects them as CSS custom properties, so re-theming needs no rebuild; two variants because a colour legible on white is frequently illegible on near-black.\n\nAlso carries the enabled locales, the default theme, and the grading scale — the A/B/C/D/F bands are configuration, not code.",
+        "operationId": "branding_org_branding_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Branding Org Branding Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Organisation branding and configuration",
+        "tags": [
+          "Organisation"
+        ]
+      }
+    },
+    "/profile": {
+      "patch": {
+        "description": "Changes display name, language or colour scheme for the signed-in user.\n\nPreferences are stored on the account rather than only in the browser, so they follow the user to another device. Passing `null` for locale or theme clears the preference and falls back to the organisation default.",
+        "operationId": "update_preferences_profile_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — unsupported locale or theme."
+          }
+        },
+        "summary": "Update your own preferences",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/password": {
+      "post": {
+        "description": "Requires the current password even though you are signed in — an unattended browser should not be enough to take an account over permanently.\n\n**Every session is closed, including this one.** A password change is how someone responds to a suspected compromise; leaving the attacker's session alive would defeat the point. The client must sign in again.",
+        "operationId": "change_password_profile_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "`INVALID_CREDENTIALS` — the current password is wrong."
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — the replacement is too short or unchanged."
+          }
+        },
+        "summary": "Change your password",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/sessions": {
+      "get": {
+        "description": "Every device currently signed in as you, most recently active first. The session making the request is flagged `is_current`.\n\n`token_sha256` identifies a session for revocation; the session token itself cannot be recovered from it.",
+        "operationId": "list_sessions_profile_sessions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionResponse"
+                  },
+                  "title": "Response List Sessions Profile Sessions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List your active sessions",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/sessions/revoke-others": {
+      "post": {
+        "description": "Closes every session except the one making the request.",
+        "operationId": "revoke_other_sessions_profile_sessions_revoke_others_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sign out your other devices",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/sessions/{token_sha256}": {
+      "delete": {
+        "description": "Signs one device out. The lookup is scoped to your own account, so a caller cannot revoke somebody else's session by guessing a hash.",
+        "operationId": "revoke_session_profile_sessions__token_sha256__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token_sha256",
+            "required": true,
+            "schema": {
+              "title": "Token Sha256",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`SESSION_NOT_FOUND` — no such session on this account."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke one session",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/reports/course/{course_id}": {
+      "get": {
+        "description": "A student requesting this sees the class statistics but only their own marks.",
+        "operationId": "course_report_reports_course__course_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Course Report Reports Course  Course Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`COURSE_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "A course's report",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/student/{student_id}": {
+      "get": {
+        "description": "Numbers and identifiers only — no sentences. The client renders the wording.\n\nA student's own report is complete. A teacher's copy contains only the grades from courses they own, so the report cannot expose marks a scoped list endpoint would have hidden.",
+        "operationId": "student_report_reports_student__student_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Student Report Reports Student  Student Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`STUDENT_NOT_FOUND` — unknown, or outside your scope."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "A student's report",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/summary": {
+      "get": {
+        "description": "Totals, distribution, top students and at-risk students. Staff only: a summary over every student cannot be meaningfully scoped to one of them.",
+        "operationId": "summary_report_reports_summary_get",
+        "parameters": [
+          {
+            "description": "Percentage below which a student is at risk.",
+            "in": "query",
+            "name": "at_risk_threshold",
+            "required": false,
+            "schema": {
+              "default": 60.0,
+              "description": "Percentage below which a student is at risk.",
+              "maximum": 100,
+              "minimum": 0,
+              "title": "At Risk Threshold",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Summary Report Reports Summary Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Institution-wide summary",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/{kind}/{entity_id}/export.csv": {
+      "get": {
+        "description": "The one endpoint that returns translated prose, because a downloaded file has no frontend to render it. `?locale=de` or `fr` also switches the delimiter to `;`, which is what Excel expects in those locales — a comma-separated file opens there as a single column.\n\nUse `summary` as both `kind` and `entity_id` for the institution-wide report.",
+        "operationId": "export_csv_reports__kind___entity_id__export_csv_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Language for CSV column headers.",
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "description": "Language for CSV column headers.",
+              "examples": [
+                "de"
+              ],
+              "title": "Locale",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {},
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The CSV file."
+          },
+          "404": {
+            "description": "`STUDENT_NOT_FOUND` or `COURSE_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download a report as CSV",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/students": {
+      "get": {
+        "description": "Paginated, sortable and searchable.\n\nResults are filtered to what your role permits: a student sees only themselves, a teacher sees students enrolled on a course they own, an administrator sees everyone. An out-of-scope id returns `404`, not `403` — a `403` would confirm that a record with that id exists.",
+        "operationId": "list_students_students_get",
+        "parameters": [
+          {
+            "description": "1-based page number.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "1-based page number.",
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Rows per page.",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "description": "Rows per page.",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Size",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`id`, `first_name`, `last_name`, `email` or `created`; `-` to reverse.",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`id`, `first_name`, `last_name`, `email` or `created`; `-` to reverse.",
+              "title": "Sort"
+            }
+          },
+          {
+            "description": "Free text over name, email and id.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free text over name, email and id.",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "Only students on this course.",
+            "in": "query",
+            "name": "course_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only students on this course.",
+              "title": "Course Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponse_StudentResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List students",
+        "tags": [
+          "Students"
+        ]
+      },
+      "post": {
+        "description": "Administrators only. A student record belongs to the institution's register, not to a course — and a teacher creating one could not read it back, since their scope is defined by enrolment. Teachers enrol existing students instead.",
+        "operationId": "create_student_students_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — administrators only."
+          },
+          "409": {
+            "description": "`DUPLICATE_ENTRY` — the id or email is taken."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add a student",
+        "tags": [
+          "Students"
+        ]
+      }
+    },
+    "/students/{student_id}": {
+      "delete": {
+        "description": "Removes the student and, by cascade, their grades and enrolments. Their audit history survives.",
+        "operationId": "delete_student_students__student_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`STUDENT_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a student",
+        "tags": [
+          "Students"
+        ]
+      },
+      "get": {
+        "description": "Fetch one student.",
+        "operationId": "get_student_students__student_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`STUDENT_NOT_FOUND` — unknown, or outside your scope."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fetch one student",
+        "tags": [
+          "Students"
+        ]
+      },
+      "patch": {
+        "description": "Administrators only — see `POST /students`.",
+        "operationId": "update_student_students__student_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — administrators only."
+          },
+          "404": {
+            "description": "`STUDENT_NOT_FOUND`."
+          },
+          "409": {
+            "description": "`DUPLICATE_ENTRY`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update a student",
+        "tags": [
+          "Students"
+        ]
+      }
+    },
+    "/students/{student_id}/courses": {
+      "get": {
+        "description": "List the courses a student is enrolled on.",
+        "operationId": "student_courses_students__student_id__courses_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StudentCourseResponse"
+                  },
+                  "title": "Response Student Courses Students  Student Id  Courses Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`STUDENT_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List a student's courses",
+        "tags": [
+          "Students"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "description": "Sign in, sign out, identify the caller.",
+      "name": "Authentication"
+    },
+    {
+      "description": "The signed-in user's own account and devices.",
+      "name": "Profile"
+    },
+    {
+      "description": "Student records and their enrolments.",
+      "name": "Students"
+    },
+    {
+      "description": "Courses and their registers. Enrolment is separate from grading: a student can be enrolled without having been assessed yet.",
+      "name": "Courses"
+    },
+    {
+      "description": "Recording, amending and retiring marks.",
+      "name": "Grades"
+    },
+    {
+      "description": "Structured report payloads. The client renders the wording, which is why the API ships no message catalogue.",
+      "name": "Reports"
+    },
+    {
+      "description": "Dashboard figures and rankings, scoped to the caller.",
+      "name": "Analytics"
+    },
+    {
+      "description": "Branding, locales, theme and grading scale.",
+      "name": "Organisation"
+    }
+  ]
+}

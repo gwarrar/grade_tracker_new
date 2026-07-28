@@ -148,19 +148,26 @@ def sign_in(test_client: TestClient, key: str) -> TestClient:
     return test_client
 
 
+# Each of these builds its own client rather than sharing `client`. A test taking
+# two roles at once -- comparing an admin's dashboard against a teacher's, say --
+# would otherwise have the second sign-in overwrite the first one's cookie, and the
+# assertion would silently compare a role against itself.
 @pytest.fixture
-def as_admin(client: TestClient) -> TestClient:
+def as_admin(app: FastAPI) -> Iterator[TestClient]:
     """A client signed in as an administrator."""
-    return sign_in(client, "admin")
+    with TestClient(app) as test_client:
+        yield sign_in(test_client, "admin")
 
 
 @pytest.fixture
-def as_teacher(client: TestClient) -> TestClient:
+def as_teacher(app: FastAPI) -> Iterator[TestClient]:
     """A client signed in as the teacher who owns CS101."""
-    return sign_in(client, "teacher")
+    with TestClient(app) as test_client:
+        yield sign_in(test_client, "teacher")
 
 
 @pytest.fixture
-def as_student(client: TestClient) -> TestClient:
+def as_student(app: FastAPI) -> Iterator[TestClient]:
     """A client signed in as the student linked to S001."""
-    return sign_in(client, "student")
+    with TestClient(app) as test_client:
+        yield sign_in(test_client, "student")

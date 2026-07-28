@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import get_settings
 from api.problems import register_handlers
-from api.routers import auth, profile
+from api.routers import auth, directory, grades, profile, reports
 from notenverwaltung import __version__
 from notenverwaltung.storage import apply_migrations, connect
 from services.auth import LoginThrottle
@@ -92,6 +92,27 @@ def create_app() -> FastAPI:
         openapi_tags=[
             {"name": "Authentication", "description": "Sign in, sign out, identify the caller."},
             {"name": "Profile", "description": "The signed-in user's own account and devices."},
+            {"name": "Students", "description": "Student records and their enrolments."},
+            {
+                "name": "Courses",
+                "description": (
+                    "Courses and their registers. Enrolment is separate from grading: "
+                    "a student can be enrolled without having been assessed yet."
+                ),
+            },
+            {"name": "Grades", "description": "Recording, amending and retiring marks."},
+            {
+                "name": "Reports",
+                "description": (
+                    "Structured report payloads. The client renders the wording, which "
+                    "is why the API ships no message catalogue."
+                ),
+            },
+            {
+                "name": "Analytics",
+                "description": "Dashboard figures and rankings, scoped to the caller.",
+            },
+            {"name": "Organisation", "description": "Branding, locales, theme and grading scale."},
         ],
     )
 
@@ -111,6 +132,12 @@ def create_app() -> FastAPI:
     register_handlers(app)
     app.include_router(auth.router)
     app.include_router(profile.router)
+    app.include_router(directory.students_router)
+    app.include_router(directory.courses_router)
+    app.include_router(grades.router)
+    app.include_router(reports.reports_router)
+    app.include_router(reports.analytics_router)
+    app.include_router(reports.org_router)
 
     @app.get("/health", tags=["System"], summary="Liveness check")
     def health() -> dict[str, str]:  # pyright: ignore[reportUnusedFunction] - route-registered
