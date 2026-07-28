@@ -11,7 +11,8 @@
     "reports": "Reports",
     "admin": "Admin",
     "profile": "Profile",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "aiSettings": "AI providers"
   },
   "auth": {
     "signIn": "Sign in",
@@ -115,7 +116,10 @@
     "AI_PROVIDER_NOT_FOUND": "No such provider.",
     "AI_PROVIDER_DISABLED": "That provider is disabled.",
     "AI_NOT_CONFIGURED": "No provider configured for this feature.",
-    "AI_ERROR": "The provider call failed."
+    "AI_ERROR": "The provider call failed.",
+    "USER_NOT_FOUND": "That account could not be found.",
+    "LAST_SUPERADMIN": "Someone must be able to configure the system. Promote another superadmin first.",
+    "CANNOT_MODIFY_SELF": "You cannot change your own role or deactivate yourself."
   },
   "landing": {
     "nav": {
@@ -247,6 +251,26 @@
         "import": "Import assistant"
       },
       "featureLabel": "Feature"
+    },
+    "users": {
+      "title": "Accounts",
+      "intro": "Who can sign in, and what they may do.",
+      "add": "Add account",
+      "search": "Search by name or email",
+      "showInactive": "Include deactivated",
+      "role": "Role",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Deactivated",
+      "sessions": "Signed in",
+      "deactivate": "Deactivate",
+      "activate": "Reactivate",
+      "resetPassword": "Reset password",
+      "created": "Account created",
+      "passwordOnce": "Give this password to the person now. It is not shown again.",
+      "copied": "Copied",
+      "copy": "Copy",
+      "linkedStudent": "Student record"
     }
   },
   "assistant": {

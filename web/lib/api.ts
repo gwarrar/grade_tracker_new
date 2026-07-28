@@ -82,9 +82,20 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
   return payload as T;
 }
 
-/** Response body of a path and method, from the generated schema. */
+/**
+ * Response body of a path and method, from the generated schema.
+ *
+ * Both 200 and 201 are matched. Only checking 200 silently resolved every
+ * created-resource endpoint to `never`, which does not fail where the type is
+ * declared — it fails later, at the first property access, with a message that
+ * points at the wrong line.
+ */
 export type Response<P extends Path, M extends keyof paths[P]> = paths[P][M] extends {
   responses: { 200: { content: { "application/json": infer R } } };
 }
   ? R
-  : never;
+  : paths[P][M] extends {
+        responses: { 201: { content: { "application/json": infer R } } };
+      }
+    ? R
+    : never;

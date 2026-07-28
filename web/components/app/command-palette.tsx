@@ -45,7 +45,8 @@ const ROUTES = [
   { href: "/grades", key: "grades", min: "student" },
   { href: "/reports", key: "reports", min: "teacher" },
   { href: "/profile", key: "profile", min: "student" },
-  { href: "/admin/ai", key: "admin", min: "superadmin" },
+  { href: "/admin/users", key: "admin", min: "admin" },
+  { href: "/admin/ai", key: "aiSettings", min: "superadmin" },
 ] as const;
 
 export function CommandPalette({ me }: { me: Me }) {

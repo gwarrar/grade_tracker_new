@@ -11,7 +11,8 @@
     "reports": "Berichte",
     "admin": "Verwaltung",
     "profile": "Profil",
-    "signOut": "Abmelden"
+    "signOut": "Abmelden",
+    "aiSettings": "KI-Anbieter"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -115,7 +116,10 @@
     "AI_PROVIDER_NOT_FOUND": "Anbieter nicht gefunden.",
     "AI_PROVIDER_DISABLED": "Dieser Anbieter ist deaktiviert.",
     "AI_NOT_CONFIGURED": "Für diese Funktion ist kein Anbieter eingerichtet.",
-    "AI_ERROR": "Der Aufruf beim Anbieter ist fehlgeschlagen."
+    "AI_ERROR": "Der Aufruf beim Anbieter ist fehlgeschlagen.",
+    "USER_NOT_FOUND": "Dieses Konto wurde nicht gefunden.",
+    "LAST_SUPERADMIN": "Jemand muss das System verwalten können. Ernennen Sie zuerst eine weitere Person.",
+    "CANNOT_MODIFY_SELF": "Sie können weder Ihre eigene Rolle ändern noch sich selbst deaktivieren."
   },
   "landing": {
     "nav": {
@@ -247,6 +251,26 @@
         "import": "Import-Assistent"
       },
       "featureLabel": "Funktion"
+    },
+    "users": {
+      "title": "Konten",
+      "intro": "Wer sich anmelden darf und was er tun kann.",
+      "add": "Konto anlegen",
+      "search": "Nach Name oder E-Mail suchen",
+      "showInactive": "Deaktivierte einbeziehen",
+      "role": "Rolle",
+      "status": "Status",
+      "active": "Aktiv",
+      "inactive": "Deaktiviert",
+      "sessions": "Angemeldet",
+      "deactivate": "Deaktivieren",
+      "activate": "Wieder aktivieren",
+      "resetPassword": "Passwort zurücksetzen",
+      "created": "Konto angelegt",
+      "passwordOnce": "Geben Sie dieses Passwort jetzt weiter. Es wird nicht erneut angezeigt.",
+      "copied": "Kopiert",
+      "copy": "Kopieren",
+      "linkedStudent": "Studierendensatz"
     }
   },
   "assistant": {

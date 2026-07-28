@@ -185,6 +185,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List accounts
+         * @description List accounts.
+         *
+         *     Args:
+         *         _: Enforces the admin role.
+         *         users: The service.
+         *         q: Search term.
+         *         include_inactive: Whether deactivated accounts appear.
+         *
+         *     Returns:
+         *         Matching accounts, ordered by name.
+         */
+        get: operations["list_users_admin_users_get"];
+        put?: never;
+        /**
+         * Create an account
+         * @description The initial password is generated and returned once. An administrator choosing it would mean the password is known to two people from the moment it exists.
+         */
+        post: operations["create_user_admin_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{user_id}/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Activate or deactivate an account
+         * @description Deactivating also revokes every session for the account. An account that cannot sign in but stays signed in is not deactivated in any useful sense.
+         */
+        put: operations["set_active_admin_users__user_id__active_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{user_id}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a temporary password
+         * @description Mints a replacement and revokes every session. An administrator never sees an existing password — a reset is what you do when you suspect the account is compromised, and leaving the intruder signed in defeats it.
+         */
+        post: operations["reset_password_admin_users__user_id__reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{user_id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change an account's role
+         * @description Change what an account may do.
+         *
+         *     Args:
+         *         user_id: Which account.
+         *         body: The new role.
+         *         _: Enforces the admin role.
+         *         users: The service.
+         *         conn: The request's connection.
+         *
+         *     Returns:
+         *         The updated account.
+         */
+        put: operations["set_role_admin_users__user_id__role_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ai/ask": {
         parameters: {
             query?: never;
@@ -949,6 +1052,14 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * ActiveRequest
+         * @description An activation change.
+         */
+        ActiveRequest: {
+            /** Is Active */
+            is_active: boolean;
+        };
+        /**
          * AskRequest
          * @description A question about the gradebook.
          */
@@ -1226,6 +1337,36 @@ export interface components {
             teacher_id?: number | null;
             /** Term */
             term?: string | null;
+        };
+        /**
+         * CreateUserRequest
+         * @description A new account.
+         */
+        CreateUserRequest: {
+            /**
+             * Email
+             * @example k.weber@school.test
+             */
+            email: string;
+            /**
+             * Full Name
+             * @example Katrin Weber
+             */
+            full_name: string;
+            /** @example teacher */
+            role: components["schemas"]["Role"];
+        };
+        /**
+         * CreatedUserResponse
+         * @description A newly created account and its one-time password.
+         */
+        CreatedUserResponse: {
+            /**
+             * Initial Password
+             * @description Shown once and never retrievable. Hand it to the person; they change it from their profile.
+             */
+            initial_password: string;
+            user: components["schemas"]["UserResponse"];
         };
         /**
          * DashboardResponse
@@ -1764,6 +1905,17 @@ export interface components {
             new_password: string;
         };
         /**
+         * PasswordResetResponse
+         * @description A freshly issued temporary password.
+         */
+        PasswordResetResponse: {
+            /**
+             * Temporary Password
+             * @description Shown once. Every session for the account has been revoked.
+             */
+            temporary_password: string;
+        };
+        /**
          * PreferencesRequest
          * @description A change to the caller's own display preferences.
          */
@@ -1953,6 +2105,23 @@ export interface components {
             name: string;
             /** Student Id */
             student_id: string;
+        };
+        /**
+         * Role
+         * @description What a user may do.
+         *
+         *     Ordered by authority, which :meth:`outranks` relies on. A ``StrEnum`` so the value
+         *     stored in the database is the readable name rather than an integer nobody can
+         *     interpret while reading a row by hand.
+         * @enum {string}
+         */
+        Role: "student" | "teacher" | "admin" | "superadmin";
+        /**
+         * RoleRequest
+         * @description A role change.
+         */
+        RoleRequest: {
+            role: components["schemas"]["Role"];
         };
         /**
          * RoutingRequest
@@ -2254,6 +2423,41 @@ export interface components {
             /** Output Tokens */
             output_tokens: number;
         };
+        /**
+         * UserResponse
+         * @description One account.
+         *
+         *     Carries no password material at all — the service's record type has no such
+         *     field, so there is nothing here to forget to exclude.
+         */
+        UserResponse: {
+            /** Created At */
+            created_at: string;
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /** Id */
+            id: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Locale */
+            locale: string | null;
+            /** Role */
+            role: string;
+            /**
+             * Session Count
+             * @description How many unexpired sessions this account has.
+             */
+            session_count: number;
+            /**
+             * Student Id
+             * @description The student record linked to this account, if any.
+             */
+            student_id: string | null;
+            /** Updated At */
+            updated_at: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -2500,6 +2704,209 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UsageResponse"][];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_admin_users_get: {
+        parameters: {
+            query?: {
+                /** @description Substring of name or email. */
+                q?: string;
+                /** @description Include deactivated accounts. On by default. */
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_admin_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedUserResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — you cannot grant a role at or above your own. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `DUPLICATE_ENTRY` — that email already has an account. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_active_admin_users__user_id__active_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActiveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description `CANNOT_MODIFY_SELF` or `LAST_SUPERADMIN`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_password_admin_users__user_id__reset_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordResetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_role_admin_users__user_id__role_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — outside what you may grant or act on. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `CANNOT_MODIFY_SELF` — you cannot change your own role. `LAST_SUPERADMIN` — someone must be able to configure the system. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -11,7 +11,8 @@
     "reports": "Rapports",
     "admin": "Administration",
     "profile": "Profil",
-    "signOut": "Se déconnecter"
+    "signOut": "Se déconnecter",
+    "aiSettings": "Fournisseurs d’IA"
   },
   "auth": {
     "signIn": "Se connecter",
@@ -115,7 +116,10 @@
     "AI_PROVIDER_NOT_FOUND": "Fournisseur introuvable.",
     "AI_PROVIDER_DISABLED": "Ce fournisseur est désactivé.",
     "AI_NOT_CONFIGURED": "Aucun fournisseur configuré pour cette fonction.",
-    "AI_ERROR": "L’appel au fournisseur a échoué."
+    "AI_ERROR": "L’appel au fournisseur a échoué.",
+    "USER_NOT_FOUND": "Ce compte est introuvable.",
+    "LAST_SUPERADMIN": "Quelqu’un doit pouvoir administrer le système. Nommez d’abord un autre super-administrateur.",
+    "CANNOT_MODIFY_SELF": "Vous ne pouvez ni changer votre propre rôle ni vous désactiver."
   },
   "landing": {
     "nav": {
@@ -247,6 +251,26 @@
         "import": "Assistant d’import"
       },
       "featureLabel": "Fonction"
+    },
+    "users": {
+      "title": "Comptes",
+      "intro": "Qui peut se connecter, et ce qu’il peut faire.",
+      "add": "Créer un compte",
+      "search": "Rechercher par nom ou courriel",
+      "showInactive": "Inclure les comptes désactivés",
+      "role": "Rôle",
+      "status": "Statut",
+      "active": "Actif",
+      "inactive": "Désactivé",
+      "sessions": "Connecté",
+      "deactivate": "Désactiver",
+      "activate": "Réactiver",
+      "resetPassword": "Réinitialiser le mot de passe",
+      "created": "Compte créé",
+      "passwordOnce": "Transmettez ce mot de passe maintenant. Il ne sera plus affiché.",
+      "copied": "Copié",
+      "copy": "Copier",
+      "linkedStudent": "Fiche étudiant"
     }
   },
   "assistant": {
