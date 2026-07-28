@@ -385,3 +385,41 @@ def run(context: ToolContext, name: str, arguments: dict[str, Any]) -> dict[str,
         return handler(context, arguments)
     except ToolError as error:
         return {"error": str(error)}
+
+
+#: Schemas for actions the command palette can *propose*.
+#:
+#: Declared with no entry in :data:`HANDLERS`, deliberately. The agent loop halts at
+#: the first of these and returns it for confirmation, so there is no code path by
+#: which a model's tool call becomes a write. The AI holds no write privilege at
+#: all — it fills in a form that a person then submits.
+WRITE_TOOLS: list[ToolSpec] = [
+    ToolSpec(
+        name="record_grade",
+        description="Propose recording a grade. The user confirms before anything is saved.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "student_id": {"type": "string", "description": "Exact student id."},
+                "course_id": {"type": "string", "description": "Exact course id."},
+                "score": {"type": "number", "description": "The mark, on the course's scale."},
+                "title": {"type": "string", "description": "What was assessed."},
+            },
+            "required": ["student_id", "course_id", "score"],
+            "additionalProperties": False,
+        },
+    ),
+    ToolSpec(
+        name="enrol_student",
+        description="Propose enrolling a student on a course. The user confirms first.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "student_id": {"type": "string"},
+                "course_id": {"type": "string"},
+            },
+            "required": ["student_id", "course_id"],
+            "additionalProperties": False,
+        },
+    ),
+]

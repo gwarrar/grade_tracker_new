@@ -1,6 +1,59 @@
 {
   "components": {
     "schemas": {
+      "AskRequest": {
+        "description": "A question about the gradebook.",
+        "properties": {
+          "question": {
+            "examples": [
+              "Which students are failing Databases?"
+            ],
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "AskRequest",
+        "type": "object"
+      },
+      "AskResponse": {
+        "description": "An answer, with the data it was built from.",
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "records": {
+            "description": "Every query the assistant ran, with its results. Rendered beside the prose so a wrong narrative sits next to the numbers that contradict it.",
+            "items": {
+              "$ref": "#/components/schemas/ToolRecordResponse"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "True when the turn cap stopped the assistant before it concluded.",
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text",
+          "records",
+          "truncated",
+          "model"
+        ],
+        "title": "AskResponse",
+        "type": "object"
+      },
       "AuditEntryResponse": {
         "description": "One entry from an entity's change history.",
         "properties": {
@@ -75,6 +128,60 @@
           "at"
         ],
         "title": "AuditEntryResponse",
+        "type": "object"
+      },
+      "CommandRequest": {
+        "description": "An instruction for the command palette.",
+        "properties": {
+          "instruction": {
+            "examples": [
+              "give Anna 88 in CS101"
+            ],
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Instruction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instruction"
+        ],
+        "title": "CommandRequest",
+        "type": "object"
+      },
+      "CommandResponse": {
+        "description": "A proposed action, awaiting confirmation.",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The action proposed, or null when the assistant answered in words.",
+            "title": "Action"
+          },
+          "message": {
+            "description": "Prose, when no action was proposed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": true,
+            "description": "Arguments the assistant filled in. Nothing has been written.",
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "action",
+          "params",
+          "message"
+        ],
+        "title": "CommandResponse",
         "type": "object"
       },
       "CourseCreateRequest": {
@@ -869,6 +976,117 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImportMapRequest": {
+        "description": "A spreadsheet's header row and a few sample rows.",
+        "properties": {
+          "headers": {
+            "examples": [
+              [
+                "Matrikelnr",
+                "Kurs",
+                "Punkte"
+              ]
+            ],
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Headers",
+            "type": "array"
+          },
+          "samples": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Samples",
+            "type": "array"
+          }
+        },
+        "required": [
+          "headers"
+        ],
+        "title": "ImportMapRequest",
+        "type": "object"
+      },
+      "ImportMapResponse": {
+        "description": "A proposed column mapping.",
+        "properties": {
+          "column_mapping": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Column Mapping",
+            "type": "object"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Issues",
+            "type": "array"
+          }
+        },
+        "required": [
+          "column_mapping",
+          "issues",
+          "confidence"
+        ],
+        "title": "ImportMapResponse",
+        "type": "object"
+      },
+      "InsightResponse": {
+        "description": "A generated summary of a student's or course's performance.",
+        "properties": {
+          "cached": {
+            "description": "True when served from cache. Insights are keyed by a hash of the statistics, so identical numbers are never regenerated.",
+            "title": "Cached",
+            "type": "boolean"
+          },
+          "factors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Factors",
+            "type": "array"
+          },
+          "risk_level": {
+            "title": "Risk Level",
+            "type": "string"
+          },
+          "suggested_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggested Actions",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "trend": {
+            "title": "Trend",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "risk_level",
+          "trend",
+          "factors",
+          "suggested_actions",
+          "cached"
+        ],
+        "title": "InsightResponse",
         "type": "object"
       },
       "LoginRequest": {
@@ -1860,6 +2078,32 @@
         "title": "TestResponse",
         "type": "object"
       },
+      "ToolRecordResponse": {
+        "description": "One tool call the assistant made.",
+        "properties": {
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool",
+          "arguments",
+          "result"
+        ],
+        "title": "ToolRecordResponse",
+        "type": "object"
+      },
       "UsageResponse": {
         "description": "One day's usage of one feature.",
         "properties": {
@@ -2292,6 +2536,184 @@
         "summary": "Usage and estimated cost",
         "tags": [
           "AI administration"
+        ]
+      }
+    },
+    "/ai/ask": {
+      "post": {
+        "description": "The assistant answers using tools that query the database directly. It never estimates a figure, and it sees only what you see — a student asking for everyone's grades receives their own.",
+        "operationId": "ask_ai_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ask a question about the gradebook",
+        "tags": [
+          "AI"
+        ]
+      }
+    },
+    "/ai/command": {
+      "post": {
+        "description": "**Nothing is written.** The assistant fills in a form and the caller submits it. The write tools are declared to the model but have no implementation, so there is no path from this endpoint to a change.",
+        "operationId": "command_ai_command_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Turn an instruction into a proposed action",
+        "tags": [
+          "AI"
+        ]
+      }
+    },
+    "/ai/import-map": {
+      "post": {
+        "description": "Admin and above. Returns a proposal only — the caller reviews it and the existing import endpoint does the writing.",
+        "operationId": "import_map_ai_import_map_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportMapRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportMapResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Propose a column mapping for a spreadsheet",
+        "tags": [
+          "AI"
+        ]
+      }
+    },
+    "/ai/insight/{entity_type}/{entity_id}": {
+      "get": {
+        "description": "Teacher and above. Statistics are computed first and passed to the model, which never chooses which numbers to fetch — a summary that picks its own evidence picks the flattering evidence.",
+        "operationId": "insight_ai_insight__entity_type___entity_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity_type",
+            "required": true,
+            "schema": {
+              "title": "Entity Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Summarise a student's or course's performance",
+        "tags": [
+          "AI"
         ]
       }
     },
