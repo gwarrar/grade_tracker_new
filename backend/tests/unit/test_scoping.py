@@ -12,7 +12,9 @@ from typing import Any
 
 import pytest
 
-from api.scoping import (
+from notenverwaltung.models import Role
+from notenverwaltung.storage.scope import ALLOW_ALL, DENY_ALL, Scope
+from services.scoping import (
     Principal,
     can_write_course,
     course_scope,
@@ -20,8 +22,6 @@ from api.scoping import (
     student_scope,
     user_scope,
 )
-from notenverwaltung.models import Role
-from notenverwaltung.storage.scope import ALLOW_ALL, DENY_ALL, Scope
 
 TEACHER_ID = 10
 OTHER_TEACHER_ID = 11

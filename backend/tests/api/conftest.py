@@ -13,9 +13,9 @@ from fastapi.testclient import TestClient
 from api.config import Settings, get_settings
 from api.deps import get_db
 from api.main import create_app
-from api.security import hash_password
 from notenverwaltung.models import Role
 from notenverwaltung.storage import apply_migrations, connect
+from services.security import hash_password
 
 PASSWORD = "test-password-2026"
 

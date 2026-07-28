@@ -9,27 +9,13 @@ from typing import Annotated
 from fastapi import Depends, Request
 
 from api.config import Settings, get_settings
-from api.scoping import Principal
-from notenverwaltung.exceptions import GradeBookError
+from notenverwaltung.exceptions import ForbiddenError, NotAuthenticatedError
 from notenverwaltung.models import Role
 from notenverwaltung.storage import SqliteGradeStore, connect
 from services.auth import AuthService, LoginThrottle
+from services.scoping import Principal
 
 SESSION_COOKIE = "gt_session"
-
-
-class NotAuthenticatedError(GradeBookError):
-    """Raised when an endpoint needs a signed-in user and there is none."""
-
-    code = "NOT_AUTHENTICATED"
-    http_status = 401
-
-
-class ForbiddenError(GradeBookError):
-    """Raised when a signed-in user lacks the role an action requires."""
-
-    code = "FORBIDDEN"
-    http_status = 403
 
 
 def get_throttle(request: Request) -> LoginThrottle:
@@ -145,7 +131,7 @@ def require_role(minimum: Role):  # noqa: ANN201 - returns an opaque FastAPI dep
 
     This gates the **action**, never the rows. "May this user record grades at all"
     is answered here; "may this user record a grade for *this* student" is answered
-    by :mod:`api.scoping`, in the query. Mixing the two is how row checks get
+    by :mod:`services.scoping`, in the query. Mixing the two is how row checks get
     forgotten on the endpoint added next month.
 
     Args:

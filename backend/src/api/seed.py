@@ -18,9 +18,9 @@ import sys
 from datetime import date, timedelta
 
 from api.config import get_settings
-from api.security import hash_password
 from notenverwaltung.models import Course, Grade, Role, Student, User
 from notenverwaltung.storage import SqliteGradeStore, apply_migrations, connect, transaction
+from services.security import hash_password
 
 _SEED = 20260728
 _DEMO_PASSWORD = "demo-password-2026"  # noqa: S105 - a demo credential, not a secret

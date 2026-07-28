@@ -91,3 +91,21 @@ class CourseFullError(GradeBookError):
 
     code = "COURSE_FULL"
     http_status = 409
+
+
+class NotAuthenticatedError(GradeBookError):
+    """Raised when an operation needs a signed-in user and there is none."""
+
+    code = "NOT_AUTHENTICATED"
+    http_status = 401
+
+
+class ForbiddenError(GradeBookError):
+    """Raised when a signed-in user lacks the authority an action requires.
+
+    Distinct from a *row* being out of scope, which surfaces as not-found instead —
+    a 403 on a specific id would confirm that a record with that id exists.
+    """
+
+    code = "FORBIDDEN"
+    http_status = 403

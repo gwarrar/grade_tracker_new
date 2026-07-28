@@ -15,11 +15,11 @@ from api.schemas.auth import (
     PrincipalResponse,
     SessionResponse,
 )
-from api.security import hash_token, utc_now
 from notenverwaltung.exceptions import ValidationError
 from notenverwaltung.models import SUPPORTED_LOCALES, Theme
 from notenverwaltung.storage import transaction
 from services.auth import AuthService
+from services.security import hash_token
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
 
@@ -37,7 +37,10 @@ router = APIRouter(prefix="/profile", tags=["Profile"])
     responses={422: {"description": "`VALIDATION_ERROR` — unsupported locale or theme."}},
 )
 def update_preferences(
-    payload: PreferencesRequest, principal: CurrentUser, conn: DbConn
+    payload: PreferencesRequest,
+    principal: CurrentUser,
+    conn: DbConn,
+    auth: Annotated[AuthService, Depends(get_auth)],
 ) -> PrincipalResponse:
     """Update the caller's own preferences.
 
@@ -45,6 +48,7 @@ def update_preferences(
         payload: The requested changes. Omitted fields are left alone.
         principal: The authenticated caller.
         conn: The request's database connection.
+        auth: The account service.
 
     Returns:
         The refreshed principal.
@@ -60,48 +64,21 @@ def update_preferences(
             field="locale",
             supported=list(SUPPORTED_LOCALES),
         )
-    if "theme" in fields and fields["theme"] is not None:
+    if fields.get("theme") is not None:
         try:
             Theme(fields["theme"])
         except ValueError as exc:
             raise ValidationError(f"Unknown theme {fields['theme']!r}.", field="theme") from exc
 
-    assignments = {
-        "locale": fields.get("locale"),
-        "theme_preference": fields.get("theme"),
-        "full_name": fields.get("full_name"),
-    }
-    # Only touch what the caller actually sent. Writing every column would turn an
-    # omitted field into an explicit null.
-    updates = {
-        column: value
-        for column, value in assignments.items()
-        if column.replace("theme_preference", "theme") in fields
-    }
-
-    if updates:
-        clause = ", ".join(f"{column} = ?" for column in updates)
-        with transaction(conn):
-            conn.execute(
-                f"UPDATE users SET {clause}, updated_at = ? WHERE id = ?",  # noqa: S608
-                (*updates.values(), utc_now(), principal.user_id),
-            )
-
-    row = conn.execute(
-        "SELECT id, email, role, full_name, is_active, locale, theme_preference"
-        " FROM users WHERE id = ?",
-        (principal.user_id,),
-    ).fetchone()
-    refreshed = principal.__class__(
-        user_id=row["id"],
-        role=principal.role,
-        email=row["email"],
-        full_name=row["full_name"],
-        student_id=principal.student_id,
-        locale=row["locale"] or principal.locale,
-        theme=Theme(row["theme_preference"]) if row["theme_preference"] else principal.theme,
-    )
-    return to_response(refreshed)
+    with transaction(conn):
+        auth.update_preferences(
+            principal.user_id,
+            locale=fields.get("locale"),
+            theme=fields.get("theme"),
+            full_name=fields.get("full_name"),
+            touched=frozenset(fields),
+        )
+    return to_response(auth.reload_principal(principal.user_id))
 
 
 @router.post(

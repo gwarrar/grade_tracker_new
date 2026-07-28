@@ -9,9 +9,9 @@ from fastapi import APIRouter, Depends, Request, Response, status
 from api.config import Settings, get_settings
 from api.deps import SESSION_COOKIE, CurrentUser, DbConn, get_auth
 from api.schemas.auth import LoginRequest, MessageResponse, PrincipalResponse
-from api.scoping import Principal
 from notenverwaltung.storage import transaction
 from services.auth import AuthService
+from services.scoping import Principal
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

@@ -13,8 +13,10 @@ import sqlite3
 import time
 from dataclasses import dataclass
 
-from api.scoping import Principal
-from api.security import (
+from notenverwaltung.exceptions import GradeBookError, NotAuthenticatedError, ValidationError
+from notenverwaltung.models import Role, Theme
+from services.scoping import Principal
+from services.security import (
     MIN_PASSWORD_LENGTH,
     hash_password,
     hash_token,
@@ -23,8 +25,6 @@ from api.security import (
     utc_now,
     verify_password,
 )
-from notenverwaltung.exceptions import GradeBookError, ValidationError
-from notenverwaltung.models import Role, Theme
 
 
 class AuthenticationError(GradeBookError):
@@ -325,6 +325,59 @@ class AuthService:
         # A password change is how someone responds to a suspected compromise. Leaving
         # the attacker's existing sessions alive would defeat the point.
         self._conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+
+    def update_preferences(
+        self,
+        user_id: int,
+        *,
+        locale: str | None = None,
+        theme: str | None = None,
+        full_name: str | None = None,
+        touched: frozenset[str] = frozenset(),
+    ) -> None:
+        """Update a user's own display preferences.
+
+        Args:
+            user_id: Whose preferences to change.
+            locale: New language, or ``None`` to follow the organisation default.
+            theme: New colour scheme, or ``None`` to follow the default.
+            full_name: New display name.
+            touched: Which fields the caller actually sent. Only these are written —
+                otherwise an omitted field would be indistinguishable from an explicit
+                null and silently clear the stored value.
+        """
+        columns = {"locale": locale, "theme_preference": theme, "full_name": full_name}
+        sent = {"locale": "locale", "theme_preference": "theme", "full_name": "full_name"}
+        updates = {col: val for col, val in columns.items() if sent[col] in touched}
+        if not updates:
+            return
+
+        clause = ", ".join(f"{col} = ?" for col in updates)
+        self._conn.execute(
+            f"UPDATE users SET {clause}, updated_at = ? WHERE id = ?",  # noqa: S608
+            (*updates.values(), utc_now(), user_id),
+        )
+
+    def reload_principal(self, user_id: int) -> Principal:
+        """Re-read a principal after their account changed.
+
+        Args:
+            user_id: Whose principal to rebuild.
+
+        Returns:
+            The refreshed principal.
+
+        Raises:
+            NotAuthenticatedError: If the account has since disappeared.
+        """
+        row = self._conn.execute(
+            "SELECT id, email, role, full_name, is_active, locale, theme_preference"
+            " FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        if row is None:
+            raise NotAuthenticatedError("Account no longer exists.")
+        return self._principal_from_row(row)
 
     def purge_expired(self) -> int:
         """Delete expired session rows.
