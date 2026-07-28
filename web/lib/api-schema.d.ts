@@ -4,6 +4,187 @@
  */
 
 export interface paths {
+    "/admin/ai/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List providers
+         * @description List every configured provider and whether its key is available.
+         *
+         *     Args:
+         *         _: Enforces the superadmin role.
+         *         admin: The service.
+         *
+         *     Returns:
+         *         Every provider, ordered by name.
+         */
+        get: operations["list_providers_admin_ai_providers_get"];
+        put?: never;
+        /**
+         * Add a provider
+         * @description Add a provider.
+         *
+         *     Args:
+         *         body: The new provider.
+         *         user: The acting superadmin.
+         *         admin: The service.
+         *         conn: The request's connection, for the transaction.
+         *
+         *     Returns:
+         *         The stored provider.
+         */
+        post: operations["create_provider_admin_ai_providers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ai/providers/{provider_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a provider
+         * @description Any feature routed to this provider loses its routing. That is deliberate: a route pointing at a deleted provider would fail at request time rather than at configuration time.
+         */
+        delete: operations["delete_provider_admin_ai_providers__provider_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a provider
+         * @description Change a provider's configuration.
+         *
+         *     Args:
+         *         provider_id: Which provider.
+         *         body: The changes. Omitted fields are left alone.
+         *         user: The acting superadmin.
+         *         admin: The service.
+         *         conn: The request's connection.
+         *
+         *     Returns:
+         *         The updated provider.
+         */
+        patch: operations["update_provider_admin_ai_providers__provider_id__patch"];
+        trace?: never;
+    };
+    "/admin/ai/providers/{provider_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test a provider's connection
+         * @description Makes the smallest possible real call. A configuration that only fails when someone asks a real question is one nobody notices is broken until it matters.
+         *
+         *     Always 200 — a failed *check* is a successful *test*, and returning 502 would make a working diagnostic look like a broken endpoint.
+         */
+        post: operations["test_provider_admin_ai_providers__provider_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ai/routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Per-feature routing
+         * @description List which provider serves each feature.
+         *
+         *     Args:
+         *         _: Enforces the superadmin role.
+         *         admin: The service.
+         *
+         *     Returns:
+         *         One entry per configured feature.
+         */
+        get: operations["get_routing_admin_ai_routing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ai/routing/{feature}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Route a feature
+         * @description Point a feature at a provider and model.
+         *
+         *     Args:
+         *         feature: Which capability.
+         *         body: Provider, model and effort.
+         *         user: The acting superadmin.
+         *         admin: The service.
+         *         conn: The request's connection.
+         *
+         *     Returns:
+         *         The stored routing.
+         */
+        put: operations["set_routing_admin_ai_routing__feature__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ai/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Usage and estimated cost
+         * @description Summarise usage by day, feature and model.
+         *
+         *     Args:
+         *         _: Enforces the superadmin role.
+         *         admin: The service.
+         *         days: How far back to look.
+         *
+         *     Returns:
+         *         One row per day, feature and model, most recent first.
+         */
+        get: operations["get_usage_admin_ai_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/analytics/at-risk": {
         parameters: {
             query?: never;
@@ -982,6 +1163,17 @@ export interface components {
             status: string;
         };
         /**
+         * Feature
+         * @description An AI-backed capability that can be routed independently.
+         *
+         *     Separate routing exists because the features have genuinely different needs:
+         *     the command palette is latency-critical and wants a small fast model, while
+         *     insight narratives are quality-critical and want the strongest one. Pinning
+         *     both to one default would make one of them wrong.
+         * @enum {string}
+         */
+        Feature: "ask" | "insight" | "command" | "import";
+        /**
          * GradeCreateRequest
          * @description A new grade.
          */
@@ -1380,6 +1572,100 @@ export interface components {
             user_id: number;
         };
         /**
+         * ProviderPatch
+         * @description Changes to a provider. `kind` is immutable — delete and recreate instead.
+         */
+        ProviderPatch: {
+            /** Api Key Env */
+            api_key_env?: string | null;
+            /** Base Url */
+            base_url?: string | null;
+            /** Default Model */
+            default_model?: string | null;
+            /** Is Enabled */
+            is_enabled?: boolean | null;
+            /** Is Third Party Pool */
+            is_third_party_pool?: boolean | null;
+            /** Name */
+            name?: string | null;
+        };
+        /**
+         * ProviderRequest
+         * @description A new provider.
+         */
+        ProviderRequest: {
+            /**
+             * Api Key Env
+             * @description The **name** of the environment variable holding the key — never the key. A leak of this table therefore exposes no credentials. Leave empty for a local endpoint that authenticates nothing.
+             * @default
+             * @example OPENROUTER_API_KEY
+             */
+            api_key_env: string;
+            /**
+             * Base Url
+             * @description Endpoint root without `/chat/completions`. Null for the vendor default.
+             * @example https://openrouter.ai/api/v1
+             */
+            base_url?: string | null;
+            /**
+             * Default Model
+             * @example claude-opus-5
+             */
+            default_model: string;
+            /**
+             * Is Enabled
+             * @default true
+             */
+            is_enabled: boolean;
+            /**
+             * Is Third Party Pool
+             * @description Set for providers that route through third-party free pools whose data retention terms are unknown. This application holds student records, so the interface shows a privacy warning wherever this is set.
+             * @default false
+             */
+            is_third_party_pool: boolean;
+            /**
+             * Kind
+             * @description Which implementation drives it.
+             * @example openai_compatible
+             */
+            kind: string;
+            /**
+             * Name
+             * @example openrouter
+             */
+            name: string;
+        };
+        /**
+         * ProviderResponse
+         * @description A configured provider.
+         */
+        ProviderResponse: {
+            /**
+             * Api Key Env
+             * @description Variable name. Never the key itself.
+             */
+            api_key_env: string;
+            /** Base Url */
+            base_url: string | null;
+            /** Default Model */
+            default_model: string;
+            /** Id */
+            id: number;
+            /** Is Enabled */
+            is_enabled: boolean;
+            /** Is Third Party Pool */
+            is_third_party_pool: boolean;
+            /**
+             * Key Present
+             * @description Whether the named environment variable is set. A boolean, never a value — the interface can tell that a key exists without ever being able to show it.
+             */
+            key_present: boolean;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+        };
+        /**
          * RankedStudentResponse
          * @description A student in a ranking.
          */
@@ -1390,6 +1676,41 @@ export interface components {
             name: string;
             /** Student Id */
             student_id: string;
+        };
+        /**
+         * RoutingRequest
+         * @description Which provider serves a feature.
+         */
+        RoutingRequest: {
+            /**
+             * Effort
+             * @default medium
+             */
+            effort: string;
+            /**
+             * Model
+             * @description Empty for the provider default.
+             * @default
+             */
+            model: string;
+            /** Provider Id */
+            provider_id: number;
+        };
+        /**
+         * RoutingResponse
+         * @description A feature's routing.
+         */
+        RoutingResponse: {
+            /** Effort */
+            effort: string;
+            /** Feature */
+            feature: string;
+            /** Model */
+            model: string;
+            /** Provider Id */
+            provider_id: number;
+            /** Provider Name */
+            provider_name: string;
         };
         /**
          * SessionResponse
@@ -1547,6 +1868,53 @@ export interface components {
             /** Last Name */
             last_name?: string | null;
         };
+        /**
+         * TestResponse
+         * @description The outcome of a live check against a provider.
+         */
+        TestResponse: {
+            /**
+             * Code
+             * @description Stable identifier the interface translates.
+             * @example AI_OK
+             * @example AI_UNAUTHORIZED
+             */
+            code: string;
+            /**
+             * Detail
+             * @description English detail for the administrator. Not translated.
+             */
+            detail: string;
+            /** Ok */
+            ok: boolean;
+        };
+        /**
+         * UsageResponse
+         * @description One day's usage of one feature.
+         */
+        UsageResponse: {
+            /** Cached Tokens */
+            cached_tokens: number;
+            /** Calls */
+            calls: number;
+            /**
+             * Cost Estimate
+             * @description Approximate USD, from a static price table. An order of magnitude beside a token count, not an invoice — providers change prices and free pools have none.
+             */
+            cost_estimate: number;
+            /** Day */
+            day: string;
+            /** Errors */
+            errors: number;
+            /** Feature */
+            feature: string;
+            /** Input Tokens */
+            input_tokens: number;
+            /** Model */
+            model: string;
+            /** Output Tokens */
+            output_tokens: number;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1569,6 +1937,242 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_providers_admin_ai_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderResponse"][];
+                };
+            };
+        };
+    };
+    create_provider_admin_ai_providers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_provider_admin_ai_providers__provider_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_provider_admin_ai_providers__provider_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_provider_admin_ai_providers__provider_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_routing_admin_ai_routing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingResponse"][];
+                };
+            };
+        };
+    };
+    set_routing_admin_ai_routing__feature__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Which capability. */
+                feature: components["schemas"]["Feature"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoutingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_usage_admin_ai_usage_get: {
+        parameters: {
+            query?: {
+                /** @description How far back to look. */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     at_risk_analytics_at_risk_get: {
         parameters: {
             query?: {

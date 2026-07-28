@@ -24,6 +24,7 @@ const LINKS = [
   { href: "/students", key: "students", min: "student" },
   { href: "/courses", key: "courses", min: "student" },
   { href: "/grades", key: "grades", min: "student" },
+  { href: "/admin/ai", key: "admin", min: "superadmin" },
 ] as const;
 
 export function AppNav({ me }: { me: Me }) {

@@ -82,6 +82,10 @@ describe("catalogue parity", () => {
         "grade.max", // "Maximum" in all three
         "grade.date", // "Date" is the French word too
         "theme.system", // "Auto" in French
+        "admin.title", // "Administration" is the French word too
+        "admin.ai.name", // "Name" is the German word too
+        "admin.ai.kind", // "Type" in French
+        "admin.ai.effort", // "Effort" in French
       ]);
       const untranslated = shared.filter(
         (key) => !allowed.has(key) && read(en as Tree, key) === read(catalogue as Tree, key),

@@ -102,7 +102,20 @@
     "NO_GRADES_RECORDED": "Aucune note enregistrée.",
     "OVERRIDE_NOT_FOUND": "Cette substitution n’existe pas.",
     "NETWORK_ERROR": "Serveur injoignable.",
-    "unknown": "Une erreur est survenue."
+    "unknown": "Une erreur est survenue.",
+    "AI_OK": "Connecté.",
+    "AI_UNAUTHORIZED": "Le fournisseur a refusé la clé.",
+    "AI_MODEL_NOT_FOUND": "Ce modèle n’existe pas chez ce fournisseur.",
+    "AI_RATE_LIMITED": "Trop de requêtes. Réessayez sous peu.",
+    "AI_UNAVAILABLE": "Fournisseur injoignable.",
+    "AI_REQUEST_REJECTED": "Le fournisseur a refusé la requête.",
+    "AI_BAD_OUTPUT": "Le fournisseur a renvoyé une réponse illisible.",
+    "AI_KEY_MISSING": "Cette variable d’environnement n’est pas définie.",
+    "AI_UNKNOWN_KIND": "Type de fournisseur non pris en charge.",
+    "AI_PROVIDER_NOT_FOUND": "Fournisseur introuvable.",
+    "AI_PROVIDER_DISABLED": "Ce fournisseur est désactivé.",
+    "AI_NOT_CONFIGURED": "Aucun fournisseur configuré pour cette fonction.",
+    "AI_ERROR": "L’appel au fournisseur a échoué."
   },
   "landing": {
     "nav": {
@@ -191,5 +204,49 @@
     "admin": "Administrateur",
     "teacher": "Enseignant",
     "student": "Étudiant"
+  },
+  "admin": {
+    "title": "Administration",
+    "ai": {
+      "title": "Fournisseurs d’IA",
+      "intro": "Quel modèle répond à quelle question, et ce que cela coûte.",
+      "providers": "Fournisseurs",
+      "addProvider": "Ajouter un fournisseur",
+      "name": "Nom",
+      "kind": "Type",
+      "baseUrl": "Point d’accès",
+      "defaultModel": "Modèle par défaut",
+      "keyEnv": "Variable de clé",
+      "keyEnvHint": "Le nom d’une variable d’environnement — jamais la clé elle-même. Laisser vide pour un modèle local.",
+      "keyPresent": "Clé trouvée",
+      "keyMissing": "Clé absente",
+      "enabled": "Actif",
+      "disabled": "Inactif",
+      "test": "Tester la connexion",
+      "testing": "Test en cours…",
+      "thirdParty": "Transite par des tiers",
+      "thirdPartyWarning": "Ce fournisseur transmet les requêtes à des tiers dont les durées de conservation sont inconnues. Ce système contient des noms, des courriels et des notes d’étudiants. À réserver au développement, pas aux données réelles.",
+      "routing": "Affectation des fonctions",
+      "routingIntro": "Chaque fonction choisit son modèle. La palette de commandes exige de la rapidité, les analyses de la qualité.",
+      "model": "Modèle",
+      "modelDefault": "Défaut du fournisseur",
+      "effort": "Effort",
+      "usage": "Utilisation",
+      "usageIntro": "Coût estimé, pas une facture. Les tarifs changent et les modèles locaux sont gratuits.",
+      "day": "Jour",
+      "calls": "Appels",
+      "tokensIn": "Jetons entrée",
+      "tokensOut": "Jetons sortie",
+      "cached": "En cache",
+      "cost": "Coût est.",
+      "errors": "Erreurs",
+      "feature": {
+        "ask": "Interroger les notes",
+        "insight": "Analyses",
+        "command": "Palette de commandes",
+        "import": "Assistant d’import"
+      },
+      "featureLabel": "Fonction"
+    }
   }
 }

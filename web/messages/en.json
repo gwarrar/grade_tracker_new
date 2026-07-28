@@ -102,7 +102,20 @@
     "NO_GRADES_RECORDED": "No grades recorded yet.",
     "OVERRIDE_NOT_FOUND": "That override does not exist.",
     "NETWORK_ERROR": "Could not reach the server.",
-    "unknown": "Something went wrong."
+    "unknown": "Something went wrong.",
+    "AI_OK": "Connected.",
+    "AI_UNAUTHORIZED": "The provider rejected the key.",
+    "AI_MODEL_NOT_FOUND": "That model does not exist on this provider.",
+    "AI_RATE_LIMITED": "Rate limited. Try again shortly.",
+    "AI_UNAVAILABLE": "Could not reach the provider.",
+    "AI_REQUEST_REJECTED": "The provider rejected the request.",
+    "AI_BAD_OUTPUT": "The provider returned something unreadable.",
+    "AI_KEY_MISSING": "That environment variable is not set.",
+    "AI_UNKNOWN_KIND": "Unsupported provider type.",
+    "AI_PROVIDER_NOT_FOUND": "No such provider.",
+    "AI_PROVIDER_DISABLED": "That provider is disabled.",
+    "AI_NOT_CONFIGURED": "No provider configured for this feature.",
+    "AI_ERROR": "The provider call failed."
   },
   "landing": {
     "nav": {
@@ -191,5 +204,49 @@
     "admin": "Administrator",
     "teacher": "Teacher",
     "student": "Student"
+  },
+  "admin": {
+    "title": "Administration",
+    "ai": {
+      "title": "AI providers",
+      "intro": "Which model answers each question, and what it costs.",
+      "providers": "Providers",
+      "addProvider": "Add provider",
+      "name": "Name",
+      "kind": "Type",
+      "baseUrl": "Endpoint",
+      "defaultModel": "Default model",
+      "keyEnv": "Key variable",
+      "keyEnvHint": "The name of an environment variable — never the key itself. Leave empty for a local model.",
+      "keyPresent": "Key found",
+      "keyMissing": "Key not set",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "test": "Test connection",
+      "testing": "Testing…",
+      "thirdParty": "Routes through third parties",
+      "thirdPartyWarning": "This provider forwards requests to third parties whose data-retention terms are unknown. This system holds student names, emails and grades. Use it for development, not for real records.",
+      "routing": "Feature routing",
+      "routingIntro": "Each feature picks its own model. The command palette wants speed; insight narratives want quality.",
+      "model": "Model",
+      "modelDefault": "Provider default",
+      "effort": "Effort",
+      "usage": "Usage",
+      "usageIntro": "Estimated cost, not an invoice. Prices change and local models are free.",
+      "day": "Day",
+      "calls": "Calls",
+      "tokensIn": "Tokens in",
+      "tokensOut": "Tokens out",
+      "cached": "Cached",
+      "cost": "Est. cost",
+      "errors": "Errors",
+      "feature": {
+        "ask": "Ask your gradebook",
+        "insight": "Insights",
+        "command": "Command palette",
+        "import": "Import assistant"
+      },
+      "featureLabel": "Feature"
+    }
   }
 }

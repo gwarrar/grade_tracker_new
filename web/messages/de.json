@@ -102,7 +102,20 @@
     "NO_GRADES_RECORDED": "Noch keine Noten erfasst.",
     "OVERRIDE_NOT_FOUND": "Diese Überschreibung existiert nicht.",
     "NETWORK_ERROR": "Server nicht erreichbar.",
-    "unknown": "Etwas ist schiefgelaufen."
+    "unknown": "Etwas ist schiefgelaufen.",
+    "AI_OK": "Verbunden.",
+    "AI_UNAUTHORIZED": "Der Anbieter hat den Schlüssel abgelehnt.",
+    "AI_MODEL_NOT_FOUND": "Dieses Modell gibt es bei diesem Anbieter nicht.",
+    "AI_RATE_LIMITED": "Zu viele Anfragen. Bitte kurz warten.",
+    "AI_UNAVAILABLE": "Anbieter nicht erreichbar.",
+    "AI_REQUEST_REJECTED": "Der Anbieter hat die Anfrage abgelehnt.",
+    "AI_BAD_OUTPUT": "Der Anbieter hat Unlesbares zurückgegeben.",
+    "AI_KEY_MISSING": "Diese Umgebungsvariable ist nicht gesetzt.",
+    "AI_UNKNOWN_KIND": "Nicht unterstützte Anbieterart.",
+    "AI_PROVIDER_NOT_FOUND": "Anbieter nicht gefunden.",
+    "AI_PROVIDER_DISABLED": "Dieser Anbieter ist deaktiviert.",
+    "AI_NOT_CONFIGURED": "Für diese Funktion ist kein Anbieter eingerichtet.",
+    "AI_ERROR": "Der Aufruf beim Anbieter ist fehlgeschlagen."
   },
   "landing": {
     "nav": {
@@ -191,5 +204,49 @@
     "admin": "Administrator:in",
     "teacher": "Lehrkraft",
     "student": "Studierende:r"
+  },
+  "admin": {
+    "title": "Verwaltung",
+    "ai": {
+      "title": "KI-Anbieter",
+      "intro": "Welches Modell welche Frage beantwortet — und was das kostet.",
+      "providers": "Anbieter",
+      "addProvider": "Anbieter hinzufügen",
+      "name": "Name",
+      "kind": "Art",
+      "baseUrl": "Endpunkt",
+      "defaultModel": "Standardmodell",
+      "keyEnv": "Schlüssel-Variable",
+      "keyEnvHint": "Der Name einer Umgebungsvariable — niemals der Schlüssel selbst. Bei einem lokalen Modell leer lassen.",
+      "keyPresent": "Schlüssel gefunden",
+      "keyMissing": "Schlüssel nicht gesetzt",
+      "enabled": "Aktiv",
+      "disabled": "Inaktiv",
+      "test": "Verbindung prüfen",
+      "testing": "Prüfung läuft…",
+      "thirdParty": "Leitet über Dritte weiter",
+      "thirdPartyWarning": "Dieser Anbieter leitet Anfragen an Dritte weiter, deren Aufbewahrungsfristen unbekannt sind. Dieses System enthält Namen, E-Mail-Adressen und Noten von Studierenden. Nur für die Entwicklung verwenden, nicht für echte Daten.",
+      "routing": "Zuordnung der Funktionen",
+      "routingIntro": "Jede Funktion wählt ihr eigenes Modell. Die Befehlspalette braucht Tempo, Auswertungen brauchen Qualität.",
+      "model": "Modell",
+      "modelDefault": "Standard des Anbieters",
+      "effort": "Aufwand",
+      "usage": "Nutzung",
+      "usageIntro": "Geschätzte Kosten, keine Rechnung. Preise ändern sich, lokale Modelle sind kostenlos.",
+      "day": "Tag",
+      "calls": "Aufrufe",
+      "tokensIn": "Token ein",
+      "tokensOut": "Token aus",
+      "cached": "Zwischengespeichert",
+      "cost": "Gesch. Kosten",
+      "errors": "Fehler",
+      "feature": {
+        "ask": "Noten befragen",
+        "insight": "Auswertungen",
+        "command": "Befehlspalette",
+        "import": "Import-Assistent"
+      },
+      "featureLabel": "Funktion"
+    }
   }
 }

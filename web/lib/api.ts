@@ -30,7 +30,9 @@ export class ApiError extends Error {
 type Path = keyof paths;
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  // PUT as well as PATCH: the routing and i18n-override endpoints are genuinely
+  // idempotent replacements of a whole record, not partial updates.
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined | null>;
   signal?: AbortSignal;
