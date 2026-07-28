@@ -1,0 +1,84 @@
+{
+  "app": { "name": "Suivi des notes", "tagline": "Saisie, rapports et analyse." },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "students": "Étudiants",
+    "courses": "Cours",
+    "grades": "Notes",
+    "reports": "Rapports",
+    "admin": "Administration",
+    "profile": "Profil",
+    "signOut": "Se déconnecter"
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "email": "Courriel",
+    "password": "Mot de passe",
+    "signingIn": "Connexion en cours…"
+  },
+  "student": { "one": "Étudiant", "other": "Étudiants", "id": "N° étudiant" },
+  "course": {
+    "one": "Cours",
+    "other": "Cours",
+    "id": "Code du cours",
+    "term": "Semestre",
+    "credits": "Crédits"
+  },
+  "grade": {
+    "one": "Note",
+    "other": "Notes",
+    "score": "Note",
+    "max": "Maximum",
+    "percentage": "Pourcentage",
+    "weight": "Coefficient",
+    "date": "Date",
+    "title": "Évaluation",
+    "notes": "Remarques",
+    "passing": "Admis",
+    "failing": "Non admis"
+  },
+  "enrollment": {
+    "other": "Inscriptions",
+    "enrolled": "Inscrit",
+    "graded": "Évalué",
+    "notAssessed": "Pas encore évalué",
+    "status": { "active": "Actif", "withdrawn": "Retiré", "completed": "Terminé" }
+  },
+  "stats": {
+    "average": "Moyenne",
+    "passRate": "Taux de réussite",
+    "distribution": "Répartition",
+    "topStudents": "Meilleurs étudiants",
+    "atRisk": "En difficulté",
+    "noData": "Aucune donnée"
+  },
+  "theme": { "label": "Thème", "light": "Clair", "dark": "Sombre", "system": "Auto" },
+  "locale": { "label": "Langue", "en": "English", "de": "Deutsch", "fr": "Français" },
+  "action": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "search": "Rechercher",
+    "export": "Exporter en CSV",
+    "close": "Fermer"
+  },
+  "error": {
+    "STUDENT_NOT_FOUND": "Étudiant introuvable.",
+    "COURSE_NOT_FOUND": "Cours introuvable.",
+    "GRADE_NOT_FOUND": "Note introuvable.",
+    "DUPLICATE_ENTRY": "Cet élément existe déjà.",
+    "COURSE_FULL": "Ce cours est complet.",
+    "VALIDATION_ERROR": "Veuillez vérifier les champs signalés.",
+    "NOT_AUTHENTICATED": "Veuillez vous connecter.",
+    "FORBIDDEN": "Vous n’avez pas les droits nécessaires.",
+    "INVALID_CREDENTIALS": "Courriel ou mot de passe incorrect.",
+    "ACCOUNT_DISABLED": "Ce compte a été désactivé.",
+    "TOO_MANY_ATTEMPTS": "Trop de tentatives. Réessayez sous peu.",
+    "NO_GRADES_RECORDED": "Aucune note enregistrée.",
+    "OVERRIDE_NOT_FOUND": "Cette substitution n’existe pas.",
+    "NETWORK_ERROR": "Serveur injoignable.",
+    "unknown": "Une erreur est survenue."
+  }
+}

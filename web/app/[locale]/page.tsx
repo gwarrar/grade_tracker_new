@@ -4,13 +4,19 @@
  * Present so the design system can be seen and the build verified.
  */
 
+import { getTranslations, setRequestLocale } from "next-intl/server";
+
 import { getBranding } from "@/components/branding/branding";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ThemeProbe } from "@/components/ui/theme-probe";
 import { formatNumber, formatPercent } from "@/lib/format";
 
-export default async function Home() {
-  const branding = await getBranding();
+export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
+  // Next 16: params is a Promise.
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  const [branding, t] = await Promise.all([getBranding(), getTranslations()]);
   const bands = branding.grading_scale;
 
   return (
@@ -21,7 +27,7 @@ export default async function Home() {
         </p>
         <ThemeToggle />
       </div>
-      <h1 className="mt-3 text-4xl font-semibold tracking-tight text-text">{branding.name}</h1>
+      <h1 className="mt-3 text-4xl font-semibold tracking-tight text-text">{t("app.name")}</h1>
       <p className="mt-2 max-w-prose text-muted">
         Tokens resolve from the organisation record. Every colour below is a custom
         property, which is what lets an administrator re-theme the interface without a
@@ -30,9 +36,9 @@ export default async function Home() {
 
       <div className="mt-10 grid gap-3 sm:grid-cols-3">
         {[
-          { label: "Students", value: formatNumber(40, branding.default_locale) },
-          { label: "Average", value: formatPercent(70.5, branding.default_locale) },
-          { label: "Pass rate", value: formatPercent(64.2, branding.default_locale) },
+          { label: t("student.other"), value: formatNumber(40, locale) },
+          { label: t("stats.average"), value: formatPercent(70.5, locale) },
+          { label: t("stats.passRate"), value: formatPercent(64.2, locale) },
         ].map((stat) => (
           <div
             key={stat.label}

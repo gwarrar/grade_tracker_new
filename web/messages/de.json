@@ -1,0 +1,84 @@
+{
+  "app": { "name": "Notenverwaltung", "tagline": "Erfassung, Berichte und Auswertung." },
+  "nav": {
+    "dashboard": "Übersicht",
+    "students": "Studierende",
+    "courses": "Kurse",
+    "grades": "Noten",
+    "reports": "Berichte",
+    "admin": "Verwaltung",
+    "profile": "Profil",
+    "signOut": "Abmelden"
+  },
+  "auth": {
+    "signIn": "Anmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "signingIn": "Anmeldung läuft…"
+  },
+  "student": { "one": "Studierende:r", "other": "Studierende", "id": "Matrikelnummer" },
+  "course": {
+    "one": "Kurs",
+    "other": "Kurse",
+    "id": "Kurskennung",
+    "term": "Semester",
+    "credits": "Leistungspunkte"
+  },
+  "grade": {
+    "one": "Note",
+    "other": "Noten",
+    "score": "Punkte",
+    "max": "Maximum",
+    "percentage": "Prozent",
+    "weight": "Gewichtung",
+    "date": "Datum",
+    "title": "Leistung",
+    "notes": "Anmerkungen",
+    "passing": "Bestanden",
+    "failing": "Nicht bestanden"
+  },
+  "enrollment": {
+    "other": "Anmeldungen",
+    "enrolled": "Angemeldet",
+    "graded": "Bewertet",
+    "notAssessed": "Noch nicht bewertet",
+    "status": { "active": "Aktiv", "withdrawn": "Abgemeldet", "completed": "Abgeschlossen" }
+  },
+  "stats": {
+    "average": "Durchschnitt",
+    "passRate": "Bestehensquote",
+    "distribution": "Verteilung",
+    "topStudents": "Beste Studierende",
+    "atRisk": "Gefährdet",
+    "noData": "Noch keine Daten"
+  },
+  "theme": { "label": "Design", "light": "Hell", "dark": "Dunkel", "system": "Automatisch" },
+  "locale": { "label": "Sprache", "en": "English", "de": "Deutsch", "fr": "Français" },
+  "action": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "add": "Hinzufügen",
+    "search": "Suchen",
+    "export": "CSV exportieren",
+    "close": "Schließen"
+  },
+  "error": {
+    "STUDENT_NOT_FOUND": "Diese:r Studierende wurde nicht gefunden.",
+    "COURSE_NOT_FOUND": "Dieser Kurs wurde nicht gefunden.",
+    "GRADE_NOT_FOUND": "Diese Note wurde nicht gefunden.",
+    "DUPLICATE_ENTRY": "Das existiert bereits.",
+    "COURSE_FULL": "Dieser Kurs ist ausgebucht.",
+    "VALIDATION_ERROR": "Bitte prüfen Sie die markierten Felder.",
+    "NOT_AUTHENTICATED": "Bitte melden Sie sich an.",
+    "FORBIDDEN": "Dazu fehlt Ihnen die Berechtigung.",
+    "INVALID_CREDENTIALS": "E-Mail oder Passwort ist falsch.",
+    "ACCOUNT_DISABLED": "Dieses Konto wurde deaktiviert.",
+    "TOO_MANY_ATTEMPTS": "Zu viele Versuche. Bitte kurz warten.",
+    "NO_GRADES_RECORDED": "Noch keine Noten erfasst.",
+    "OVERRIDE_NOT_FOUND": "Diese Überschreibung existiert nicht.",
+    "NETWORK_ERROR": "Server nicht erreichbar.",
+    "unknown": "Etwas ist schiefgelaufen."
+  }
+}

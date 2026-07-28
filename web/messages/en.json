@@ -1,0 +1,84 @@
+{
+  "app": { "name": "Grade Tracker", "tagline": "Records, reports and analysis." },
+  "nav": {
+    "dashboard": "Dashboard",
+    "students": "Students",
+    "courses": "Courses",
+    "grades": "Grades",
+    "reports": "Reports",
+    "admin": "Admin",
+    "profile": "Profile",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "signingIn": "Signing in…"
+  },
+  "student": { "one": "Student", "other": "Students", "id": "Student ID" },
+  "course": {
+    "one": "Course",
+    "other": "Courses",
+    "id": "Course code",
+    "term": "Term",
+    "credits": "Credits"
+  },
+  "grade": {
+    "one": "Grade",
+    "other": "Grades",
+    "score": "Score",
+    "max": "Maximum",
+    "percentage": "Percentage",
+    "weight": "Weight",
+    "date": "Date",
+    "title": "Assessment",
+    "notes": "Notes",
+    "passing": "Pass",
+    "failing": "Fail"
+  },
+  "enrollment": {
+    "other": "Enrolments",
+    "enrolled": "Enrolled",
+    "graded": "Graded",
+    "notAssessed": "Not yet assessed",
+    "status": { "active": "Active", "withdrawn": "Withdrawn", "completed": "Completed" }
+  },
+  "stats": {
+    "average": "Average",
+    "passRate": "Pass rate",
+    "distribution": "Distribution",
+    "topStudents": "Top students",
+    "atRisk": "At risk",
+    "noData": "No data yet"
+  },
+  "theme": { "label": "Theme", "light": "Light", "dark": "Dark", "system": "Auto" },
+  "locale": { "label": "Language", "en": "English", "de": "Deutsch", "fr": "Français" },
+  "action": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "export": "Export CSV",
+    "close": "Close"
+  },
+  "error": {
+    "STUDENT_NOT_FOUND": "That student could not be found.",
+    "COURSE_NOT_FOUND": "That course could not be found.",
+    "GRADE_NOT_FOUND": "That grade could not be found.",
+    "DUPLICATE_ENTRY": "That already exists.",
+    "COURSE_FULL": "This course is at capacity.",
+    "VALIDATION_ERROR": "Please check the highlighted fields.",
+    "NOT_AUTHENTICATED": "Please sign in.",
+    "FORBIDDEN": "You do not have permission to do that.",
+    "INVALID_CREDENTIALS": "Email or password is incorrect.",
+    "ACCOUNT_DISABLED": "This account has been deactivated.",
+    "TOO_MANY_ATTEMPTS": "Too many attempts. Try again shortly.",
+    "NO_GRADES_RECORDED": "No grades recorded yet.",
+    "OVERRIDE_NOT_FOUND": "That override does not exist.",
+    "NETWORK_ERROR": "Could not reach the server.",
+    "unknown": "Something went wrong."
+  }
+}
