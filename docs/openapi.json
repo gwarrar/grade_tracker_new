@@ -570,6 +570,17 @@
         "title": "EnrollmentStatusRequest",
         "type": "object"
       },
+      "Feature": {
+        "description": "An AI-backed capability that can be routed independently.\n\nSeparate routing exists because the features have genuinely different needs:\nthe command palette is latency-critical and wants a small fast model, while\ninsight narratives are quality-critical and want the strongest one. Pinning\nboth to one default would make one of them wrong.",
+        "enum": [
+          "ask",
+          "insight",
+          "command",
+          "import"
+        ],
+        "title": "Feature",
+        "type": "string"
+      },
       "GradeCreateRequest": {
         "description": "A new grade.",
         "properties": {
@@ -1217,6 +1228,222 @@
         "title": "PrincipalResponse",
         "type": "object"
       },
+      "ProviderPatch": {
+        "description": "Changes to a provider. `kind` is immutable — delete and recreate instead.",
+        "properties": {
+          "api_key_env": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key Env"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "default_model": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Model"
+          },
+          "is_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Enabled"
+          },
+          "is_third_party_pool": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Third Party Pool"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "ProviderPatch",
+        "type": "object"
+      },
+      "ProviderRequest": {
+        "description": "A new provider.",
+        "properties": {
+          "api_key_env": {
+            "default": "",
+            "description": "The **name** of the environment variable holding the key — never the key. A leak of this table therefore exposes no credentials. Leave empty for a local endpoint that authenticates nothing.",
+            "examples": [
+              "OPENROUTER_API_KEY"
+            ],
+            "maxLength": 80,
+            "title": "Api Key Env",
+            "type": "string"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Endpoint root without `/chat/completions`. Null for the vendor default.",
+            "examples": [
+              "https://openrouter.ai/api/v1"
+            ],
+            "title": "Base Url"
+          },
+          "default_model": {
+            "examples": [
+              "claude-opus-5"
+            ],
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Default Model",
+            "type": "string"
+          },
+          "is_enabled": {
+            "default": true,
+            "title": "Is Enabled",
+            "type": "boolean"
+          },
+          "is_third_party_pool": {
+            "default": false,
+            "description": "Set for providers that route through third-party free pools whose data retention terms are unknown. This application holds student records, so the interface shows a privacy warning wherever this is set.",
+            "title": "Is Third Party Pool",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Which implementation drives it.",
+            "examples": [
+              "openai_compatible"
+            ],
+            "pattern": "^(anthropic|openai_compatible)$",
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "openrouter"
+            ],
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "default_model"
+        ],
+        "title": "ProviderRequest",
+        "type": "object"
+      },
+      "ProviderResponse": {
+        "description": "A configured provider.",
+        "properties": {
+          "api_key_env": {
+            "description": "Variable name. Never the key itself.",
+            "title": "Api Key Env",
+            "type": "string"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "default_model": {
+            "title": "Default Model",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_enabled": {
+            "title": "Is Enabled",
+            "type": "boolean"
+          },
+          "is_third_party_pool": {
+            "title": "Is Third Party Pool",
+            "type": "boolean"
+          },
+          "key_present": {
+            "description": "Whether the named environment variable is set. A boolean, never a value — the interface can tell that a key exists without ever being able to show it.",
+            "title": "Key Present",
+            "type": "boolean"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "base_url",
+          "api_key_env",
+          "default_model",
+          "is_enabled",
+          "is_third_party_pool",
+          "key_present"
+        ],
+        "title": "ProviderResponse",
+        "type": "object"
+      },
       "RankedStudentResponse": {
         "description": "A student in a ranking.",
         "properties": {
@@ -1239,6 +1466,67 @@
           "average_percentage"
         ],
         "title": "RankedStudentResponse",
+        "type": "object"
+      },
+      "RoutingRequest": {
+        "description": "Which provider serves a feature.",
+        "properties": {
+          "effort": {
+            "default": "medium",
+            "pattern": "^(low|medium|high|xhigh|max)$",
+            "title": "Effort",
+            "type": "string"
+          },
+          "model": {
+            "default": "",
+            "description": "Empty for the provider default.",
+            "maxLength": 120,
+            "title": "Model",
+            "type": "string"
+          },
+          "provider_id": {
+            "title": "Provider Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "provider_id"
+        ],
+        "title": "RoutingRequest",
+        "type": "object"
+      },
+      "RoutingResponse": {
+        "description": "A feature's routing.",
+        "properties": {
+          "effort": {
+            "title": "Effort",
+            "type": "string"
+          },
+          "feature": {
+            "title": "Feature",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "provider_id": {
+            "title": "Provider Id",
+            "type": "integer"
+          },
+          "provider_name": {
+            "title": "Provider Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feature",
+          "provider_id",
+          "provider_name",
+          "model",
+          "effort"
+        ],
+        "title": "RoutingResponse",
         "type": "object"
       },
       "SessionResponse": {
@@ -1542,6 +1830,91 @@
         "title": "StudentUpdateRequest",
         "type": "object"
       },
+      "TestResponse": {
+        "description": "The outcome of a live check against a provider.",
+        "properties": {
+          "code": {
+            "description": "Stable identifier the interface translates.",
+            "examples": [
+              "AI_OK",
+              "AI_UNAUTHORIZED"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "description": "English detail for the administrator. Not translated.",
+            "title": "Detail",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "code",
+          "detail"
+        ],
+        "title": "TestResponse",
+        "type": "object"
+      },
+      "UsageResponse": {
+        "description": "One day's usage of one feature.",
+        "properties": {
+          "cached_tokens": {
+            "title": "Cached Tokens",
+            "type": "integer"
+          },
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "cost_estimate": {
+            "description": "Approximate USD, from a static price table. An order of magnitude beside a token count, not an invoice — providers change prices and free pools have none.",
+            "title": "Cost Estimate",
+            "type": "number"
+          },
+          "day": {
+            "title": "Day",
+            "type": "string"
+          },
+          "errors": {
+            "title": "Errors",
+            "type": "integer"
+          },
+          "feature": {
+            "title": "Feature",
+            "type": "string"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "feature",
+          "model",
+          "calls",
+          "input_tokens",
+          "output_tokens",
+          "cached_tokens",
+          "cost_estimate",
+          "errors"
+        ],
+        "title": "UsageResponse",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -1591,6 +1964,337 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/admin/ai/providers": {
+      "get": {
+        "description": "List every configured provider and whether its key is available.\n\nArgs:\n    _: Enforces the superadmin role.\n    admin: The service.\n\nReturns:\n    Every provider, ordered by name.",
+        "operationId": "list_providers_admin_ai_providers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderResponse"
+                  },
+                  "title": "Response List Providers Admin Ai Providers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List providers",
+        "tags": [
+          "AI administration"
+        ]
+      },
+      "post": {
+        "description": "Add a provider.\n\nArgs:\n    body: The new provider.\n    user: The acting superadmin.\n    admin: The service.\n    conn: The request's connection, for the transaction.\n\nReturns:\n    The stored provider.",
+        "operationId": "create_provider_admin_ai_providers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add a provider",
+        "tags": [
+          "AI administration"
+        ]
+      }
+    },
+    "/admin/ai/providers/{provider_id}": {
+      "delete": {
+        "description": "Any feature routed to this provider loses its routing. That is deliberate: a route pointing at a deleted provider would fail at request time rather than at configuration time.",
+        "operationId": "delete_provider_admin_ai_providers__provider_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider_id",
+            "required": true,
+            "schema": {
+              "title": "Provider Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove a provider",
+        "tags": [
+          "AI administration"
+        ]
+      },
+      "patch": {
+        "description": "Change a provider's configuration.\n\nArgs:\n    provider_id: Which provider.\n    body: The changes. Omitted fields are left alone.\n    user: The acting superadmin.\n    admin: The service.\n    conn: The request's connection.\n\nReturns:\n    The updated provider.",
+        "operationId": "update_provider_admin_ai_providers__provider_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider_id",
+            "required": true,
+            "schema": {
+              "title": "Provider Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update a provider",
+        "tags": [
+          "AI administration"
+        ]
+      }
+    },
+    "/admin/ai/providers/{provider_id}/test": {
+      "post": {
+        "description": "Makes the smallest possible real call. A configuration that only fails when someone asks a real question is one nobody notices is broken until it matters.\n\nAlways 200 — a failed *check* is a successful *test*, and returning 502 would make a working diagnostic look like a broken endpoint.",
+        "operationId": "test_provider_admin_ai_providers__provider_id__test_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider_id",
+            "required": true,
+            "schema": {
+              "title": "Provider Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Test a provider's connection",
+        "tags": [
+          "AI administration"
+        ]
+      }
+    },
+    "/admin/ai/routing": {
+      "get": {
+        "description": "List which provider serves each feature.\n\nArgs:\n    _: Enforces the superadmin role.\n    admin: The service.\n\nReturns:\n    One entry per configured feature.",
+        "operationId": "get_routing_admin_ai_routing_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RoutingResponse"
+                  },
+                  "title": "Response Get Routing Admin Ai Routing Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Per-feature routing",
+        "tags": [
+          "AI administration"
+        ]
+      }
+    },
+    "/admin/ai/routing/{feature}": {
+      "put": {
+        "description": "Point a feature at a provider and model.\n\nArgs:\n    feature: Which capability.\n    body: Provider, model and effort.\n    user: The acting superadmin.\n    admin: The service.\n    conn: The request's connection.\n\nReturns:\n    The stored routing.",
+        "operationId": "set_routing_admin_ai_routing__feature__put",
+        "parameters": [
+          {
+            "description": "Which capability.",
+            "in": "path",
+            "name": "feature",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Feature",
+              "description": "Which capability.",
+              "examples": [
+                "ask"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Route a feature",
+        "tags": [
+          "AI administration"
+        ]
+      }
+    },
+    "/admin/ai/usage": {
+      "get": {
+        "description": "Summarise usage by day, feature and model.\n\nArgs:\n    _: Enforces the superadmin role.\n    admin: The service.\n    days: How far back to look.\n\nReturns:\n    One row per day, feature and model, most recent first.",
+        "operationId": "get_usage_admin_ai_usage_get",
+        "parameters": [
+          {
+            "description": "How far back to look.",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "description": "How far back to look.",
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UsageResponse"
+                  },
+                  "title": "Response Get Usage Admin Ai Usage Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Usage and estimated cost",
+        "tags": [
+          "AI administration"
+        ]
+      }
+    },
     "/analytics/at-risk": {
       "get": {
         "description": "Worst first, since that is the order an intervention list is read in. Ungraded students are excluded: no data is not the same as poor performance.",

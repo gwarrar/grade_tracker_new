@@ -30,7 +30,7 @@ class Feature(StrEnum):
     ASK = "ask"
     INSIGHT = "insight"
     COMMAND = "command"
-    IMPORT_MAP = "import_map"
+    IMPORT_MAP = "import"  # matches the CHECK constraint on ai_feature_models
 
 
 @dataclass(frozen=True, slots=True)

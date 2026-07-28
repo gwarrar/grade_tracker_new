@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import get_settings
 from api.problems import register_handlers
-from api.routers import auth, directory, grades, localization, profile, reports
+from api.routers import admin_ai, auth, directory, grades, localization, profile, reports
 from notenverwaltung import __version__
 from notenverwaltung.storage import apply_migrations, connect
 from services.auth import LoginThrottle
@@ -146,6 +146,7 @@ def create_app() -> FastAPI:
     app.include_router(reports.analytics_router)
     app.include_router(reports.org_router)
     app.include_router(localization.router)
+    app.include_router(admin_ai.router)
 
     @app.get("/health", tags=["System"], summary="Liveness check")
     def health() -> dict[str, str]:  # pyright: ignore[reportUnusedFunction] - route-registered

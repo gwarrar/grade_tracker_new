@@ -13,11 +13,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from llm.base import LLMError
 from notenverwaltung.exceptions import GradeBookError
 
 CONTENT_TYPE = "application/problem+json"
@@ -45,6 +46,19 @@ def problem(
     return JSONResponse(status_code=status, content=body, media_type=CONTENT_TYPE)
 
 
+# Provider failures, mapped to the status that describes *this* application's part
+# in them. A misconfiguration is a 4xx here; a provider that is reachable but
+# unhappy is a 502, because the fault is upstream and the caller cannot fix it.
+_LLM_STATUS: dict[str, int] = {
+    "AI_PROVIDER_NOT_FOUND": status.HTTP_404_NOT_FOUND,
+    "AI_NOT_CONFIGURED": status.HTTP_404_NOT_FOUND,
+    "AI_UNKNOWN_KIND": status.HTTP_422_UNPROCESSABLE_CONTENT,
+    "AI_KEY_MISSING": status.HTTP_409_CONFLICT,
+    "AI_PROVIDER_DISABLED": status.HTTP_409_CONFLICT,
+    "AI_RATE_LIMITED": status.HTTP_429_TOO_MANY_REQUESTS,
+}
+
+
 def register_handlers(app: FastAPI) -> None:
     """Attach the exception handlers to an application.
 
@@ -62,6 +76,25 @@ def register_handlers(app: FastAPI) -> None:
         a new one needs no change here.
         """
         return problem(exc.http_status, exc.code, exc.message, exc.context)
+
+    @app.exception_handler(LLMError)
+    async def _llm_error(  # pyright: ignore[reportUnusedFunction] - registered by the decorator
+        _: Request, exc: LLMError
+    ) -> JSONResponse:
+        """Translate a provider failure into a problem response.
+
+        The status is derived from the code rather than carried on the exception,
+        because the same code means different things at different layers: an
+        unknown provider id is a 404 when an administrator asks for it, and the
+        provider's *own* 404 (no such model) is a 502 — this application reached
+        it, and it answered.
+        """
+        return problem(
+            _LLM_STATUS.get(exc.code, status.HTTP_502_BAD_GATEWAY),
+            exc.code,
+            str(exc),
+            {"provider": exc.provider} if exc.provider else {},
+        )
 
     @app.exception_handler(RequestValidationError)
     async def _request_validation(  # pyright: ignore[reportUnusedFunction] - registered by the decorator

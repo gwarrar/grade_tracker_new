@@ -153,6 +153,13 @@ def sign_in(test_client: TestClient, key: str) -> TestClient:
 # would otherwise have the second sign-in overwrite the first one's cookie, and the
 # assertion would silently compare a role against itself.
 @pytest.fixture
+def as_superadmin(app: FastAPI) -> Iterator[TestClient]:
+    """A client signed in as the superadmin."""
+    with TestClient(app) as test_client:
+        yield sign_in(test_client, "superadmin")
+
+
+@pytest.fixture
 def as_admin(app: FastAPI) -> Iterator[TestClient]:
     """A client signed in as an administrator."""
     with TestClient(app) as test_client:
