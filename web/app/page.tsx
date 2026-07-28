@@ -5,6 +5,8 @@
  */
 
 import { getBranding } from "@/components/branding/branding";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { ThemeProbe } from "@/components/ui/theme-probe";
 import { formatNumber, formatPercent } from "@/lib/format";
 
 export default async function Home() {
@@ -13,9 +15,12 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-20">
-      <p className="numeric text-xs uppercase tracking-widest text-subtle">
-        design system · {branding.enabled_locales.join(" / ")}
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <p className="numeric text-xs uppercase tracking-widest text-subtle">
+          design system · {branding.enabled_locales.join(" / ")}
+        </p>
+        <ThemeToggle />
+      </div>
       <h1 className="mt-3 text-4xl font-semibold tracking-tight text-text">{branding.name}</h1>
       <p className="mt-2 max-w-prose text-muted">
         Tokens resolve from the organisation record. Every colour below is a custom
@@ -56,6 +61,8 @@ export default async function Home() {
       >
         Brand colour, contrast-checked in both themes
       </button>
+
+      <ThemeProbe />
     </main>
   );
 }
