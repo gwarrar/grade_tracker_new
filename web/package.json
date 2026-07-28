@@ -7,16 +7,26 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "gen:api": "openapi-typescript ../docs/openapi.json -o lib/api.d.ts",
-    "typecheck": "tsc --noEmit"
+    "gen:api": "openapi-typescript ../docs/openapi.json -o lib/api-schema.d.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.4",
+    "animejs": "^4.5.0",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "motion": "^12.42.2",
     "next": "16.2.12",
+    "next-intl": "^4.13.4",
+    "next-themes": "^0.4.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/animejs": "^3.1.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -24,6 +34,7 @@
     "eslint-config-next": "16.2.12",
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

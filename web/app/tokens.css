@@ -1,0 +1,180 @@
+/*
+ * Design tokens.
+ *
+ * EVERY token is defined twice — once under `:root` (light) and once under
+ * `.dark`. That is not stylistic: the organisation's brand colours are injected at
+ * runtime as CSS custom properties, and a colour legible on white is frequently
+ * illegible on near-black. One value cannot serve both modes, so the admin colour
+ * picker supplies a variant per theme and validates contrast against both.
+ *
+ * THE ONE RULE: no hex literal appears anywhere else in this codebase. That single
+ * constraint is what makes live re-theming and dark mode work at all — a hardcoded
+ * colour in a component is a colour the organisation cannot change and the theme
+ * cannot invert.
+ *
+ * Brand tokens carry a `--brand-*` fallback so the palette is correct on first
+ * paint, before the branding request resolves.
+ */
+
+:root {
+  /* ── Brand (overridden at runtime from GET /org/branding) ──────────────── */
+  --brand-primary: #2e5bff;
+  --brand-primary-contrast: #ffffff;
+  --brand-accent: #00a37a;
+
+  /* ── Surfaces ──────────────────────────────────────────────────────────── */
+  --bg: #fbfbfa;
+  --bg-subtle: #f4f4f2;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-overlay: #ffffff;
+
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --text: #14140f;
+  --text-muted: #5c5c54;
+  --text-subtle: #8a8a80;
+  --text-inverse: #fbfbfa;
+
+  /* ── Lines ─────────────────────────────────────────────────────────────── */
+  --border: #e3e3df;
+  --border-strong: #c9c9c2;
+  --ring: var(--brand-primary);
+
+  /* ── Semantic (status, not decoration) ─────────────────────────────────── */
+  --pass: #0d7a5f;
+  --pass-bg: #e6f4ef;
+  --fail: #b3261e;
+  --fail-bg: #fdecea;
+  --warn: #8a5300;
+  --warn-bg: #fdf3e3;
+
+  /*
+   * Grade bands. Sequential rather than a rainbow: A through F is an ordered
+   * scale, and a categorical palette would imply the bands are unrelated
+   * categories. Distinguishable in the common forms of colour blindness, which a
+   * red-to-green ramp is not.
+   */
+  --band-1: #1a4f8a;
+  --band-2: #3d7ab8;
+  --band-3: #7aa6cc;
+  --band-4: #c99a3f;
+  --band-5: #b3261e;
+
+  /* ── Type ──────────────────────────────────────────────────────────────── */
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* ── Space & shape ─────────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgb(20 20 15 / 6%);
+  --shadow: 0 4px 16px -4px rgb(20 20 15 / 10%);
+  --shadow-lg: 0 24px 48px -12px rgb(20 20 15 / 18%);
+
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 140ms;
+  --duration: 240ms;
+}
+
+.dark {
+  --brand-primary: #7c9bff;
+  --brand-primary-contrast: #0b0b0d;
+  --brand-accent: #3dd9ac;
+
+  --bg: #08080a;
+  --bg-subtle: #101013;
+  --surface: #121216;
+  --surface-raised: #1a1a20;
+  --surface-overlay: #1e1e25;
+
+  --text: #f2f2ef;
+  --text-muted: #a3a39c;
+  --text-subtle: #6e6e68;
+  --text-inverse: #08080a;
+
+  --border: #26262d;
+  --border-strong: #3a3a44;
+
+  --pass: #4ade9f;
+  --pass-bg: #0d2a20;
+  --fail: #ff8080;
+  --fail-bg: #2e1113;
+  --warn: #f0b352;
+  --warn-bg: #2c1f0a;
+
+  /* Lightened for a dark background: the light-mode ramp is unreadable here. */
+  --band-1: #8ab4e8;
+  --band-2: #6f9fd8;
+  --band-3: #4f7fb8;
+  --band-4: #e0b45c;
+  --band-5: #ff8080;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow: 0 4px 16px -4px rgb(0 0 0 / 55%);
+  --shadow-lg: 0 24px 48px -12px rgb(0 0 0 / 70%);
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: light;
+  /* Native form controls and scrollbars follow this. Without it, a dark page
+     renders a blinding white scrollbar and a light-on-light select. */
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv05" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Tabular numerals everywhere a figure appears. Without them a column of scores
+ * shifts horizontally as digits change, which makes a table genuinely harder to
+ * scan.
+ */
+.numeric,
+th[data-numeric],
+td[data-numeric] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/*
+ * Reduced motion is a stated accessibility need, not a preference to soften.
+ * Transitions collapse to effectively zero rather than merely shortening —
+ * vestibular disorders are triggered by the movement itself.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::selection {
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
+}
