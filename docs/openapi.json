@@ -1,6 +1,20 @@
 {
   "components": {
     "schemas": {
+      "ActiveRequest": {
+        "description": "An activation change.",
+        "properties": {
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "is_active"
+        ],
+        "title": "ActiveRequest",
+        "type": "object"
+      },
       "AskRequest": {
         "description": "A question about the gradebook.",
         "properties": {
@@ -563,6 +577,61 @@
           }
         },
         "title": "CourseUpdateRequest",
+        "type": "object"
+      },
+      "CreateUserRequest": {
+        "description": "A new account.",
+        "properties": {
+          "email": {
+            "examples": [
+              "k.weber@school.test"
+            ],
+            "maxLength": 255,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "examples": [
+              "Katrin Weber"
+            ],
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Full Name",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "examples": [
+              "teacher"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "full_name",
+          "role"
+        ],
+        "title": "CreateUserRequest",
+        "type": "object"
+      },
+      "CreatedUserResponse": {
+        "description": "A newly created account and its one-time password.",
+        "properties": {
+          "initial_password": {
+            "description": "Shown once and never retrievable. Hand it to the person; they change it from their profile.",
+            "title": "Initial Password",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "required": [
+          "user",
+          "initial_password"
+        ],
+        "title": "CreatedUserResponse",
         "type": "object"
       },
       "DashboardResponse": {
@@ -1493,6 +1562,21 @@
         "title": "PasswordChangeRequest",
         "type": "object"
       },
+      "PasswordResetResponse": {
+        "description": "A freshly issued temporary password.",
+        "properties": {
+          "temporary_password": {
+            "description": "Shown once. Every session for the account has been revoked.",
+            "title": "Temporary Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "temporary_password"
+        ],
+        "title": "PasswordResetResponse",
+        "type": "object"
+      },
       "PreferencesRequest": {
         "description": "A change to the caller's own display preferences.",
         "properties": {
@@ -1862,6 +1946,30 @@
           "average_percentage"
         ],
         "title": "RankedStudentResponse",
+        "type": "object"
+      },
+      "Role": {
+        "description": "What a user may do.\n\nOrdered by authority, which :meth:`outranks` relies on. A ``StrEnum`` so the value\nstored in the database is the readable name rather than an integer nobody can\ninterpret while reading a row by hand.",
+        "enum": [
+          "student",
+          "teacher",
+          "admin",
+          "superadmin"
+        ],
+        "title": "Role",
+        "type": "string"
+      },
+      "RoleRequest": {
+        "description": "A role change.",
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "RoleRequest",
         "type": "object"
       },
       "RoutingRequest": {
@@ -2461,6 +2569,88 @@
         "title": "UsageResponse",
         "type": "object"
       },
+      "UserResponse": {
+        "description": "One account.\n\nCarries no password material at all — the service's record type has no such\nfield, so there is nothing here to forget to exclude.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "session_count": {
+            "description": "How many unexpired sessions this account has.",
+            "title": "Session Count",
+            "type": "integer"
+          },
+          "student_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The student record linked to this account, if any.",
+            "title": "Student Id"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "full_name",
+          "role",
+          "is_active",
+          "locale",
+          "created_at",
+          "updated_at",
+          "student_id",
+          "session_count"
+        ],
+        "title": "UserResponse",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -2838,6 +3028,272 @@
         "summary": "Usage and estimated cost",
         "tags": [
           "AI administration"
+        ]
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "description": "List accounts.\n\nArgs:\n    _: Enforces the admin role.\n    users: The service.\n    q: Search term.\n    include_inactive: Whether deactivated accounts appear.\n\nReturns:\n    Matching accounts, ordered by name.",
+        "operationId": "list_users_admin_users_get",
+        "parameters": [
+          {
+            "description": "Substring of name or email.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "description": "Substring of name or email.",
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Include deactivated accounts. On by default.",
+            "in": "query",
+            "name": "include_inactive",
+            "required": false,
+            "schema": {
+              "default": true,
+              "description": "Include deactivated accounts. On by default.",
+              "title": "Include Inactive",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponse"
+                  },
+                  "title": "Response List Users Admin Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List accounts",
+        "tags": [
+          "Users"
+        ]
+      },
+      "post": {
+        "description": "The initial password is generated and returned once. An administrator choosing it would mean the password is known to two people from the moment it exists.",
+        "operationId": "create_user_admin_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedUserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — you cannot grant a role at or above your own."
+          },
+          "409": {
+            "description": "`DUPLICATE_ENTRY` — that email already has an account."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create an account",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/admin/users/{user_id}/active": {
+      "put": {
+        "description": "Deactivating also revokes every session for the account. An account that cannot sign in but stays signed in is not deactivated in any useful sense.",
+        "operationId": "set_active_admin_users__user_id__active_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "`CANNOT_MODIFY_SELF` or `LAST_SUPERADMIN`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Activate or deactivate an account",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/admin/users/{user_id}/reset-password": {
+      "post": {
+        "description": "Mints a replacement and revokes every session. An administrator never sees an existing password — a reset is what you do when you suspect the account is compromised, and leaving the intruder signed in defeats it.",
+        "operationId": "reset_password_admin_users__user_id__reset_password_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issue a temporary password",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/admin/users/{user_id}/role": {
+      "put": {
+        "description": "Change what an account may do.\n\nArgs:\n    user_id: Which account.\n    body: The new role.\n    _: Enforces the admin role.\n    users: The service.\n    conn: The request's connection.\n\nReturns:\n    The updated account.",
+        "operationId": "set_role_admin_users__user_id__role_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — outside what you may grant or act on."
+          },
+          "409": {
+            "description": "`CANNOT_MODIFY_SELF` — you cannot change your own role. `LAST_SUPERADMIN` — someone must be able to configure the system."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change an account's role",
+        "tags": [
+          "Users"
         ]
       }
     },
