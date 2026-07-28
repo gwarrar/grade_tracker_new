@@ -1,0 +1,43 @@
+# Secrets — never commit
+.env
+.env.local
+*.key
+*.pem
+*.pfx
+*.p12
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.uv-cache/
+.coverage
+coverage.xml
+coverage/
+htmlcov/
+dist/
+
+# Node
+node_modules/
+.next/
+out/
+.turbo/
+.pnpm-store/
+
+# Data — the SQLite file and uploads are runtime state, not source
+*.db
+*.db-wal
+*.db-shm
+backend/uploads/
+
+# Logs — dev.ps1 writes here because both servers run detached and windowless
+backend/.dev-logs/
+web/.dev-logs/
+*.log
+
+# Editors / OS
+.vscode/
+.DS_Store
+Thumbs.db

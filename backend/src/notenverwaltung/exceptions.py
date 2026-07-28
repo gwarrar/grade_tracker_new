@@ -1,0 +1,93 @@
+"""Domain exceptions.
+
+Every exception carries a stable machine-readable ``code``. The API layer maps that
+code into an RFC-9457 ``application/problem+json`` body and the frontend translates
+it, so **no user-facing prose is produced here**. Adding a language therefore never
+requires touching the backend.
+
+The ``message`` attached to an exception is for developers and logs, not for users.
+"""
+
+from __future__ import annotations
+
+
+class GradeBookError(ValueError):
+    """Base class for every domain error.
+
+    Subclasses ``ValueError`` so that existing callers written against the coursework
+    API keep working.
+
+    Attributes:
+        code: Stable identifier the API and frontend agree on, e.g. ``STUDENT_NOT_FOUND``.
+        http_status: The status the API layer should use for this class of error.
+        context: Structured details (ids, limits) the frontend can interpolate into
+            a translated message.
+    """
+
+    code: str = "DOMAIN_ERROR"
+    http_status: int = 400
+
+    def __init__(self, message: str, **context: object) -> None:
+        """Initialise the error.
+
+        Args:
+            message: Developer-facing description. Never shown to end users.
+            **context: Structured values the frontend may interpolate, such as
+                ``student_id`` or ``max_grade``.
+        """
+        super().__init__(message)
+        self.message = message
+        self.context: dict[str, object] = context
+
+
+class ValidationError(GradeBookError):
+    """Raised when a value fails a domain invariant."""
+
+    code = "VALIDATION_ERROR"
+    http_status = 422
+
+
+class StudentNotFoundError(GradeBookError):
+    """Raised when no student matches the requested identifier."""
+
+    code = "STUDENT_NOT_FOUND"
+    http_status = 404
+
+
+class CourseNotFoundError(GradeBookError):
+    """Raised when no course matches the requested identifier."""
+
+    code = "COURSE_NOT_FOUND"
+    http_status = 404
+
+
+class GradeNotFoundError(GradeBookError):
+    """Raised when no grade matches the requested identifier."""
+
+    code = "GRADE_NOT_FOUND"
+    http_status = 404
+
+
+class DuplicateEntryError(GradeBookError):
+    """Raised when creating an entity whose identifier is already taken."""
+
+    code = "DUPLICATE_ENTRY"
+    http_status = 409
+
+
+class NoGradesRecordedError(GradeBookError):
+    """Raised when a statistic is requested for an entity that has no grades.
+
+    Separated from :class:`ValidationError` because it is an ordinary empty state the
+    UI should render as "no data yet", not as a failure.
+    """
+
+    code = "NO_GRADES_RECORDED"
+    http_status = 404
+
+
+class CourseFullError(GradeBookError):
+    """Raised when enrolling a student into a course already at capacity."""
+
+    code = "COURSE_FULL"
+    http_status = 409
