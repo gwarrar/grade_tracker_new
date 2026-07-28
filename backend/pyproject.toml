@@ -82,7 +82,7 @@ addopts = "-q --strict-markers"
 pythonpath = ["src"]
 
 [tool.coverage.run]
-source = ["src/notenverwaltung", "src/services"]
+source = ["src/notenverwaltung", "src/services", "src/llm"]
 branch = true
 
 [tool.coverage.report]
