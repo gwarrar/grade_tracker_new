@@ -281,5 +281,13 @@
     "factors": "Ce que montrent les chiffres",
     "actions": "Prochaines étapes suggérées",
     "privacy": "Les questions sont transmises au fournisseur d’IA configuré."
+  },
+  "report": {
+    "title": "Rapports",
+    "pick": "Choisir un cours",
+    "download": "Télécharger le CSV",
+    "graded": "Étudiants évalués",
+    "threshold": "Seuil de difficulté",
+    "hint": "Les chiffres viennent de l’API ; la formulation est produite ici, pour qu’un rapport se lise dans votre langue sans que le serveur conserve un lexique."
   }
 }

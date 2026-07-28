@@ -281,5 +281,13 @@
     "factors": "Was die Zahlen zeigen",
     "actions": "Empfohlene nächste Schritte",
     "privacy": "Fragen werden an den eingerichteten KI-Anbieter gesendet."
+  },
+  "report": {
+    "title": "Berichte",
+    "pick": "Kurs auswählen",
+    "download": "CSV herunterladen",
+    "graded": "Bewertete Studierende",
+    "threshold": "Schwelle für Gefährdung",
+    "hint": "Die Zahlen liefert die Schnittstelle; die Formulierung entsteht hier, damit ein Bericht in Ihrer Sprache lesbar ist, ohne dass der Server einen Sprachführer vorhält."
   }
 }

@@ -99,3 +99,32 @@ class TestAuditTrail:
             "SELECT action FROM audit_log WHERE entity = 'i18n_override' ORDER BY id"
         ).fetchall()
         assert [r["action"] for r in rows] == ["create", "update", "delete"]
+
+
+def test_a_german_csv_has_no_english_status_cells(as_admin: TestClient) -> None:
+    """Headers alone were not enough.
+
+    Translating the column headers while leaving "PASS"/"FAIL" in every row
+    produces a file that is neither language — and the status column is the one a
+    reader scans first.
+    """
+    body = as_admin.get("/reports/course/CS101/export.csv", params={"locale": "de"}).text
+
+    assert "BESTANDEN" in body
+    assert "PASS" not in body
+    assert "FAIL" not in body
+
+
+def test_a_french_csv_uses_french_status_cells(as_admin: TestClient) -> None:
+    """The same, for the third locale."""
+    body = as_admin.get("/reports/course/CS101/export.csv", params={"locale": "fr"}).text
+
+    assert "ADMIS" in body
+    assert "FAIL" not in body
+
+
+def test_an_english_csv_keeps_the_defaults(as_admin: TestClient) -> None:
+    """The counterweight: the override must not have replaced the base case."""
+    body = as_admin.get("/reports/course/CS101/export.csv", params={"locale": "en"}).text
+
+    assert "PASS" in body or "FAIL" in body

@@ -261,6 +261,80 @@
         "title": "CourseCreateRequest",
         "type": "object"
       },
+      "CourseReportResponse": {
+        "description": "A course's results.",
+        "properties": {
+          "average_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Score"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "distribution": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Distribution",
+            "type": "object"
+          },
+          "graded_student_count": {
+            "title": "Graded Student Count",
+            "type": "integer"
+          },
+          "grades": {
+            "items": {
+              "$ref": "#/components/schemas/GradeLine"
+            },
+            "title": "Grades",
+            "type": "array"
+          },
+          "max_grade": {
+            "title": "Max Grade",
+            "type": "number"
+          },
+          "pass_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Rate"
+          },
+          "passing_grade": {
+            "title": "Passing Grade",
+            "type": "number"
+          }
+        },
+        "required": [
+          "course_id",
+          "course_name",
+          "max_grade",
+          "passing_grade",
+          "grades",
+          "average_score",
+          "pass_rate",
+          "graded_student_count",
+          "distribution"
+        ],
+        "title": "CourseReportResponse",
+        "type": "object"
+      },
       "CourseResponse": {
         "description": "A course, with enrolment counts.",
         "properties": {
@@ -753,6 +827,86 @@
           "date"
         ],
         "title": "GradeCreateRequest",
+        "type": "object"
+      },
+      "GradeLine": {
+        "description": "One graded item as it appears in a report.",
+        "properties": {
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "grade_id": {
+            "title": "Grade Id",
+            "type": "integer"
+          },
+          "is_passing": {
+            "title": "Is Passing",
+            "type": "boolean"
+          },
+          "letter": {
+            "description": "Band from the organisation's grading scale.",
+            "title": "Letter",
+            "type": "string"
+          },
+          "max_grade": {
+            "title": "Max Grade",
+            "type": "number"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "percentage": {
+            "title": "Percentage",
+            "type": "number"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "string"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "grade_id",
+          "course_id",
+          "course_name",
+          "student_id",
+          "student_name",
+          "title",
+          "score",
+          "max_grade",
+          "percentage",
+          "letter",
+          "weight",
+          "is_passing",
+          "date",
+          "notes"
+        ],
+        "title": "GradeLine",
         "type": "object"
       },
       "GradeResponse": {
@@ -1662,6 +1816,30 @@
         "title": "ProviderResponse",
         "type": "object"
       },
+      "RankedLine": {
+        "description": "A student and their average, for the leaderboards.\n\nThe domain layer carries these as ``(student_id, name, average)`` triples,\nwhich is documented and tested there. Converting at this boundary keeps the\ncore as specified while giving the wire contract named fields — a consumer\nshould not have to remember that position 2 is the average.",
+        "properties": {
+          "average_percentage": {
+            "title": "Average Percentage",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "name",
+          "average_percentage"
+        ],
+        "title": "RankedLine",
+        "type": "object"
+      },
       "RankedStudentResponse": {
         "description": "A student in a ranking.",
         "properties": {
@@ -1909,6 +2087,65 @@
         "title": "StudentCreateRequest",
         "type": "object"
       },
+      "StudentReportResponse": {
+        "description": "A student's full record.",
+        "properties": {
+          "average_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Percentage"
+          },
+          "courses_graded": {
+            "title": "Courses Graded",
+            "type": "integer"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "failed_count": {
+            "title": "Failed Count",
+            "type": "integer"
+          },
+          "grades": {
+            "items": {
+              "$ref": "#/components/schemas/GradeLine"
+            },
+            "title": "Grades",
+            "type": "array"
+          },
+          "passed_count": {
+            "title": "Passed Count",
+            "type": "integer"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "string"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "student_name",
+          "email",
+          "grades",
+          "average_percentage",
+          "passed_count",
+          "failed_count",
+          "courses_graded"
+        ],
+        "title": "StudentReportResponse",
+        "type": "object"
+      },
       "StudentResponse": {
         "description": "A student, with the counts a list view needs.",
         "properties": {
@@ -2046,6 +2283,71 @@
           }
         },
         "title": "StudentUpdateRequest",
+        "type": "object"
+      },
+      "SummaryReportResponse": {
+        "description": "Institution-wide totals.",
+        "properties": {
+          "at_risk_students": {
+            "items": {
+              "$ref": "#/components/schemas/RankedLine"
+            },
+            "title": "At Risk Students",
+            "type": "array"
+          },
+          "at_risk_threshold": {
+            "title": "At Risk Threshold",
+            "type": "number"
+          },
+          "course_count": {
+            "title": "Course Count",
+            "type": "integer"
+          },
+          "distribution": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Distribution",
+            "type": "object"
+          },
+          "grade_count": {
+            "title": "Grade Count",
+            "type": "integer"
+          },
+          "overall_average_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall Average Percentage"
+          },
+          "student_count": {
+            "title": "Student Count",
+            "type": "integer"
+          },
+          "top_students": {
+            "items": {
+              "$ref": "#/components/schemas/RankedLine"
+            },
+            "title": "Top Students",
+            "type": "array"
+          }
+        },
+        "required": [
+          "student_count",
+          "course_count",
+          "grade_count",
+          "overall_average_percentage",
+          "distribution",
+          "top_students",
+          "at_risk_students",
+          "at_risk_threshold"
+        ],
+        "title": "SummaryReportResponse",
         "type": "object"
       },
       "TestResponse": {
@@ -4234,9 +4536,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Course Report Reports Course  Course Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/CourseReportResponse"
                 }
               }
             },
@@ -4282,9 +4582,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Student Report Reports Student  Student Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/StudentReportResponse"
                 }
               }
             },
@@ -4335,9 +4633,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Summary Report Reports Summary Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/SummaryReportResponse"
                 }
               }
             },

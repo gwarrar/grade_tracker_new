@@ -39,11 +39,19 @@ DEFAULT_HEADERS: dict[str, str] = {
 }
 """English column headers. The API supplies a translated mapping per request."""
 
+DEFAULT_LABELS: dict[str, str] = {"pass": "PASS", "fail": "FAIL"}
+"""English cell values that are words. Translated per request, like the headers."""
+
 
 class CsvReportGenerator(ReportGenerator):
     """Renders reports as CSV text."""
 
-    def __init__(self, headers: dict[str, str] | None = None, delimiter: str = ",") -> None:
+    def __init__(
+        self,
+        headers: dict[str, str] | None = None,
+        delimiter: str = ",",
+        labels: dict[str, str] | None = None,
+    ) -> None:
         """Create a renderer.
 
         Args:
@@ -51,9 +59,25 @@ class CsvReportGenerator(ReportGenerator):
             delimiter: Field separator. Pass ``";"`` for locales where Excel expects
                 it — in German and French Windows locales a comma-separated file
                 opens as a single column, which reads to the user as corruption.
+            labels: Override any of :data:`DEFAULT_LABELS`. Cell values that are
+                words rather than data. Translating the headers but leaving the
+                cells English produces a German file with "FAIL" in it, which is
+                worse than either consistent choice.
         """
         self.headers = {**DEFAULT_HEADERS, **(headers or {})}
+        self.labels = {**DEFAULT_LABELS, **(labels or {})}
         self.delimiter = delimiter
+
+    def _status(self, is_passing: bool) -> str:
+        """Return the pass/fail cell in the caller's language.
+
+        Args:
+            is_passing: Whether the grade met the course's threshold.
+
+        Returns:
+            The translated label.
+        """
+        return self.labels["pass"] if is_passing else self.labels["fail"]
 
     def _writer(self, buffer: io.StringIO) -> Any:
         """Return a writer configured with this renderer's delimiter.
@@ -97,7 +121,7 @@ class CsvReportGenerator(ReportGenerator):
                     f"{g.percentage:.2f}",
                     g.letter,
                     g.weight,
-                    "PASS" if g.is_passing else "FAIL",
+                    self._status(g.is_passing),
                     g.date,
                     g.notes,
                 ]
@@ -134,7 +158,7 @@ class CsvReportGenerator(ReportGenerator):
                     f"{g.percentage:.2f}",
                     g.letter,
                     g.weight,
-                    "PASS" if g.is_passing else "FAIL",
+                    self._status(g.is_passing),
                     g.date,
                     g.notes,
                 ]

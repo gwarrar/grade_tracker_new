@@ -1099,6 +1099,32 @@ export interface components {
             term?: string | null;
         };
         /**
+         * CourseReportResponse
+         * @description A course's results.
+         */
+        CourseReportResponse: {
+            /** Average Score */
+            average_score: number | null;
+            /** Course Id */
+            course_id: string;
+            /** Course Name */
+            course_name: string;
+            /** Distribution */
+            distribution: {
+                [key: string]: number;
+            };
+            /** Graded Student Count */
+            graded_student_count: number;
+            /** Grades */
+            grades: components["schemas"]["GradeLine"][];
+            /** Max Grade */
+            max_grade: number;
+            /** Pass Rate */
+            pass_rate: number | null;
+            /** Passing Grade */
+            passing_grade: number;
+        };
+        /**
          * CourseResponse
          * @description A course, with enrolment counts.
          */
@@ -1360,6 +1386,43 @@ export interface components {
              * Weight
              * @default 1
              */
+            weight: number;
+        };
+        /**
+         * GradeLine
+         * @description One graded item as it appears in a report.
+         */
+        GradeLine: {
+            /** Course Id */
+            course_id: string;
+            /** Course Name */
+            course_name: string;
+            /** Date */
+            date: string;
+            /** Grade Id */
+            grade_id: number;
+            /** Is Passing */
+            is_passing: boolean;
+            /**
+             * Letter
+             * @description Band from the organisation's grading scale.
+             */
+            letter: string;
+            /** Max Grade */
+            max_grade: number;
+            /** Notes */
+            notes: string;
+            /** Percentage */
+            percentage: number;
+            /** Score */
+            score: number;
+            /** Student Id */
+            student_id: string;
+            /** Student Name */
+            student_name: string;
+            /** Title */
+            title: string;
+            /** Weight */
             weight: number;
         };
         /**
@@ -1863,6 +1926,23 @@ export interface components {
             name: string;
         };
         /**
+         * RankedLine
+         * @description A student and their average, for the leaderboards.
+         *
+         *     The domain layer carries these as ``(student_id, name, average)`` triples,
+         *     which is documented and tested there. Converting at this boundary keeps the
+         *     core as specified while giving the wire contract named fields — a consumer
+         *     should not have to remember that position 2 is the average.
+         */
+        RankedLine: {
+            /** Average Percentage */
+            average_percentage: number;
+            /** Name */
+            name: string;
+            /** Student Id */
+            student_id: string;
+        };
+        /**
          * RankedStudentResponse
          * @description A student in a ranking.
          */
@@ -1997,6 +2077,28 @@ export interface components {
             student_id: string;
         };
         /**
+         * StudentReportResponse
+         * @description A student's full record.
+         */
+        StudentReportResponse: {
+            /** Average Percentage */
+            average_percentage: number | null;
+            /** Courses Graded */
+            courses_graded: number;
+            /** Email */
+            email: string;
+            /** Failed Count */
+            failed_count: number;
+            /** Grades */
+            grades: components["schemas"]["GradeLine"][];
+            /** Passed Count */
+            passed_count: number;
+            /** Student Id */
+            student_id: string;
+            /** Student Name */
+            student_name: string;
+        };
+        /**
          * StudentResponse
          * @description A student, with the counts a list view needs.
          */
@@ -2064,6 +2166,30 @@ export interface components {
             first_name?: string | null;
             /** Last Name */
             last_name?: string | null;
+        };
+        /**
+         * SummaryReportResponse
+         * @description Institution-wide totals.
+         */
+        SummaryReportResponse: {
+            /** At Risk Students */
+            at_risk_students: components["schemas"]["RankedLine"][];
+            /** At Risk Threshold */
+            at_risk_threshold: number;
+            /** Course Count */
+            course_count: number;
+            /** Distribution */
+            distribution: {
+                [key: string]: number;
+            };
+            /** Grade Count */
+            grade_count: number;
+            /** Overall Average Percentage */
+            overall_average_percentage: number | null;
+            /** Student Count */
+            student_count: number;
+            /** Top Students */
+            top_students: components["schemas"]["RankedLine"][];
         };
         /**
          * TestResponse
@@ -3645,9 +3771,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CourseReportResponse"];
                 };
             };
             /** @description `COURSE_NOT_FOUND`. */
@@ -3685,9 +3809,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["StudentReportResponse"];
                 };
             };
             /** @description `STUDENT_NOT_FOUND` — unknown, or outside your scope. */
@@ -3726,9 +3848,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SummaryReportResponse"];
                 };
             };
             /** @description Validation Error */

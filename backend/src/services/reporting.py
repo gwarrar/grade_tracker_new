@@ -190,7 +190,14 @@ class ReportingService:
         """
         return [s for s in self._ranked(descending=False) if s["average_percentage"] < threshold]
 
-    def export_csv(self, kind: str, entity_id: str, headers: dict[str, str], delimiter: str) -> str:
+    def export_csv(
+        self,
+        kind: str,
+        entity_id: str,
+        headers: dict[str, str],
+        delimiter: str,
+        labels: dict[str, str] | None = None,
+    ) -> str:
         """Render a report as CSV.
 
         The one place the backend produces human-readable strings, because a
@@ -202,6 +209,8 @@ class ReportingService:
             headers: Translated column headers, supplied by the router from the
                 caller's locale.
             delimiter: Field separator. German and French Excel expects ``;``.
+            labels: Translated cell values that are words rather than data, such
+                as the pass/fail marker.
 
         Returns:
             The CSV text.
@@ -211,7 +220,7 @@ class ReportingService:
         """
         from notenverwaltung.exceptions import ValidationError
 
-        generator = CsvReportGenerator(headers=headers, delimiter=delimiter)
+        generator = CsvReportGenerator(headers=headers, delimiter=delimiter, labels=labels)
         if kind == "student":
             self._assert_visible_student(entity_id)
             return generator.render_student(self._builder.student_report(entity_id))

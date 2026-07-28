@@ -281,5 +281,13 @@
     "factors": "What the numbers show",
     "actions": "Suggested next steps",
     "privacy": "Questions are sent to the configured AI provider."
+  },
+  "report": {
+    "title": "Reports",
+    "pick": "Choose a course",
+    "download": "Download CSV",
+    "graded": "Graded students",
+    "threshold": "At-risk threshold",
+    "hint": "Figures come from the API; the wording is rendered here, so a report reads in your language without the server holding a phrasebook."
   }
 }
