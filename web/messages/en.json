@@ -248,5 +248,38 @@
       },
       "featureLabel": "Feature"
     }
+  },
+  "assistant": {
+    "title": "Assistant",
+    "ask": "Ask your gradebook",
+    "askPlaceholder": "Ask a question about your grades…",
+    "thinking": "Working…",
+    "sources": "Data used",
+    "sourcesHint": "Every figure above comes from these queries.",
+    "truncated": "The assistant stopped before finishing. The answer may be incomplete.",
+    "confirm": "Confirm this action",
+    "confirmHint": "Nothing has been saved. Review the details and confirm.",
+    "action": {
+      "record_grade": "Record a grade",
+      "enrol_student": "Enrol a student"
+    },
+    "insight": "Summary",
+    "regenerate": "Regenerate",
+    "cached": "From cache",
+    "risk": {
+      "none": "No concern",
+      "low": "Low risk",
+      "medium": "Some risk",
+      "high": "At risk"
+    },
+    "trend": {
+      "improving": "Improving",
+      "steady": "Steady",
+      "declining": "Declining",
+      "unknown": "Not enough data"
+    },
+    "factors": "What the numbers show",
+    "actions": "Suggested next steps",
+    "privacy": "Questions are sent to the configured AI provider."
   }
 }

@@ -248,5 +248,38 @@
       },
       "featureLabel": "Funktion"
     }
+  },
+  "assistant": {
+    "title": "Assistent",
+    "ask": "Noten befragen",
+    "askPlaceholder": "Stellen Sie eine Frage zu den Noten…",
+    "thinking": "Wird bearbeitet…",
+    "sources": "Verwendete Daten",
+    "sourcesHint": "Jede Zahl oben stammt aus diesen Abfragen.",
+    "truncated": "Der Assistent hat vorzeitig abgebrochen. Die Antwort ist möglicherweise unvollständig.",
+    "confirm": "Diese Aktion bestätigen",
+    "confirmHint": "Es wurde noch nichts gespeichert. Bitte prüfen und bestätigen.",
+    "action": {
+      "record_grade": "Note erfassen",
+      "enrol_student": "Studierende:n anmelden"
+    },
+    "insight": "Zusammenfassung",
+    "regenerate": "Neu erzeugen",
+    "cached": "Aus dem Zwischenspeicher",
+    "risk": {
+      "none": "Unbedenklich",
+      "low": "Geringes Risiko",
+      "medium": "Erhöhtes Risiko",
+      "high": "Gefährdet"
+    },
+    "trend": {
+      "improving": "Verbessert sich",
+      "steady": "Gleichbleibend",
+      "declining": "Verschlechtert sich",
+      "unknown": "Zu wenige Daten"
+    },
+    "factors": "Was die Zahlen zeigen",
+    "actions": "Empfohlene nächste Schritte",
+    "privacy": "Fragen werden an den eingerichteten KI-Anbieter gesendet."
   }
 }

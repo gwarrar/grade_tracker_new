@@ -19,6 +19,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
+import { AssistantPanel } from "@/components/app/assistant";
 import { Field, Input, PanelHeader } from "@/components/app/detail-fields";
 import { MasterDetail } from "@/components/app/master-detail";
 import { api, ApiError, type Response } from "@/lib/api";
@@ -36,6 +37,7 @@ export function GradesView({ locale }: { locale: string }) {
 
   const [selectedId, select] = useSelection();
   const [search, setSearch] = useState("");
+  const [asking, setAsking] = useState(false);
   const query = useDebounced(search.trim());
 
   const list = useQuery({
@@ -64,15 +66,31 @@ export function GradesView({ locale }: { locale: string }) {
           )}
         </h1>
 
-        <input
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={t("action.search")}
-          aria-label={t("action.search")}
-          className="w-56 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
-        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAsking((current) => !current)}
+            aria-expanded={asking}
+            className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
+          >
+            {t("assistant.ask")}
+          </button>
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={t("action.search")}
+            aria-label={t("action.search")}
+            className="w-56 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
+          />
+        </div>
       </div>
+
+      {asking && (
+        <div className="mb-6">
+          <AssistantPanel onClose={() => setAsking(false)} />
+        </div>
+      )}
 
       <MasterDetail
         detailKey={selectedId}

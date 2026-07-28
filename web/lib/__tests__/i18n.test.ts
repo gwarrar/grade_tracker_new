@@ -86,6 +86,7 @@ describe("catalogue parity", () => {
         "admin.ai.name", // "Name" is the German word too
         "admin.ai.kind", // "Type" in French
         "admin.ai.effort", // "Effort" in French
+        "assistant.title", // "Assistant" is the French word too
       ]);
       const untranslated = shared.filter(
         (key) => !allowed.has(key) && read(en as Tree, key) === read(catalogue as Tree, key),

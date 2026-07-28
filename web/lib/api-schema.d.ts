@@ -185,6 +185,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/ai/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask a question about the gradebook
+         * @description The assistant answers using tools that query the database directly. It never estimates a figure, and it sees only what you see — a student asking for everyone's grades receives their own.
+         */
+        post: operations["ask_ai_ask_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ai/command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn an instruction into a proposed action
+         * @description **Nothing is written.** The assistant fills in a form and the caller submits it. The write tools are declared to the model but have no implementation, so there is no path from this endpoint to a change.
+         */
+        post: operations["command_ai_command_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ai/import-map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Propose a column mapping for a spreadsheet
+         * @description Admin and above. Returns a proposal only — the caller reviews it and the existing import endpoint does the writing.
+         */
+        post: operations["import_map_ai_import_map_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ai/insight/{entity_type}/{entity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Summarise a student's or course's performance
+         * @description Teacher and above. Statistics are computed first and passed to the model, which never chooses which numbers to fetch — a summary that picks its own evidence picks the flattering evidence.
+         */
+        get: operations["insight_ai_insight__entity_type___entity_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/analytics/at-risk": {
         parameters: {
             query?: never;
@@ -869,6 +949,37 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * AskRequest
+         * @description A question about the gradebook.
+         */
+        AskRequest: {
+            /**
+             * Question
+             * @example Which students are failing Databases?
+             */
+            question: string;
+        };
+        /**
+         * AskResponse
+         * @description An answer, with the data it was built from.
+         */
+        AskResponse: {
+            /** Model */
+            model: string;
+            /**
+             * Records
+             * @description Every query the assistant ran, with its results. Rendered beside the prose so a wrong narrative sits next to the numbers that contradict it.
+             */
+            records: components["schemas"]["ToolRecordResponse"][];
+            /** Text */
+            text: string;
+            /**
+             * Truncated
+             * @description True when the turn cap stopped the assistant before it concluded.
+             */
+            truncated: boolean;
+        };
+        /**
          * AuditEntryResponse
          * @description One entry from an entity's change history.
          */
@@ -909,6 +1020,40 @@ export interface components {
             } | null;
             /** Id */
             id: number;
+        };
+        /**
+         * CommandRequest
+         * @description An instruction for the command palette.
+         */
+        CommandRequest: {
+            /**
+             * Instruction
+             * @example give Anna 88 in CS101
+             */
+            instruction: string;
+        };
+        /**
+         * CommandResponse
+         * @description A proposed action, awaiting confirmation.
+         */
+        CommandResponse: {
+            /**
+             * Action
+             * @description The action proposed, or null when the assistant answered in words.
+             */
+            action: string | null;
+            /**
+             * Message
+             * @description Prose, when no action was proposed.
+             */
+            message: string;
+            /**
+             * Params
+             * @description Arguments the assistant filled in. Nothing has been written.
+             */
+            params: {
+                [key: string]: unknown;
+            };
         };
         /**
          * CourseCreateRequest
@@ -1326,6 +1471,58 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * ImportMapRequest
+         * @description A spreadsheet's header row and a few sample rows.
+         */
+        ImportMapRequest: {
+            /**
+             * Headers
+             * @example [
+             *       "Matrikelnr",
+             *       "Kurs",
+             *       "Punkte"
+             *     ]
+             */
+            headers: string[];
+            /** Samples */
+            samples?: string[][];
+        };
+        /**
+         * ImportMapResponse
+         * @description A proposed column mapping.
+         */
+        ImportMapResponse: {
+            /** Column Mapping */
+            column_mapping: {
+                [key: string]: string;
+            };
+            /** Confidence */
+            confidence: string;
+            /** Issues */
+            issues: string[];
+        };
+        /**
+         * InsightResponse
+         * @description A generated summary of a student's or course's performance.
+         */
+        InsightResponse: {
+            /**
+             * Cached
+             * @description True when served from cache. Insights are keyed by a hash of the statistics, so identical numbers are never regenerated.
+             */
+            cached: boolean;
+            /** Factors */
+            factors: string[];
+            /** Risk Level */
+            risk_level: string;
+            /** Suggested Actions */
+            suggested_actions: string[];
+            /** Summary */
+            summary: string;
+            /** Trend */
+            trend: string;
         };
         /**
          * LoginRequest
@@ -1889,6 +2086,22 @@ export interface components {
             ok: boolean;
         };
         /**
+         * ToolRecordResponse
+         * @description One tool call the assistant made.
+         */
+        ToolRecordResponse: {
+            /** Arguments */
+            arguments: {
+                [key: string]: unknown;
+            };
+            /** Result */
+            result: {
+                [key: string]: unknown;
+            };
+            /** Tool */
+            tool: string;
+        };
+        /**
          * UsageResponse
          * @description One day's usage of one feature.
          */
@@ -2160,6 +2373,137 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UsageResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ask_ai_ask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AskResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    command_ai_command_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_map_ai_import_map_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportMapRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportMapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    insight_ai_insight__entity_type___entity_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_type: string;
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightResponse"];
                 };
             };
             /** @description Validation Error */

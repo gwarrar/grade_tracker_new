@@ -13,6 +13,7 @@ import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { Field, Input, PanelHeader } from "@/components/app/detail-fields";
+import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
 import { api, ApiError, type Response } from "@/lib/api";
 import { formatNumber, parseLocaleNumber } from "@/lib/format";
@@ -272,6 +273,8 @@ function CourseDetail({
               </li>
             )}
           </ul>
+
+          <InsightBlock entityType="course" entityId={courseId} />
         </>
       )}
 

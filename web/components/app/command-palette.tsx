@@ -16,18 +16,20 @@
  * a fuzzy mismatch would hide rows the API deliberately returned.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Command } from "cmdk";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
-import { api, type Response } from "@/lib/api";
+import { ConfirmCard } from "@/components/app/assistant";
+import { api, ApiError, type Response } from "@/lib/api";
 import { atLeast, type Me } from "@/lib/session";
 import { useDebounced } from "@/lib/use-selection";
 
 type Students = Response<"/students", "get">;
 type Courses = Response<"/courses", "get">;
+type Proposal = Response<"/ai/command", "post">;
 
 /** Below this, a query matches too much to be worth a round trip. */
 const MIN_QUERY = 2;
@@ -46,10 +48,33 @@ const ROUTES = [
 
 export function CommandPalette({ me }: { me: Me }) {
   const t = useTranslations();
+  const tAssistant = useTranslations("assistant");
+  const tError = useTranslations("error");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [code, setCode] = useState<string | null>(null);
   const query = useDebounced(search.trim());
+
+  // The AI tier, reached only when the local and record tiers found nothing —
+  // and only on an explicit choice. Sending every keystroke to a provider would
+  // be both expensive and a steady leak of half-typed student names.
+  const propose = useMutation({
+    mutationFn: (instruction: string) =>
+      api<Proposal>("/ai/command", { method: "POST", body: { instruction } }),
+    onSuccess: (result) => {
+      setProposal(result);
+      setCode(null);
+    },
+    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+  });
+
+  function reset() {
+    setProposal(null);
+    setCode(null);
+    setSearch("");
+  }
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -80,7 +105,7 @@ export function CommandPalette({ me }: { me: Me }) {
 
   function go(href: string) {
     setOpen(false);
-    setSearch("");
+    reset();
     router.push(href);
   }
 
@@ -104,6 +129,17 @@ export function CommandPalette({ me }: { me: Me }) {
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[12vh] backdrop-blur-sm"
     >
       <div className="w-full max-w-lg overflow-hidden rounded-xl border border-line bg-surface shadow-2xl">
+        {proposal ? (
+          <ConfirmCard
+            proposal={proposal}
+            onDone={() => {
+              setOpen(false);
+              reset();
+            }}
+            onCancel={reset}
+          />
+        ) : (
+        <>
         <Command.Input
           value={search}
           onValueChange={setSearch}
@@ -168,7 +204,33 @@ export function CommandPalette({ me }: { me: Me }) {
               ))}
             </Command.Group>
           )}
+          {/* Offered last and always, not only when nothing matched: a question
+              like "who is failing" legitimately also matches a nav entry, and
+              hiding the assistant behind an empty result would make it
+              unreachable for exactly those queries. */}
+          {query.length >= MIN_QUERY && (
+            <Command.Group
+              heading={tAssistant("title")}
+              className="px-1 text-xs uppercase tracking-wide text-subtle [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5"
+            >
+              <Item
+                value="__ask_ai"
+                onSelect={() => propose.mutate(query)}
+                trailing={propose.isPending ? tAssistant("thinking") : undefined}
+              >
+                {tAssistant("ask")}: {query}
+              </Item>
+            </Command.Group>
+          )}
+
+          {code && (
+            <p role="alert" className="mx-2 mt-2 rounded-lg bg-fail-bg px-3 py-2 text-xs text-fail">
+              {tError(code as "unknown")}
+            </p>
+          )}
         </Command.List>
+        </>
+        )}
       </div>
     </Command.Dialog>
   );

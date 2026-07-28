@@ -248,5 +248,38 @@
       },
       "featureLabel": "Fonction"
     }
+  },
+  "assistant": {
+    "title": "Assistant",
+    "ask": "Interroger les notes",
+    "askPlaceholder": "Posez une question sur les notes…",
+    "thinking": "Traitement en cours…",
+    "sources": "Données utilisées",
+    "sourcesHint": "Chaque chiffre ci-dessus provient de ces requêtes.",
+    "truncated": "L’assistant s’est arrêté avant la fin. La réponse est peut-être incomplète.",
+    "confirm": "Confirmer cette action",
+    "confirmHint": "Rien n’a encore été enregistré. Vérifiez puis confirmez.",
+    "action": {
+      "record_grade": "Enregistrer une note",
+      "enrol_student": "Inscrire un étudiant"
+    },
+    "insight": "Synthèse",
+    "regenerate": "Régénérer",
+    "cached": "Depuis le cache",
+    "risk": {
+      "none": "Aucune inquiétude",
+      "low": "Risque faible",
+      "medium": "Risque modéré",
+      "high": "En difficulté"
+    },
+    "trend": {
+      "improving": "En progression",
+      "steady": "Stable",
+      "declining": "En baisse",
+      "unknown": "Données insuffisantes"
+    },
+    "factors": "Ce que montrent les chiffres",
+    "actions": "Prochaines étapes suggérées",
+    "privacy": "Les questions sont transmises au fournisseur d’IA configuré."
   }
 }
