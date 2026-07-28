@@ -21,6 +21,7 @@ import { atLeast, type Me } from "@/lib/session";
 // link straight to a 404 — worse than the feature being absent, because it reads
 // as broken rather than as not-yet-there. Restored as each page lands.
 const LINKS = [
+  { href: "/dashboard", key: "dashboard", min: "student" },
   { href: "/students", key: "students", min: "student" },
   { href: "/courses", key: "courses", min: "student" },
   { href: "/grades", key: "grades", min: "student" },
