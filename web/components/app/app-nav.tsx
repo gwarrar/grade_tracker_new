@@ -17,12 +17,13 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { api } from "@/lib/api";
 import { atLeast, type Me } from "@/lib/session";
 
+// Only routes that exist. A nav that lists /reports before /reports is built is a
+// link straight to a 404 — worse than the feature being absent, because it reads
+// as broken rather than as not-yet-there. Restored as each page lands.
 const LINKS = [
   { href: "/students", key: "students", min: "student" },
   { href: "/courses", key: "courses", min: "student" },
   { href: "/grades", key: "grades", min: "student" },
-  { href: "/reports", key: "reports", min: "teacher" },
-  { href: "/admin", key: "admin", min: "admin" },
 ] as const;
 
 export function AppNav({ me }: { me: Me }) {

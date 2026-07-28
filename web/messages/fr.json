@@ -168,5 +168,28 @@
       "built": "Un projet d’études, conçu comme un produit.",
       "docs": "Documentation de l’API"
     }
+  },
+  "profile": {
+    "title": "Profil",
+    "preferences": "Préférences",
+    "changePassword": "Changer le mot de passe",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Répéter le nouveau mot de passe",
+    "mismatch": "Les deux mots de passe ne correspondent pas.",
+    "passwordChanged": "Mot de passe modifié.",
+    "saved": "Enregistré.",
+    "sessions": "Appareils connectés",
+    "thisDevice": "Cet appareil",
+    "lastSeen": "Dernière utilisation",
+    "revoke": "Déconnecter",
+    "revokeOthers": "Déconnecter tous les autres appareils",
+    "role": "Rôle"
+  },
+  "role": {
+    "superadmin": "Super-administrateur",
+    "admin": "Administrateur",
+    "teacher": "Enseignant",
+    "student": "Étudiant"
   }
 }

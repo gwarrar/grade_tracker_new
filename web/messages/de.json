@@ -168,5 +168,28 @@
       "built": "Eine Studienarbeit, gebaut wie ein Produkt.",
       "docs": "API-Dokumentation"
     }
+  },
+  "profile": {
+    "title": "Profil",
+    "preferences": "Einstellungen",
+    "changePassword": "Passwort ändern",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "confirmPassword": "Neues Passwort wiederholen",
+    "mismatch": "Die beiden Passwörter stimmen nicht überein.",
+    "passwordChanged": "Passwort geändert.",
+    "saved": "Gespeichert.",
+    "sessions": "Angemeldete Geräte",
+    "thisDevice": "Dieses Gerät",
+    "lastSeen": "Zuletzt verwendet",
+    "revoke": "Abmelden",
+    "revokeOthers": "Alle anderen Geräte abmelden",
+    "role": "Rolle"
+  },
+  "role": {
+    "superadmin": "Hauptadministrator",
+    "admin": "Administrator:in",
+    "teacher": "Lehrkraft",
+    "student": "Studierende:r"
   }
 }

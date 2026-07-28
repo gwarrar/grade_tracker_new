@@ -12,6 +12,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AppNav } from "@/components/app/app-nav";
+import { CommandPalette } from "@/components/app/command-palette";
 import { QueryProvider } from "@/app/query-provider";
 import { getServerSession } from "@/lib/server-session";
 
@@ -35,6 +36,8 @@ export default async function AppLayout({
       <div className="min-h-dvh bg-bg">
         <AppNav me={me} />
         <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
+        {/* Inside QueryProvider — it searches through the same cache. */}
+        <CommandPalette me={me} />
       </div>
     </QueryProvider>
   );

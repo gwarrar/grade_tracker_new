@@ -168,5 +168,28 @@
       "built": "A coursework project, built as a product.",
       "docs": "API documentation"
     }
+  },
+  "profile": {
+    "title": "Profile",
+    "preferences": "Preferences",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Repeat new password",
+    "mismatch": "The two passwords do not match.",
+    "passwordChanged": "Password changed.",
+    "saved": "Saved.",
+    "sessions": "Signed-in devices",
+    "thisDevice": "This device",
+    "lastSeen": "Last used",
+    "revoke": "Sign out",
+    "revokeOthers": "Sign out all other devices",
+    "role": "Role"
+  },
+  "role": {
+    "superadmin": "Superadmin",
+    "admin": "Administrator",
+    "teacher": "Teacher",
+    "student": "Student"
   }
 }
