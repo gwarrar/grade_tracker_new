@@ -58,7 +58,9 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["D", "S101", "ANN"]      # asserts and terse docstrings are fine in tests
+# Asserts and terse docstrings are normal in tests, and fixtures legitimately
+# contain fake credentials -- S105-S107 only produce noise there.
+"tests/**" = ["D", "S101", "S105", "S106", "S107", "ANN"]
 "scripts/**" = ["D", "S101"]
 
 [tool.ruff.lint.pydocstyle]
