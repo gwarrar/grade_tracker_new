@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import get_settings
 from api.problems import register_handlers
-from api.routers import auth, directory, grades, profile, reports
+from api.routers import auth, directory, grades, localization, profile, reports
 from notenverwaltung import __version__
 from notenverwaltung.storage import apply_migrations, connect
 from services.auth import LoginThrottle
@@ -113,6 +113,13 @@ def create_app() -> FastAPI:
                 "description": "Dashboard figures and rankings, scoped to the caller.",
             },
             {"name": "Organisation", "description": "Branding, locales, theme and grading scale."},
+            {
+                "name": "Localization",
+                "description": (
+                    "Per-organisation string overrides. The frontend owns every "
+                    "translation; this covers only the renames it cannot know at build time."
+                ),
+            },
         ],
     )
 
@@ -138,6 +145,7 @@ def create_app() -> FastAPI:
     app.include_router(reports.reports_router)
     app.include_router(reports.analytics_router)
     app.include_router(reports.org_router)
+    app.include_router(localization.router)
 
     @app.get("/health", tags=["System"], summary="Liveness check")
     def health() -> dict[str, str]:  # pyright: ignore[reportUnusedFunction] - route-registered

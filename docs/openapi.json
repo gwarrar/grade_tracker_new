@@ -916,6 +916,54 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "OverrideRequest": {
+        "description": "A replacement for one shipped string.",
+        "properties": {
+          "value": {
+            "description": "The replacement text. Delete the override to restore the shipped value.",
+            "examples": [
+              "Auszubildende"
+            ],
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "OverrideRequest",
+        "type": "object"
+      },
+      "OverrideResponse": {
+        "description": "A stored override.",
+        "properties": {
+          "key": {
+            "description": "Dotted message key.",
+            "examples": [
+              "nav.students"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "locale": {
+            "title": "Locale",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "locale",
+          "key",
+          "value"
+        ],
+        "title": "OverrideResponse",
+        "type": "object"
+      },
       "PageResponse_CourseResponse_": {
         "properties": {
           "items": {
@@ -2674,6 +2722,205 @@
         ]
       }
     },
+    "/org/i18n": {
+      "get": {
+        "description": "Administrators only. Powers the localization editor's grid.",
+        "operationId": "get_all_overrides_org_i18n_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "title": "Response Get All Overrides Org I18N Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Overrides for every locale",
+        "tags": [
+          "Localization"
+        ]
+      }
+    },
+    "/org/i18n/{locale}": {
+      "get": {
+        "description": "**Public** — the sign-in page needs its labels before anyone has signed in.\n\nReturns only the keys this organisation has overridden, usually none. The client merges them over its shipped translations, so a rename takes effect without a rebuild.\n\nThe backend ships no message catalogue: the frontend owns every string, and this endpoint exists solely for the per-organisation overrides it cannot know about at build time.",
+        "operationId": "get_overrides_org_i18n__locale__get",
+        "parameters": [
+          {
+            "description": "Language tag.",
+            "in": "path",
+            "name": "locale",
+            "required": true,
+            "schema": {
+              "description": "Language tag.",
+              "examples": [
+                "de"
+              ],
+              "pattern": "^[a-z]{2}$",
+              "title": "Locale",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Get Overrides Org I18N  Locale  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — no translation ships for that locale."
+          }
+        },
+        "summary": "Overrides for one locale",
+        "tags": [
+          "Localization"
+        ]
+      }
+    },
+    "/org/i18n/{locale}/{key}": {
+      "delete": {
+        "description": "Removes the override so the client falls back to its own translation.",
+        "operationId": "delete_override_org_i18n__locale___key__delete",
+        "parameters": [
+          {
+            "description": "Language tag.",
+            "in": "path",
+            "name": "locale",
+            "required": true,
+            "schema": {
+              "description": "Language tag.",
+              "examples": [
+                "de"
+              ],
+              "pattern": "^[a-z]{2}$",
+              "title": "Locale",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — administrators only."
+          },
+          "404": {
+            "description": "`OVERRIDE_NOT_FOUND` — nothing overridden at that key."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restore the shipped string",
+        "tags": [
+          "Localization"
+        ]
+      },
+      "put": {
+        "description": "Creates or replaces an override. Keys are dotted lower-case paths so the override table stays a namespace rather than accumulating typos that look like real keys and never match anything.",
+        "operationId": "set_override_org_i18n__locale___key__put",
+        "parameters": [
+          {
+            "description": "Language tag.",
+            "in": "path",
+            "name": "locale",
+            "required": true,
+            "schema": {
+              "description": "Language tag.",
+              "examples": [
+                "de"
+              ],
+              "pattern": "^[a-z]{2}$",
+              "title": "Locale",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Dotted message key.",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "description": "Dotted message key.",
+              "examples": [
+                "nav.students"
+              ],
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverrideResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — administrators only."
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — bad locale, malformed key, or empty value."
+          }
+        },
+        "summary": "Override one string",
+        "tags": [
+          "Localization"
+        ]
+      }
+    },
     "/profile": {
       "patch": {
         "description": "Changes display name, language or colour scheme for the signed-in user.\n\nPreferences are stored on the account rather than only in the browser, so they follow the user to another device. Passing `null` for locale or theme clears the preference and falls back to the organisation default.",
@@ -3445,6 +3692,10 @@
     {
       "description": "Branding, locales, theme and grading scale.",
       "name": "Organisation"
+    },
+    {
+      "description": "Per-organisation string overrides. The frontend owns every translation; this covers only the renames it cannot know at build time.",
+      "name": "Localization"
     }
   ]
 }

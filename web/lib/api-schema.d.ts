@@ -351,6 +351,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/org/i18n": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Overrides for every locale
+         * @description Administrators only. Powers the localization editor's grid.
+         */
+        get: operations["get_all_overrides_org_i18n_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/i18n/{locale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Overrides for one locale
+         * @description **Public** — the sign-in page needs its labels before anyone has signed in.
+         *
+         *     Returns only the keys this organisation has overridden, usually none. The client merges them over its shipped translations, so a rename takes effect without a rebuild.
+         *
+         *     The backend ships no message catalogue: the frontend owns every string, and this endpoint exists solely for the per-organisation overrides it cannot know about at build time.
+         */
+        get: operations["get_overrides_org_i18n__locale__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/org/i18n/{locale}/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Override one string
+         * @description Creates or replaces an override. Keys are dotted lower-case paths so the override table stays a namespace rather than accumulating typos that look like real keys and never match anything.
+         */
+        put: operations["set_override_org_i18n__locale___key__put"];
+        post?: never;
+        /**
+         * Restore the shipped string
+         * @description Removes the override so the client falls back to its own translation.
+         */
+        delete: operations["delete_override_org_i18n__locale___key__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/profile": {
         parameters: {
             query?: never;
@@ -1111,6 +1179,34 @@ export interface components {
              * @description Affected rows, where relevant.
              */
             count?: number | null;
+        };
+        /**
+         * OverrideRequest
+         * @description A replacement for one shipped string.
+         */
+        OverrideRequest: {
+            /**
+             * Value
+             * @description The replacement text. Delete the override to restore the shipped value.
+             * @example Auszubildende
+             */
+            value: string;
+        };
+        /**
+         * OverrideResponse
+         * @description A stored override.
+         */
+        OverrideResponse: {
+            /**
+             * Key
+             * @description Dotted message key.
+             * @example nav.students
+             */
+            key: string;
+            /** Locale */
+            locale: string;
+            /** Value */
+            value: string;
         };
         /** PageResponse[CourseResponse] */
         PageResponse_CourseResponse_: {
@@ -2289,6 +2385,150 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    get_all_overrides_org_i18n_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    get_overrides_org_i18n__locale__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Language tag. */
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description `VALIDATION_ERROR` — no translation ships for that locale. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    set_override_org_i18n__locale___key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Language tag. */
+                locale: string;
+                /** @description Dotted message key. */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverrideResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — administrators only. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `VALIDATION_ERROR` — bad locale, malformed key, or empty value. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_override_org_i18n__locale___key__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Language tag. */
+                locale: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `FORBIDDEN` — administrators only. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `OVERRIDE_NOT_FOUND` — nothing overridden at that key. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
