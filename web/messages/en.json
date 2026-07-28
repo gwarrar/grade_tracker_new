@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Grade Tracker", "tagline": "Records, reports and analysis." },
+  "app": {
+    "name": "Grade Tracker",
+    "tagline": "Records, reports and analysis."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "students": "Students",
@@ -16,7 +19,11 @@
     "password": "Password",
     "signingIn": "Signing in…"
   },
-  "student": { "one": "Student", "other": "Students", "id": "Student ID" },
+  "student": {
+    "one": "Student",
+    "other": "Students",
+    "id": "Student ID"
+  },
   "course": {
     "one": "Course",
     "other": "Courses",
@@ -42,7 +49,11 @@
     "enrolled": "Enrolled",
     "graded": "Graded",
     "notAssessed": "Not yet assessed",
-    "status": { "active": "Active", "withdrawn": "Withdrawn", "completed": "Completed" }
+    "status": {
+      "active": "Active",
+      "withdrawn": "Withdrawn",
+      "completed": "Completed"
+    }
   },
   "stats": {
     "average": "Average",
@@ -52,8 +63,18 @@
     "atRisk": "At risk",
     "noData": "No data yet"
   },
-  "theme": { "label": "Theme", "light": "Light", "dark": "Dark", "system": "Auto" },
-  "locale": { "label": "Language", "en": "English", "de": "Deutsch", "fr": "Français" },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "Auto"
+  },
+  "locale": {
+    "label": "Language",
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français"
+  },
   "action": {
     "save": "Save",
     "cancel": "Cancel",
@@ -80,5 +101,70 @@
     "OVERRIDE_NOT_FOUND": "That override does not exist.",
     "NETWORK_ERROR": "Could not reach the server.",
     "unknown": "Something went wrong."
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "how": "How it works",
+      "signIn": "Sign in"
+    },
+    "hero": {
+      "eyebrow": "Gradebook, reimagined",
+      "title": "Every grade, one keystroke away.",
+      "subtitle": "Records, reports and analysis for the whole institution — with an assistant that reads the same numbers you do.",
+      "cta": "Open the app",
+      "secondary": "See how it works"
+    },
+    "palette": {
+      "hint": "Ask anything about your gradebook"
+    },
+    "demos": {
+      "average": {
+        "query": "average for CS101 this term",
+        "result": "CS101 — 42 students, 128 assessments"
+      },
+      "risk": {
+        "query": "who is at risk in Databases?",
+        "result": "4 students below the pass mark"
+      },
+      "trend": {
+        "query": "has the year-two cohort improved?",
+        "result": "Up 6.4 points since October"
+      }
+    },
+    "features": {
+      "title": "Built for the people who actually enter the grades",
+      "scoped": {
+        "title": "Everyone sees exactly their own",
+        "body": "Students see their grades, teachers their courses, administrators everything. Scoping happens in the query, so a mistake shows too little rather than too much."
+      },
+      "fast": {
+        "title": "Fast because it is small",
+        "body": "One file, no server to run, no cloud account. Pages arrive rendered and the whole record set fits in memory."
+      },
+      "ai": {
+        "title": "An assistant that cannot guess",
+        "body": "Questions become real database queries. Every figure it reports comes back with the rows it came from, so a wrong answer is visibly wrong."
+      }
+    },
+    "how": {
+      "title": "Three steps to a full gradebook",
+      "one": {
+        "title": "Import what you have",
+        "body": "Drop in a spreadsheet. Columns are matched for you and every change is shown before anything is written."
+      },
+      "two": {
+        "title": "Record and correct",
+        "body": "Enter grades inline. Every edit is kept in the audit trail with who made it and what it replaced."
+      },
+      "three": {
+        "title": "Report and act",
+        "body": "Term reports, distributions and at-risk lists, in your language and ready to hand over."
+      }
+    },
+    "footer": {
+      "built": "A coursework project, built as a product.",
+      "docs": "API documentation"
+    }
   }
 }

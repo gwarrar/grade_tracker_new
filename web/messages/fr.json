@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Suivi des notes", "tagline": "Saisie, rapports et analyse." },
+  "app": {
+    "name": "Suivi des notes",
+    "tagline": "Saisie, rapports et analyse."
+  },
   "nav": {
     "dashboard": "Tableau de bord",
     "students": "Étudiants",
@@ -16,7 +19,11 @@
     "password": "Mot de passe",
     "signingIn": "Connexion en cours…"
   },
-  "student": { "one": "Étudiant", "other": "Étudiants", "id": "N° étudiant" },
+  "student": {
+    "one": "Étudiant",
+    "other": "Étudiants",
+    "id": "N° étudiant"
+  },
   "course": {
     "one": "Cours",
     "other": "Cours",
@@ -42,7 +49,11 @@
     "enrolled": "Inscrit",
     "graded": "Évalué",
     "notAssessed": "Pas encore évalué",
-    "status": { "active": "Actif", "withdrawn": "Retiré", "completed": "Terminé" }
+    "status": {
+      "active": "Actif",
+      "withdrawn": "Retiré",
+      "completed": "Terminé"
+    }
   },
   "stats": {
     "average": "Moyenne",
@@ -52,8 +63,18 @@
     "atRisk": "En difficulté",
     "noData": "Aucune donnée"
   },
-  "theme": { "label": "Thème", "light": "Clair", "dark": "Sombre", "system": "Auto" },
-  "locale": { "label": "Langue", "en": "English", "de": "Deutsch", "fr": "Français" },
+  "theme": {
+    "label": "Thème",
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Auto"
+  },
+  "locale": {
+    "label": "Langue",
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français"
+  },
   "action": {
     "save": "Enregistrer",
     "cancel": "Annuler",
@@ -80,5 +101,70 @@
     "OVERRIDE_NOT_FOUND": "Cette substitution n’existe pas.",
     "NETWORK_ERROR": "Serveur injoignable.",
     "unknown": "Une erreur est survenue."
+  },
+  "landing": {
+    "nav": {
+      "features": "Fonctionnalités",
+      "how": "Fonctionnement",
+      "signIn": "Se connecter"
+    },
+    "hero": {
+      "eyebrow": "La gestion des notes repensée",
+      "title": "Chaque note à une touche de distance.",
+      "subtitle": "Saisie, rapports et analyse pour tout l’établissement — avec un assistant qui lit les mêmes chiffres que vous.",
+      "cta": "Ouvrir l’application",
+      "secondary": "Voir le fonctionnement"
+    },
+    "palette": {
+      "hint": "Posez n’importe quelle question sur vos notes"
+    },
+    "demos": {
+      "average": {
+        "query": "moyenne en CS101 ce semestre",
+        "result": "CS101 — 42 étudiants, 128 évaluations"
+      },
+      "risk": {
+        "query": "qui est en difficulté en Bases de données ?",
+        "result": "4 étudiants sous la barre d’admission"
+      },
+      "trend": {
+        "query": "la deuxième année a-t-elle progressé ?",
+        "result": "6,4 points de plus qu’en octobre"
+      }
+    },
+    "features": {
+      "title": "Conçu pour celles et ceux qui saisissent vraiment les notes",
+      "scoped": {
+        "title": "Chacun voit exactement ce qui le concerne",
+        "body": "Les étudiants voient leurs notes, les enseignants leurs cours, l’administration l’ensemble. La restriction s’applique dans la requête : une erreur montre trop peu plutôt que trop."
+      },
+      "fast": {
+        "title": "Rapide parce que léger",
+        "body": "Un seul fichier, aucun serveur à gérer, aucun compte en ligne. Les pages arrivent déjà rendues et toutes les données tiennent en mémoire."
+      },
+      "ai": {
+        "title": "Un assistant qui ne peut pas deviner",
+        "body": "Les questions deviennent de vraies requêtes. Chaque chiffre est accompagné des lignes dont il provient : une réponse fausse se voit immédiatement."
+      }
+    },
+    "how": {
+      "title": "Trois étapes vers un carnet de notes complet",
+      "one": {
+        "title": "Reprendre l’existant",
+        "body": "Déposez un tableur. Les colonnes sont associées pour vous et chaque modification est montrée avant tout enregistrement."
+      },
+      "two": {
+        "title": "Saisir et corriger",
+        "body": "Saisissez les notes directement dans le tableau. Chaque modification reste au journal, avec son auteur et la valeur précédente."
+      },
+      "three": {
+        "title": "Analyser et agir",
+        "body": "Bulletins de semestre, répartitions et listes d’étudiants en difficulté, dans votre langue et prêts à transmettre."
+      }
+    },
+    "footer": {
+      "built": "Un projet d’études, conçu comme un produit.",
+      "docs": "Documentation de l’API"
+    }
   }
 }

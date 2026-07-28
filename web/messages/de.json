@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Notenverwaltung", "tagline": "Erfassung, Berichte und Auswertung." },
+  "app": {
+    "name": "Notenverwaltung",
+    "tagline": "Erfassung, Berichte und Auswertung."
+  },
   "nav": {
     "dashboard": "Übersicht",
     "students": "Studierende",
@@ -16,7 +19,11 @@
     "password": "Passwort",
     "signingIn": "Anmeldung läuft…"
   },
-  "student": { "one": "Studierende:r", "other": "Studierende", "id": "Matrikelnummer" },
+  "student": {
+    "one": "Studierende:r",
+    "other": "Studierende",
+    "id": "Matrikelnummer"
+  },
   "course": {
     "one": "Kurs",
     "other": "Kurse",
@@ -42,7 +49,11 @@
     "enrolled": "Angemeldet",
     "graded": "Bewertet",
     "notAssessed": "Noch nicht bewertet",
-    "status": { "active": "Aktiv", "withdrawn": "Abgemeldet", "completed": "Abgeschlossen" }
+    "status": {
+      "active": "Aktiv",
+      "withdrawn": "Abgemeldet",
+      "completed": "Abgeschlossen"
+    }
   },
   "stats": {
     "average": "Durchschnitt",
@@ -52,8 +63,18 @@
     "atRisk": "Gefährdet",
     "noData": "Noch keine Daten"
   },
-  "theme": { "label": "Design", "light": "Hell", "dark": "Dunkel", "system": "Automatisch" },
-  "locale": { "label": "Sprache", "en": "English", "de": "Deutsch", "fr": "Français" },
+  "theme": {
+    "label": "Design",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "Automatisch"
+  },
+  "locale": {
+    "label": "Sprache",
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français"
+  },
   "action": {
     "save": "Speichern",
     "cancel": "Abbrechen",
@@ -80,5 +101,70 @@
     "OVERRIDE_NOT_FOUND": "Diese Überschreibung existiert nicht.",
     "NETWORK_ERROR": "Server nicht erreichbar.",
     "unknown": "Etwas ist schiefgelaufen."
+  },
+  "landing": {
+    "nav": {
+      "features": "Funktionen",
+      "how": "So funktioniert es",
+      "signIn": "Anmelden"
+    },
+    "hero": {
+      "eyebrow": "Notenverwaltung neu gedacht",
+      "title": "Jede Note, einen Tastendruck entfernt.",
+      "subtitle": "Erfassung, Berichte und Auswertung für die ganze Einrichtung — mit einem Assistenten, der dieselben Zahlen liest wie Sie.",
+      "cta": "Anwendung öffnen",
+      "secondary": "So funktioniert es"
+    },
+    "palette": {
+      "hint": "Fragen Sie alles zu Ihren Noten"
+    },
+    "demos": {
+      "average": {
+        "query": "Durchschnitt in CS101 in diesem Semester",
+        "result": "CS101 — 42 Studierende, 128 Leistungen"
+      },
+      "risk": {
+        "query": "Wer ist in Datenbanken gefährdet?",
+        "result": "4 Studierende unter der Bestehensgrenze"
+      },
+      "trend": {
+        "query": "Hat sich der zweite Jahrgang verbessert?",
+        "result": "6,4 Punkte höher als im Oktober"
+      }
+    },
+    "features": {
+      "title": "Gemacht für die, die die Noten wirklich eintragen",
+      "scoped": {
+        "title": "Jede:r sieht genau das Eigene",
+        "body": "Studierende sehen ihre Noten, Lehrende ihre Kurse, die Verwaltung alles. Die Einschränkung geschieht in der Abfrage — ein Fehler zeigt also zu wenig statt zu viel."
+      },
+      "fast": {
+        "title": "Schnell, weil klein",
+        "body": "Eine Datei, kein Server, kein Cloud-Konto. Seiten kommen fertig gerendert an und der ganze Datenbestand passt in den Arbeitsspeicher."
+      },
+      "ai": {
+        "title": "Ein Assistent, der nicht raten kann",
+        "body": "Fragen werden zu echten Datenbankabfragen. Zu jeder Zahl liefert er die Zeilen mit, aus denen sie stammt — eine falsche Antwort fällt sofort auf."
+      }
+    },
+    "how": {
+      "title": "In drei Schritten zur vollständigen Notenverwaltung",
+      "one": {
+        "title": "Übernehmen, was vorhanden ist",
+        "body": "Tabelle hineinziehen. Die Spalten werden für Sie zugeordnet und jede Änderung wird gezeigt, bevor etwas geschrieben wird."
+      },
+      "two": {
+        "title": "Erfassen und berichtigen",
+        "body": "Noten direkt in der Tabelle eintragen. Jede Änderung bleibt im Protokoll — mit Urheber:in und vorherigem Wert."
+      },
+      "three": {
+        "title": "Auswerten und handeln",
+        "body": "Semesterberichte, Verteilungen und Gefährdetenlisten — in Ihrer Sprache und fertig zur Weitergabe."
+      }
+    },
+    "footer": {
+      "built": "Eine Studienarbeit, gebaut wie ein Produkt.",
+      "docs": "API-Dokumentation"
+    }
   }
 }
