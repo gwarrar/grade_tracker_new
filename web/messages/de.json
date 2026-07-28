@@ -22,7 +22,9 @@
   "student": {
     "one": "Studierende:r",
     "other": "Studierende",
-    "id": "Matrikelnummer"
+    "id": "Matrikelnummer",
+    "firstName": "Vorname",
+    "lastName": "Nachname"
   },
   "course": {
     "one": "Kurs",

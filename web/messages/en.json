@@ -22,7 +22,9 @@
   "student": {
     "one": "Student",
     "other": "Students",
-    "id": "Student ID"
+    "id": "Student ID",
+    "firstName": "First name",
+    "lastName": "Surname"
   },
   "course": {
     "one": "Course",
