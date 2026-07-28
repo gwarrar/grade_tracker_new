@@ -12,7 +12,9 @@
     "admin": "Verwaltung",
     "profile": "Profil",
     "signOut": "Abmelden",
-    "aiSettings": "KI-Anbieter"
+    "aiSettings": "KI-Anbieter",
+    "primary": "Hauptbereich",
+    "skip": "Zum Inhalt springen"
   },
   "auth": {
     "signIn": "Anmelden",

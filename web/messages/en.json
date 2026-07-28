@@ -12,7 +12,9 @@
     "admin": "Admin",
     "profile": "Profile",
     "signOut": "Sign out",
-    "aiSettings": "AI providers"
+    "aiSettings": "AI providers",
+    "primary": "Main",
+    "skip": "Skip to content"
   },
   "auth": {
     "signIn": "Sign in",

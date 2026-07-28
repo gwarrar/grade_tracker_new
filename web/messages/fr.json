@@ -12,7 +12,9 @@
     "admin": "Administration",
     "profile": "Profil",
     "signOut": "Se déconnecter",
-    "aiSettings": "Fournisseurs d’IA"
+    "aiSettings": "Fournisseurs d’IA",
+    "primary": "Principal",
+    "skip": "Aller au contenu"
   },
   "auth": {
     "signIn": "Se connecter",

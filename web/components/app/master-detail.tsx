@@ -22,7 +22,7 @@
  */
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 const SPRING = { type: "spring", stiffness: 280, damping: 32 } as const;
 
@@ -42,6 +42,27 @@ export function MasterDetail({ children, detail, detailKey }: Props) {
   const reduced = useReducedMotion();
   const open = detail !== null && detail !== undefined;
 
+  const panelRef = useRef<HTMLElement>(null);
+  // Where focus was when the panel opened, so it can be put back. Without this,
+  // closing the panel drops focus onto <body> and the next Tab restarts from the
+  // top of the page — the row that was being read is lost.
+  const returnTo = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      returnTo.current = document.activeElement as HTMLElement | null;
+      // The panel is not focusable by itself; tabIndex={-1} makes it a programmatic
+      // target only, so it never joins the tab order as a stop of its own.
+      panelRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    // `isConnected` because the row may have been removed by the same action that
+    // closed the panel — focusing a detached node silently does nothing and leaves
+    // focus on <body> anyway.
+    if (returnTo.current?.isConnected) returnTo.current.focus({ preventScroll: true });
+    returnTo.current = null;
+  }, [open]);
+
   // Reduced motion collapses the whole thing to an instant layout change. Not a
   // shorter animation — no animation, which is what the preference asks for.
   if (reduced) {
@@ -50,7 +71,11 @@ export function MasterDetail({ children, detail, detailKey }: Props) {
         <div className={open ? "hidden lg:block lg:w-[42%] lg:shrink-0" : "w-full"}>
           {children}
         </div>
-        {open && <aside className="min-w-0 flex-1">{detail}</aside>}
+        {open && (
+          <aside ref={panelRef} tabIndex={-1} className="min-w-0 flex-1 outline-none">
+            {detail}
+          </aside>
+        )}
       </div>
     );
   }
@@ -75,8 +100,10 @@ export function MasterDetail({ children, detail, detailKey }: Props) {
       <AnimatePresence mode="popLayout" initial={false}>
         {open && (
           <motion.aside
+            ref={panelRef}
+            tabIndex={-1}
             key={detailKey ?? "detail"}
-            className="min-w-0 flex-1"
+            className="min-w-0 flex-1 outline-none"
             initial={{ x: 40, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 40, opacity: 0 }}

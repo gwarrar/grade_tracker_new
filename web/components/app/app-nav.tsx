@@ -56,7 +56,7 @@ export function AppNav({ me }: { me: Me }) {
           {t("app.name")}
         </Link>
 
-        <nav className="flex gap-1 text-sm" aria-label={t("nav.dashboard")}>
+        <nav className="flex gap-1 text-sm" aria-label={t("nav.primary")}>
           {visible.map((link) => {
             // startsWith, so /students?id=S001 keeps the Students tab lit. `usePathname`
             // from next-intl already has the locale prefix stripped.
