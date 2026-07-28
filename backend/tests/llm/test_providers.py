@@ -111,9 +111,7 @@ def _openai_body(*, tool: bool) -> dict[str, Any]:
     )
     return {
         "model": "claude-opus-5",
-        "choices": [
-            {"message": message, "finish_reason": "tool_calls" if tool else "stop"}
-        ],
+        "choices": [{"message": message, "finish_reason": "tool_calls" if tool else "stop"}],
         "usage": {
             "prompt_tokens": 120,
             "completion_tokens": 18,

@@ -269,13 +269,9 @@ class AiService:
         if not stats.get("grade_count"):
             # Nothing to summarise, and a model asked to summarise nothing will
             # produce something. Refusing costs nothing and cannot mislead.
-            raise ValidationError(
-                "no grades to summarise", field="entity_id", value=entity_id
-            )
+            raise ValidationError("no grades to summarise", field="entity_id", value=entity_id)
 
-        digest = hashlib.sha256(
-            json.dumps(stats, sort_keys=True, default=str).encode()
-        ).hexdigest()
+        digest = hashlib.sha256(json.dumps(stats, sort_keys=True, default=str).encode()).hexdigest()
         locale = self._principal.locale
 
         cached = self._conn.execute(
@@ -463,9 +459,7 @@ def _single_turn(
     Returns:
         The reply, in the same shape the agent loop returns.
     """
-    reply = provider.chat(
-        [Message(role=Role.USER, content=prompt)], system=system, schema=schema
-    )
+    reply = provider.chat([Message(role=Role.USER, content=prompt)], system=system, schema=schema)
     return AgentResult(
         text=reply.text,
         usage=reply.usage,

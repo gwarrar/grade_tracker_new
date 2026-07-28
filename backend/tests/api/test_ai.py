@@ -153,6 +153,7 @@ def test_ask_answers_as_the_caller(
     This is the injection case at the HTTP boundary: the student's assistant runs
     the identical tool call and sees only their own rows.
     """
+
     def scripted() -> list[ChatResult]:
         return [
             ChatResult(

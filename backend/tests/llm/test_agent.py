@@ -94,9 +94,7 @@ def context() -> Iterator[ToolContext]:
         "INSERT INTO grades (student_id, course_id, title, score, date)"
         " VALUES ('S001', 'CS101', 'Midterm', 90, '2026-01-10')"
     )
-    principal = Principal(
-        user_id=1, role=UserRole.ADMIN, email="admin@test", full_name="Root"
-    )
+    principal = Principal(user_id=1, role=UserRole.ADMIN, email="admin@test", full_name="Root")
     yield ToolContext(conn=conn, principal=principal)
     conn.close()
 
@@ -235,9 +233,7 @@ def test_truncation_is_reported_rather_than_hidden(context: ToolContext) -> None
 
 def test_a_finished_answer_is_not_marked_truncated(context: ToolContext) -> None:
     """The counterweight: the flag must distinguish, not always fire."""
-    provider = ScriptedProvider(
-        [_tool_reply("query_grades", {}), _text_reply("all done")]
-    )
+    provider = ScriptedProvider([_tool_reply("query_grades", {}), _text_reply("all done")])
 
     assert _run(provider, context, max_turns=2).truncated is False
 

@@ -235,9 +235,7 @@ def test_clearing_the_base_url_stores_null_not_an_empty_string(
 def test_an_unimplemented_kind_is_rejected(service: AiAdminService) -> None:
     """Guarded in the service, not only at the HTTP schema."""
     with pytest.raises(ValidationError):
-        service.create_provider(
-            actor_id=1, name="x", kind="telepathy", default_model="m"
-        )
+        service.create_provider(actor_id=1, name="x", kind="telepathy", default_model="m")
 
 
 def test_an_unknown_effort_is_rejected(service: AiAdminService, provider_id: int) -> None:

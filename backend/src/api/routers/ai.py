@@ -177,9 +177,7 @@ def command(body: CommandRequest, ai: Ai) -> CommandResponse:
     """
     proposal = ai.command(body.instruction)
 
-    return CommandResponse(
-        action=proposal.action, params=proposal.params, message=proposal.message
-    )
+    return CommandResponse(action=proposal.action, params=proposal.params, message=proposal.message)
 
 
 @router.get(
@@ -192,9 +190,7 @@ def command(body: CommandRequest, ai: Ai) -> CommandResponse:
         "evidence picks the flattering evidence."
     ),
 )
-def insight(
-    entity_type: str, entity_id: str, _: TeacherUser, ai: Ai
-) -> InsightResponse:
+def insight(entity_type: str, entity_id: str, _: TeacherUser, ai: Ai) -> InsightResponse:
     """Generate or return a cached insight.
 
     Args:
