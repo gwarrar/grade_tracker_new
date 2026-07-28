@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * Students list with the sliding detail panel.
+ * Courses list with the sliding detail panel.
  *
- * Selection lives in the URL (`?id=S001`), not in component state. That single
- * decision is what makes a selected student linkable, makes the Back button close
- * the panel, and survives a refresh — none of which `useState` gives you.
+ * The panel shows the register alongside the course, because "who is enrolled" is
+ * the question anyone opening a course is actually asking — and it is the one
+ * place where an enrolled-but-ungraded student is visible at all.
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,15 +15,16 @@ import { useState, type FormEvent } from "react";
 import { Field, Input, PanelHeader } from "@/components/app/detail-fields";
 import { MasterDetail } from "@/components/app/master-detail";
 import { api, ApiError, type Response } from "@/lib/api";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, parseLocaleNumber } from "@/lib/format";
 import { useDebounced, useSelection } from "@/lib/use-selection";
 
-type Student = Response<"/students/{student_id}", "get">;
-type Page = Response<"/students", "get">;
+type Course = Response<"/courses/{course_id}", "get">;
+type Page = Response<"/courses", "get">;
+type Register = Response<"/courses/{course_id}/enrollments", "get">;
 
 const PAGE_SIZE = 50;
 
-export function StudentsView({ locale }: { locale: string }) {
+export function CoursesView({ locale }: { locale: string }) {
   const t = useTranslations();
   const queryClient = useQueryClient();
 
@@ -32,16 +33,14 @@ export function StudentsView({ locale }: { locale: string }) {
   const query = useDebounced(search.trim());
 
   const list = useQuery({
-    queryKey: ["students", { q: query }],
-    queryFn: () => api<Page>("/students", { query: { q: query, size: PAGE_SIZE } }),
-    // Keeps the previous rows on screen while a new search resolves, instead of
-    // collapsing the table to a spinner on every keystroke.
+    queryKey: ["courses", { q: query }],
+    queryFn: () => api<Page>("/courses", { query: { q: query, size: PAGE_SIZE } }),
     placeholderData: (previous) => previous,
   });
 
   const detail = useQuery({
-    queryKey: ["student", selectedId],
-    queryFn: () => api<Student>(`/students/${selectedId}`),
+    queryKey: ["course", selectedId],
+    queryFn: () => api<Course>(`/courses/${selectedId}`),
     enabled: selectedId !== null,
   });
 
@@ -51,7 +50,7 @@ export function StudentsView({ locale }: { locale: string }) {
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight text-text">
-          {t("student.other")}
+          {t("course.other")}
           {list.data && (
             <span className="numeric ms-3 text-base font-normal text-subtle">
               {formatNumber(list.data.total, locale)}
@@ -73,17 +72,17 @@ export function StudentsView({ locale }: { locale: string }) {
         detailKey={selectedId}
         detail={
           selectedId && (
-            <StudentDetail
+            <CourseDetail
               key={selectedId}
-              student={detail.data}
+              courseId={selectedId}
+              course={detail.data}
               loading={detail.isPending}
               error={detail.error}
+              locale={locale}
               onClose={() => select(null)}
               onSaved={() => {
-                // Both caches: the panel shows the new name, and so does the row
-                // behind it.
-                void queryClient.invalidateQueries({ queryKey: ["student", selectedId] });
-                void queryClient.invalidateQueries({ queryKey: ["students"] });
+                void queryClient.invalidateQueries({ queryKey: ["course", selectedId] });
+                void queryClient.invalidateQueries({ queryKey: ["courses"] });
               }}
             />
           )
@@ -91,30 +90,26 @@ export function StudentsView({ locale }: { locale: string }) {
       >
         <div className="overflow-hidden rounded-xl border border-line bg-surface">
           <table className="w-full text-sm">
-            <caption className="sr-only">{t("student.other")}</caption>
+            <caption className="sr-only">{t("course.other")}</caption>
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-subtle">
                 <th scope="col" className="px-4 py-2.5 font-medium">
-                  {t("student.id")}
+                  {t("course.id")}
                 </th>
                 <th scope="col" className="px-4 py-2.5 font-medium">
-                  {t("student.one")}
+                  {t("course.one")}
                 </th>
                 <th scope="col" className="px-4 py-2.5 text-end font-medium">
-                  {t("grade.other")}
+                  {t("enrollment.enrolled")}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((student) => {
-                const active = student.student_id === selectedId;
+              {rows.map((course) => {
+                const active = course.course_id === selectedId;
                 return (
                   <tr
-                    key={student.student_id}
-                    // The row is a <tr> with a <button> inside rather than a
-                    // clickable <tr>: a table row is not focusable and not
-                    // announced as actionable, so keyboard users could not open a
-                    // record at all.
+                    key={course.course_id}
                     className={`border-b border-line last:border-0 transition-colors ${
                       active ? "bg-bg-subtle" : "hover:bg-bg-subtle"
                     }`}
@@ -122,18 +117,20 @@ export function StudentsView({ locale }: { locale: string }) {
                     <td className="px-4 py-0">
                       <button
                         type="button"
-                        onClick={() => select(student.student_id)}
+                        onClick={() => select(course.course_id)}
                         aria-current={active ? "true" : undefined}
                         className="numeric -mx-4 w-[calc(100%+2rem)] px-4 py-2.5 text-start text-muted outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                       >
-                        {student.student_id}
+                        {course.course_id}
                       </button>
                     </td>
-                    <td className="px-4 py-2.5 text-text">
-                      {student.first_name} {student.last_name}
-                    </td>
+                    <td className="px-4 py-2.5 text-text">{course.name}</td>
                     <td className="numeric px-4 py-2.5 text-end text-muted">
-                      {formatNumber(student.grade_count, locale)}
+                      {formatNumber(course.enrolled_count, locale)}
+                      <span className="text-subtle">
+                        {" / "}
+                        {formatNumber(course.max_students, locale)}
+                      </span>
                     </td>
                   </tr>
                 );
@@ -141,9 +138,7 @@ export function StudentsView({ locale }: { locale: string }) {
             </tbody>
           </table>
 
-          {list.isPending && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">…</p>
-          )}
+          {list.isPending && <p className="px-4 py-8 text-center text-sm text-subtle">…</p>}
           {!list.isPending && rows.length === 0 && (
             <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.noData")}</p>
           )}
@@ -153,17 +148,20 @@ export function StudentsView({ locale }: { locale: string }) {
   );
 }
 
-/** The detail panel: read-only until Edit, then a form that PATCHes. */
-function StudentDetail({
-  student,
+function CourseDetail({
+  courseId,
+  course,
   loading,
   error,
+  locale,
   onClose,
   onSaved,
 }: {
-  student: Student | undefined;
+  courseId: string;
+  course: Course | undefined;
   loading: boolean;
   error: unknown;
+  locale: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -171,9 +169,15 @@ function StudentDetail({
   const [editing, setEditing] = useState(false);
   const [code, setCode] = useState<string | null>(null);
 
+  const register = useQuery({
+    queryKey: ["course", courseId, "enrollments"],
+    queryFn: () => api<Register>(`/courses/${courseId}/enrollments`),
+    enabled: !editing,
+  });
+
   const save = useMutation({
-    mutationFn: (body: Record<string, string>) =>
-      api(`/students/${student?.student_id}`, { method: "PATCH", body }),
+    mutationFn: (body: Record<string, unknown>) =>
+      api(`/courses/${courseId}`, { method: "PATCH", body }),
     onSuccess: () => {
       setEditing(false);
       setCode(null);
@@ -185,18 +189,28 @@ function StudentDetail({
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+
+    // Parsed against the active locale, so a German user's "1,5" credits is 1.5
+    // and not 15. A null means the text was not a number in this locale — reported
+    // rather than silently coerced.
+    const credits = parseLocaleNumber(String(data.get("credits") ?? ""), locale);
+    if (credits === null) {
+      setCode("VALIDATION_ERROR");
+      return;
+    }
+
     save.mutate({
-      first_name: String(data.get("first_name") ?? ""),
-      last_name: String(data.get("last_name") ?? ""),
-      email: String(data.get("email") ?? ""),
+      name: String(data.get("name") ?? ""),
+      term: String(data.get("term") ?? "") || null,
+      credits,
     });
   }
 
   return (
     <div className="rounded-xl border border-line bg-surface p-6">
       <PanelHeader
-        title={student ? `${student.first_name} ${student.last_name}` : "…"}
-        subtitle={student?.student_id}
+        title={course?.name ?? "…"}
+        subtitle={course?.course_id}
         closeLabel={t("action.close")}
         onClose={onClose}
       />
@@ -208,13 +222,23 @@ function StudentDetail({
         </p>
       )}
 
-      {student && !editing && (
+      {course && !editing && (
         <>
           <dl className="mt-6 space-y-3 text-sm">
-            <Field label={t("auth.email")} value={student.email} />
-            <Field label={t("course.other")} value={String(student.enrolled_count)} numeric />
-            <Field label={t("grade.other")} value={String(student.grade_count)} numeric />
+            <Field label={t("course.term")} value={course.term ?? "—"} />
+            <Field
+              label={t("course.credits")}
+              value={formatNumber(course.credits, locale)}
+              numeric
+            />
+            <Field label={t("nav.profile")} value={course.teacher_name ?? "—"} />
+            <Field
+              label={t("enrollment.graded")}
+              value={formatNumber(course.graded_count, locale)}
+              numeric
+            />
           </dl>
+
           <button
             type="button"
             onClick={() => setEditing(true)}
@@ -222,14 +246,45 @@ function StudentDetail({
           >
             {t("action.edit")}
           </button>
+
+          <h3 className="mt-8 text-sm font-medium text-text">{t("enrollment.other")}</h3>
+          <ul className="mt-3 divide-y divide-line rounded-lg border border-line">
+            {(register.data ?? []).map((entry) => (
+              <li
+                key={entry.student_id}
+                className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+              >
+                <span className="min-w-0 truncate text-text">
+                  {entry.first_name} {entry.last_name}
+                </span>
+                {/* The distinction the schema was missing: enrolled and graded are
+                    not the same state, and only this view shows the difference. */}
+                <span className="numeric shrink-0 text-xs text-subtle">
+                  {entry.grade_count > 0
+                    ? `${formatNumber(entry.grade_count, locale)} ${t("grade.other")}`
+                    : t("enrollment.notAssessed")}
+                </span>
+              </li>
+            ))}
+            {register.data?.length === 0 && (
+              <li className="px-3 py-4 text-center text-sm text-subtle">
+                {t("stats.noData")}
+              </li>
+            )}
+          </ul>
         </>
       )}
 
-      {student && editing && (
+      {course && editing && (
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <Input name="first_name" label={t("student.firstName")} value={student.first_name} />
-          <Input name="last_name" label={t("student.lastName")} value={student.last_name} />
-          <Input name="email" label={t("auth.email")} value={student.email} type="email" />
+          <Input name="name" label={t("course.one")} value={course.name} />
+          <Input name="term" label={t("course.term")} value={course.term ?? ""} required={false} />
+          <Input
+            name="credits"
+            label={t("course.credits")}
+            value={formatNumber(course.credits, locale)}
+            inputMode="decimal"
+          />
 
           {code && (
             <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
@@ -261,5 +316,3 @@ function StudentDetail({
     </div>
   );
 }
-
-
