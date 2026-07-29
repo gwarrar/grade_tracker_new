@@ -19,6 +19,7 @@ import type { ReactNode } from "react";
 
 import { BrandingStyle, getBranding } from "@/components/branding/branding";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ThemeScript } from "@/components/theme/theme-script";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -79,12 +80,15 @@ export default async function LocaleLayout({
   const branding = await getBranding();
 
   return (
-    // suppressHydrationWarning because next-themes writes the theme class onto
-    // <html> before React hydrates. That mismatch is the mechanism preventing the
-    // flash of wrong theme, not a bug to fix.
+    // suppressHydrationWarning because the theme script writes a class onto <html>
+    // before React hydrates. That mismatch is the mechanism preventing the flash of
+    // wrong theme, not a bug to fix.
     <html lang={locale} suppressHydrationWarning>
       <head>
         <BrandingStyle branding={branding} />
+        {/* Before the body paints: a dark-mode user would otherwise see a flash of
+            the light theme on every navigation. */}
+        <ThemeScript defaultTheme={branding.default_theme} />
       </head>
       <body className={`${sans.variable} ${mono.variable}`}>
         <ThemeProvider defaultTheme={branding.default_theme}>

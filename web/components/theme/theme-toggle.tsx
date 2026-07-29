@@ -9,9 +9,10 @@
  * touched it.
  */
 
-import { useTheme } from "next-themes";
+
 import { useTranslations } from "next-intl";
 
+import { useTheme } from "@/components/theme/theme-provider";
 import { useHydrated } from "@/lib/use-hydrated";
 
 const OPTIONS = [
@@ -25,8 +26,7 @@ export function ThemeToggle() {
   const t = useTranslations("theme");
 
   // The server cannot know the stored preference, so the first render must not
-  // depend on it. Rendering the real state before hydration is the classic
-  // next-themes mismatch.
+  // depend on it — rendering the real state before hydration is a mismatch.
   const hydrated = useHydrated();
 
   return (
