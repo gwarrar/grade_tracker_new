@@ -2,8 +2,8 @@
 
 Deliberately knows nothing about users, roles or authentication — it is a SQL
 fragment and its parameters, nothing more. That keeps the dependency direction
-right: :mod:`api.scoping` turns a signed-in principal into a :class:`Scope`, and
-the storage layer consumes one without importing anything from the HTTP layer.
+right: :mod:`services.scoping` turns a signed-in principal into a :class:`Scope`,
+and the storage layer consumes one without importing anything above it.
 
 The important property is the default. :data:`DENY_ALL` rather than an empty
 fragment means a query that is handed no scope returns **nothing**, not everything.
