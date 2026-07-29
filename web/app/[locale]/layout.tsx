@@ -10,6 +10,7 @@
  * Next 16: `params` is a Promise. Synchronous access was removed, not deprecated.
  */
 
+import { cookies } from "next/headers";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
@@ -19,7 +20,7 @@ import type { ReactNode } from "react";
 
 import { BrandingStyle, getBranding } from "@/components/branding/branding";
 import { ThemeProvider } from "@/components/theme/theme-provider";
-import { ThemeScript } from "@/components/theme/theme-script";
+import { COOKIE, normalise } from "@/components/theme/theme";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -77,21 +78,23 @@ export default async function LocaleLayout({
   // Required for static rendering; without it every page becomes dynamic.
   setRequestLocale(locale);
 
-  const branding = await getBranding();
+  const [branding, jar] = await Promise.all([getBranding(), cookies()]);
+
+  // The explicit choice, straight from the cookie into the first byte of HTML.
+  // "system" deliberately writes no class: that hands the decision to the
+  // prefers-color-scheme block in tokens.css, which needs no JavaScript at all.
+  const chosen = normalise(jar.get(COOKIE)?.value ?? branding.default_theme);
+  const themeClass = chosen === "system" ? undefined : chosen;
 
   return (
-    // suppressHydrationWarning because the theme script writes a class onto <html>
-    // before React hydrates. That mismatch is the mechanism preventing the flash of
-    // wrong theme, not a bug to fix.
-    <html lang={locale} suppressHydrationWarning>
+    // No suppressHydrationWarning needed any more: the class is rendered by the
+    // server from the cookie, so what React hydrates is what was already there.
+    <html lang={locale} className={themeClass}>
       <head>
         <BrandingStyle branding={branding} />
-        {/* Before the body paints: a dark-mode user would otherwise see a flash of
-            the light theme on every navigation. */}
-        <ThemeScript defaultTheme={branding.default_theme} />
       </head>
       <body className={`${sans.variable} ${mono.variable}`}>
-        <ThemeProvider defaultTheme={branding.default_theme}>
+        <ThemeProvider>
           <NextIntlClientProvider>{children}</NextIntlClientProvider>
         </ThemeProvider>
       </body>

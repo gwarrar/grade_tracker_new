@@ -1,30 +1,39 @@
 "use client";
 
 /**
- * Light / dark / auto, with auto as the default.
+ * Light / dark / auto, with auto as the default — and no script.
  *
- * Hand-rolled rather than `next-themes`, for one reason: that library renders its
- * pre-hydration script from inside a client component, which React 19 warns about
- * on every page load and — the part that actually matters — puts the script in
- * `<body>` instead of `<head>`. Ours is a server component in the head, where it
- * runs before the browser paints anything.
+ * The usual pre-hydration script exists because the server cannot know the
+ * visitor's theme. Two changes remove the need for it:
  *
- * The state is read with `useSyncExternalStore`, because that is what it is: two
- * external stores, `localStorage` and the OS colour-scheme query. Reading them
- * into `useState` from an effect would mean a second render on every mount and a
- * flash of the wrong toggle state — and it is the pattern React 19's lint objects
- * to, correctly.
+ * - **An explicit choice lives in a cookie**, which the server reads, so the class
+ *   is on `<html>` in the first byte of the response.
+ * - **"Follow the system" is answered by CSS.** `tokens.css` carries the dark
+ *   values under `@media (prefers-color-scheme: dark)` for a document with no
+ *   explicit class, so the OS preference applies before any JavaScript runs.
+ *
+ * The result is no flash, no `<script>` for React to warn about, and a theme that
+ * still works with JavaScript switched off entirely.
+ *
+ * This component now only handles *changing* the theme, and reading back what is
+ * currently in force.
  */
 
-import { useCallback, useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react";
-import { createContext, useContext } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
-import { STORAGE_KEY } from "./theme-script";
+import { COOKIE, COOKIE_MAX_AGE, type Theme } from "./theme";
 
-export type Theme = "light" | "dark" | "system";
+export type { Theme };
 
 interface ThemeContextValue {
-  /** What the user chose. `system` means "follow the OS". */
+  /** What the user chose. `system` means "let CSS follow the OS". */
   theme: Theme;
   /** What that currently resolves to. Never `system`. */
   resolvedTheme: "light" | "dark";
@@ -34,94 +43,78 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 // ── The external store ───────────────────────────────────────────────────────
+//
+// The class on <html> is the source of truth, because the server wrote it and CSS
+// may be overriding it. Reading the DOM rather than mirroring it in state is what
+// keeps the toggle honest about what is actually on screen.
 
 const listeners = new Set<() => void>();
 
-/** Tell React the snapshot changed. */
 function emit(): void {
   for (const listener of listeners) listener();
 }
 
-/**
- * Subscribe to everything that can change the theme underneath us.
- *
- * Two sources beyond our own setter: the OS switching scheme while the tab is
- * open (someone whose machine changes at sunset should not have to reload), and
- * another tab writing a new preference (`storage` fires only in *other* tabs,
- * which are exactly the ones that would otherwise drift).
- */
 function subscribe(onChange: () => void): () => void {
   listeners.add(onChange);
+  // The OS switching while the tab is open changes what "system" resolves to.
   const query = window.matchMedia("(prefers-color-scheme: dark)");
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === STORAGE_KEY) emit();
-  };
-
   query.addEventListener("change", emit);
-  window.addEventListener("storage", onStorage);
-
   return () => {
     listeners.delete(onChange);
     query.removeEventListener("change", emit);
-    window.removeEventListener("storage", onStorage);
   };
 }
 
 /**
- * The snapshot, as a string.
+ * The snapshot: the explicit choice and what is currently rendered.
  *
- * A primitive rather than an object on purpose: `useSyncExternalStore` compares
- * snapshots by identity, and a fresh object every call is an infinite render loop.
+ * A string rather than an object — `useSyncExternalStore` compares by identity,
+ * and a fresh object per call is an infinite render loop.
  */
 function getSnapshot(): string {
-  return `${readStored() ?? ""}|${window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"}`;
+  const root = document.documentElement;
+  const explicit = root.classList.contains("dark")
+    ? "dark"
+    : root.classList.contains("light")
+      ? "light"
+      : "";
+  const resolved =
+    explicit || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  return `${explicit}|${resolved}`;
 }
 
-/** On the server there is no storage and no OS query — only the default. */
+/** On the server there is no DOM and no OS query. */
 function getServerSnapshot(): string {
   return "|light";
 }
 
-// ── The provider ─────────────────────────────────────────────────────────────
-
-export function ThemeProvider({
-  children,
-  defaultTheme = "system",
-}: {
-  children: ReactNode;
-  /** The organisation's default, for anyone with no stored preference. */
-  defaultTheme?: string;
-}) {
+export function ThemeProvider({ children }: { children: ReactNode }) {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const [stored, systemResolved] = snapshot.split("|");
-
-  const theme = stored ? normalise(stored) : normalise(defaultTheme);
-  const resolvedTheme: "light" | "dark" =
-    theme === "system" ? (systemResolved === "dark" ? "dark" : "light") : theme;
-
-  // Writing to the DOM is a genuine effect — synchronising an external system with
-  // React state, which is what effects are for. The inline script has already done
-  // this for the first paint; this keeps it true afterwards.
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
-    // Tells the browser which built-in controls and scrollbars to draw, so they
-    // match the page rather than staying stubbornly light.
-    document.documentElement.style.colorScheme = resolvedTheme;
-  }, [resolvedTheme]);
+  const [explicit, resolved] = snapshot.split("|");
 
   const setTheme = useCallback((next: Theme) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // Storage blocked. Nothing is persisted, but `emit` below still applies the
-      // choice for this page — better than the click appearing to do nothing.
-    }
+    // SameSite=Lax so it survives ordinary navigation without riding along on
+    // cross-site requests. Not HttpOnly — this one is deliberately readable, and
+    // it carries nothing worth protecting.
+    document.cookie = `${COOKIE}=${next}; path=/; max-age=${COOKIE_MAX_AGE}; samesite=lax`;
+
+    // Applied immediately rather than waiting for a navigation to pick the cookie
+    // up. Removing both classes hands the decision back to the media query, which
+    // is exactly what "system" means.
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    if (next !== "system") root.classList.add(next);
+
     emit();
   }, []);
 
   const value = useMemo(
-    () => ({ theme, resolvedTheme, setTheme }),
-    [theme, resolvedTheme, setTheme],
+    () => ({
+      theme: (explicit || "system") as Theme,
+      resolvedTheme: (resolved === "dark" ? "dark" : "light") as "light" | "dark",
+      setTheme,
+    }),
+    [explicit, resolved, setTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -140,17 +133,3 @@ export function useTheme(): ThemeContextValue {
   return value;
 }
 
-/** Coerce an arbitrary stored or configured string to a known theme. */
-export function normalise(value: string | null | undefined): Theme {
-  return value === "light" || value === "dark" || value === "system" ? value : "system";
-}
-
-/** Read the stored preference, tolerating a browser that blocks storage. */
-function readStored(): Theme | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw === null ? null : normalise(raw);
-  } catch {
-    return null;
-  }
-}

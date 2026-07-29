@@ -116,6 +116,61 @@
   --shadow-lg: 0 24px 48px -12px rgb(0 0 0 / 70%);
 }
 
+/*
+ * The same dark values, applied when the operating system asks for dark and the
+ * document carries no explicit choice.
+ *
+ * This is what removes the pre-hydration script entirely. "Follow the system" is
+ * a question CSS can answer on its own; only an explicit override needs to be
+ * known server-side, and that arrives in a cookie.
+ *
+ * `:root:not(.light):not(.dark)` — an explicit choice in either direction wins
+ * over the OS, which is the whole point of offering the choice.
+ *
+ * These declarations MUST match `.dark` exactly. `tokens.test.ts` asserts it, so
+ * a value edited in one place and not the other fails the suite rather than
+ * silently making auto-mode disagree with dark-mode.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.dark) {
+    --brand-primary: #7c9bff;
+    --brand-primary-contrast: #0b0b0d;
+    --brand-accent: #3dd9ac;
+
+    --bg: #08080a;
+    --bg-subtle: #101013;
+    --surface: #121216;
+    --surface-raised: #1a1a20;
+    --surface-overlay: #1e1e25;
+
+    --text: #f2f2ef;
+    --text-muted: #a3a39c;
+    --text-subtle: #6e6e68;
+    --text-inverse: #08080a;
+
+    --border: #26262d;
+    --border-strong: #3a3a44;
+
+    --pass: #4ade9f;
+    --pass-bg: #0d2a20;
+    --fail: #ff8080;
+    --fail-bg: #2e1113;
+    --warn: #f0b352;
+    --warn-bg: #2c1f0a;
+
+    /* Lightened for a dark background: the light-mode ramp is unreadable here. */
+    --band-1: #8ab4e8;
+    --band-2: #6f9fd8;
+    --band-3: #4f7fb8;
+    --band-4: #e0b45c;
+    --band-5: #ff8080;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow: 0 4px 16px -4px rgb(0 0 0 / 55%);
+    --shadow-lg: 0 24px 48px -12px rgb(0 0 0 / 70%);
+  }
+}
+
 /* ── Base ────────────────────────────────────────────────────────────────── */
 * {
   border-color: var(--border);
