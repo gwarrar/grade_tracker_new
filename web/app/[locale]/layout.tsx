@@ -87,9 +87,15 @@ export default async function LocaleLayout({
   const themeClass = chosen === "system" ? undefined : chosen;
 
   return (
-    // No suppressHydrationWarning needed any more: the class is rendered by the
-    // server from the cookie, so what React hydrates is what was already there.
-    <html lang={locale} className={themeClass}>
+    // suppressHydrationWarning is still needed here, though no longer for the
+    // theme — the server renders that class from the cookie now. It is for browser
+    // extensions. LanguageTool adds data-lt-installed, Grammarly and password
+    // managers add their own, all onto <html> before React hydrates, and React
+    // reports every one as a mismatch the developer cannot act on.
+    //
+    // It suppresses exactly one level, so a genuine mismatch anywhere inside still
+    // reports normally.
+    <html lang={locale} className={themeClass} suppressHydrationWarning>
       <head>
         <BrandingStyle branding={branding} />
       </head>
