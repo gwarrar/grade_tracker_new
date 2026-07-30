@@ -1,7 +1,13 @@
 """Application settings, read from the environment.
 
-Everything configurable lives here. Nothing else reads ``os.environ`` directly, so
-the full set of knobs is one file and one ``.env.example`` away from any reader.
+Every declared knob lives here, so the full set is one file and one ``.env.example``
+away from any reader.
+
+Two modules read ``os.environ`` directly and cannot use this class:
+:mod:`llm.registry` and :mod:`services.ai_admin` resolve provider API keys *by name*
+(``ai_providers.api_key_env`` holds the name of a variable, never a key). Those names
+are configured at runtime, so they cannot be declared fields here -- which is exactly
+why :func:`load_dotenv` is called below.
 """
 
 from __future__ import annotations
@@ -10,10 +16,21 @@ import secrets
 from functools import lru_cache
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
+
+# pydantic-settings parses `.env` into the Settings instance; it does not populate
+# os.environ, and `extra="ignore"` then discards anything undeclared -- so a provider
+# key written only to `.env` was invisible to the two modules above, and every
+# provider reported AI_KEY_MISSING while the admin page showed a key-present badge
+# that was a false negative.
+#
+# `load_dotenv` never overrides a variable that is already set, so a real exported
+# shell variable still wins. Keys stay out of the database either way.
+load_dotenv(_REPO_ROOT / ".env")
 
 
 class Settings(BaseSettings):

@@ -429,21 +429,32 @@ class DirectoryService:
             course_id: Which course.
 
         Returns:
-            One entry per enrolment, ordered by name.
+            One entry per enrolment the caller may see, ordered by name. A teacher who
+            owns the course, and any admin, get the whole register; a student gets
+            only their own row.
 
         Raises:
             CourseNotFoundError: If the course is outside the caller's scope.
         """
+        # `get_course` proves the *course* is visible, which for a student means only
+        # that they are enrolled on it. It says nothing about the *students* in it --
+        # so without the scope below, an enrolled student read every classmate's name,
+        # email and grade count off their own course page. This is the failure mode
+        # `Scope` exists to prevent, and the query simply did not use one.
         self.get_course(course_id)
-        rows = self._conn.execute(
-            "SELECT e.student_id, e.course_id, e.status, e.enrolled_at, e.enrolled_by,"
+        scope = student_scope(self._principal, "e.student_id")
+        # Only `scope.sql` is interpolated, and it is composed here rather than
+        # supplied by a caller; every value still travels as a bound parameter.
+        sql = (
+            "SELECT e.student_id, e.course_id, e.status, e.enrolled_at, e.enrolled_by,"  # noqa: S608
             "       s.first_name, s.last_name, s.email,"
             "       (SELECT COUNT(*) FROM grades g WHERE g.student_id = e.student_id"
             "         AND g.course_id = e.course_id AND g.deleted_at IS NULL) AS grade_count"
             "  FROM enrollments e JOIN students s ON s.student_id = e.student_id"
-            " WHERE e.course_id = ? ORDER BY s.last_name, s.first_name",
-            (course_id,),
+            f" WHERE e.course_id = ? AND ({scope.sql})"
+            " ORDER BY s.last_name, s.first_name"
         )
+        rows = self._conn.execute(sql, (course_id, *scope.params))
         return [dict(row) for row in rows]
 
     def enroll(self, course_id: str, student_id: str) -> dict[str, Any]:

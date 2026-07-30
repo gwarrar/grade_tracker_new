@@ -11,9 +11,10 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
+from notenverwaltung.exceptions import ForbiddenError
 from notenverwaltung.gradebook import GradeBook, weighted_mean
 from notenverwaltung.grading_scale import DEFAULT_SCALE, GradingScale
-from notenverwaltung.models import Organization
+from notenverwaltung.models import Organization, Role
 from notenverwaltung.reports import CsvReportGenerator, ReportBuilder
 from notenverwaltung.storage import SqliteGradeStore
 from notenverwaltung.storage.scope import Scope
@@ -118,9 +119,9 @@ class ReportingService:
             The structured report.
 
         Raises:
-            ForbiddenError: Never here — the router restricts this to staff, since a
-                summary over every student is not scopeable in a meaningful way.
+            ForbiddenError: If the caller is not staff.
         """
+        self._assert_may_read_summary()
         return _as_dict(self._builder.summary_report(at_risk_threshold))
 
     def dashboard(self) -> dict[str, Any]:
@@ -228,10 +229,34 @@ class ReportingService:
             self._assert_visible_course(entity_id)
             return generator.render_course(self._builder.course_report(entity_id))
         if kind == "summary":
+            self._assert_may_read_summary()
             return generator.render_summary(self._builder.summary_report())
         raise ValidationError(f"Unknown report kind {kind!r}.", field="kind")
 
     # ── Internals ────────────────────────────────────────────────────────────
+    def _assert_may_read_summary(self) -> None:
+        """Refuse a summary to anyone below staff.
+
+        A summary spans every student, so unlike every other report there is no scope
+        that could narrow it — which makes a role check the only available answer.
+
+        It is a method rather than a route dependency because **two** paths reach the
+        builder: :meth:`summary_report` and the ``summary`` branch of
+        :meth:`export_csv`. Only the first had a ``TeacherUser`` route guard, so
+        ``/reports/summary/summary/export.csv`` handed any signed-in student the
+        institution's ranked averages. Guarding the method the routes share is what
+        makes a third caller safe by default.
+
+        Raises:
+            ForbiddenError: If the caller is not a teacher or above.
+        """
+        if not self._principal.can(Role.TEACHER):
+            raise ForbiddenError(
+                "A summary spans every student and cannot be scoped to one.",
+                required_role=str(Role.TEACHER),
+                actual_role=str(self._principal.role),
+            )
+
     def _count(self, table: str, scope: Scope) -> int:
         """Count rows in a table within a scope."""
         allowed = {"students", "courses"}
