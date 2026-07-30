@@ -1570,9 +1570,10 @@ export interface components {
          * GradeResponse
          * @description A recorded grade.
          *
-         *     `percentage` and `is_passing` are computed server-side deliberately: two clients
-         *     deriving them independently is two chances to disagree with the report the same
-         *     numbers appear in.
+         *     `percentage`, `letter` and `is_passing` are computed server-side deliberately: two
+         *     clients deriving them independently is two chances to disagree with the report the
+         *     same numbers appear in. `letter` in particular depends on the organisation's
+         *     grading scale, which the client would otherwise have to fetch and interpret.
          */
         GradeResponse: {
             /**
@@ -1608,6 +1609,12 @@ export interface components {
              * @description Whether the score reaches the course threshold.
              */
             is_passing: boolean;
+            /**
+             * Letter
+             * @description Band label from the organisation's grading scale, e.g. `B`. The bands are configurable, so do not assume A-F.
+             * @example B
+             */
+            letter: string;
             /**
              * Max Grade
              * @description The course maximum.
@@ -3585,7 +3592,7 @@ export interface operations {
             query?: {
                 page?: number;
                 size?: number;
-                /** @description `date`, `score`, `student`, `course`, `title` or `created`; `-` reverses. */
+                /** @description `date`, `score`, `percentage`, `student`, `course`, `title` or `created`; `-` reverses. */
                 sort?: string | null;
                 /** @description Free text over student, course and title. */
                 q?: string | null;
@@ -3593,6 +3600,14 @@ export interface operations {
                 student_id?: string | null;
                 /** @description Only this course's grades. */
                 course_id?: string | null;
+                /** @description Earliest date, ISO `YYYY-MM-DD`, inclusive. */
+                date_from?: string | null;
+                /** @description Latest date, ISO `YYYY-MM-DD`, inclusive. */
+                date_to?: string | null;
+                /** @description A band from the organisation's grading scale, e.g. `B`. The bands are configurable — read them from `/org/branding`. */
+                letter?: string | null;
+                /** @description Substring of the assessment name. */
+                title?: string | null;
             };
             header?: never;
             path?: never;

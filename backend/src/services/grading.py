@@ -9,17 +9,24 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
-from notenverwaltung.exceptions import ForbiddenError, GradeNotFoundError
+from notenverwaltung.exceptions import ForbiddenError, GradeNotFoundError, ValidationError
 from notenverwaltung.models import Grade
 from notenverwaltung.storage import SqliteGradeStore, transaction
 from notenverwaltung.storage.queries import Page, SortSpec, exists, paginate
 from notenverwaltung.storage.scope import Scope
 from services import audit
+from services.organization import load_grading_scale
 from services.scoping import Principal, course_scope, grade_scope
+
+# The percentage a grade represents, as SQL. Named once because it is needed three
+# times -- sorting by it, and both ends of the percentage and letter filters -- and
+# three hand-written copies is three chances to disagree with `_row_to_dict`.
+_PERCENTAGE = "g.score * 100.0 / c.max_grade"
 
 SORTABLE = {
     "date": "g.date",
     "score": "g.score",
+    "percentage": _PERCENTAGE,
     "student": "s.last_name",
     "course": "c.name",
     "title": "g.title",
@@ -36,6 +43,23 @@ _JOIN = (
     " JOIN students AS s ON s.student_id = g.student_id"
     " JOIN courses AS c ON c.course_id = g.course_id"
 )
+
+
+def _escape_like(value: str) -> str:
+    r"""Escape the wildcards in a ``LIKE`` pattern.
+
+    Without this a title containing ``%`` matches everything, which is a confusing
+    result rather than a dangerous one — but it is still wrong. Mirrors the escaping
+    in :mod:`notenverwaltung.storage.queries`.
+
+    Args:
+        value: Raw user input.
+
+    Returns:
+        The value with ``\\``, ``%`` and ``_`` escaped.
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
 
 _SELECT = (
     "g.grade_id, g.score, g.date, g.notes, g.title, g.weight, g.graded_by,"
@@ -58,6 +82,9 @@ class GradingService:
         self._conn = conn
         self._principal = principal
         self._store = SqliteGradeStore(conn)
+        # Loaded once per request rather than per row: every listed grade needs a
+        # letter, and the scale is one row that cannot change mid-request.
+        self._scale = load_grading_scale(conn)
 
     @property
     def _scope(self) -> Scope:
@@ -73,8 +100,16 @@ class GradingService:
         search: str | None = None,
         student_id: str | None = None,
         course_id: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        letter: str | None = None,
+        title: str | None = None,
     ) -> Page[dict[str, Any]]:
         """List grades the caller may see.
+
+        Every filter composes as another :class:`Scope` onto the caller's own, so a
+        filter can only ever *narrow* what they were already allowed to see. There is
+        no combination of query parameters that widens it.
 
         Args:
             page: 1-based page number.
@@ -83,15 +118,33 @@ class GradingService:
             search: Free text matched against student and course names.
             student_id: Restrict to one student.
             course_id: Restrict to one course.
+            date_from: Earliest date, ISO ``YYYY-MM-DD``, inclusive.
+            date_to: Latest date, ISO ``YYYY-MM-DD``, inclusive.
+            letter: A band label from the organisation's scale, such as ``B``.
+            title: Substring match on the assessment title.
 
         Returns:
             One page of grade dictionaries.
+
+        Raises:
+            ValidationError: If ``letter`` is not a band in the configured scale.
         """
         extra = Scope("g.deleted_at IS NULL")
         if student_id:
             extra = extra & Scope("g.student_id = ?", (student_id,))
         if course_id:
             extra = extra & Scope("g.course_id = ?", (course_id,))
+        # ISO-8601 dates sort correctly as text, so a range is a plain string
+        # comparison and needs no date functions -- which is also what keeps this
+        # portable to Postgres.
+        if date_from:
+            extra = extra & Scope("g.date >= ?", (date_from,))
+        if date_to:
+            extra = extra & Scope("g.date <= ?", (date_to,))
+        if title:
+            extra = extra & Scope("g.title LIKE ? ESCAPE '\\'", (f"%{_escape_like(title)}%",))
+        if letter:
+            extra = extra & self._letter_scope(letter)
 
         rows, total = paginate(
             self._conn,
@@ -290,13 +343,56 @@ class GradingService:
         if not exists(self._conn, "courses", "course_id", course_id, course_scope(self._principal)):
             raise ForbiddenError("You cannot grade this course.", course_id=course_id)
 
-    @staticmethod
-    def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
+    def _letter_scope(self, letter: str) -> Scope:
+        """Turn a band label into the percentage range it covers.
+
+        The letter is *not* stored — it is derived from the percentage against the
+        organisation's scale — so filtering by one means finding the band's bounds and
+        comparing percentages. Bounds come from the configured scale rather than
+        hard-coded, or the filter would disagree with the letter shown in the row the
+        moment an administrator edits the scale.
+
+        The upper bound is exclusive and the lower inclusive, matching
+        :meth:`GradingScale.label_for`, which returns the first band whose minimum the
+        percentage meets.
+
+        Args:
+            letter: A band label, matched case-insensitively.
+
+        Returns:
+            A scope selecting exactly the grades in that band.
+
+        Raises:
+            ValidationError: If no band carries that label. Naming the valid ones,
+                because they are per-installation and a client cannot guess them.
+        """
+        bands = self._scale.bands
+        wanted = letter.strip().casefold()
+        for index, band in enumerate(bands):
+            if band.label.casefold() != wanted:
+                continue
+            # Bands are ordered high to low, so the ceiling is the band above.
+            floor = band.min_percentage
+            if index == 0:
+                return Scope(f"{_PERCENTAGE} >= ?", (floor,))
+            ceiling = bands[index - 1].min_percentage
+            return Scope(f"{_PERCENTAGE} >= ? AND {_PERCENTAGE} < ?", (floor, ceiling))
+
+        raise ValidationError(
+            f"Unknown grade band {letter!r}.",
+            field="letter",
+            allowed=[b.label for b in bands],
+        )
+
+    def _row_to_dict(self, row: sqlite3.Row) -> dict[str, Any]:
         """Convert a joined row into the API's grade shape.
 
-        Percentage and pass/fail are computed here rather than left to the client:
-        two clients computing them independently is two chances to disagree with the
-        report the same numbers appear in.
+        Percentage, letter and pass/fail are computed here rather than left to the
+        client: two clients computing them independently is two chances to disagree
+        with the report the same numbers appear in.
+
+        An instance method rather than a static one because the letter needs the
+        organisation's scale, which is per-installation configuration.
         """
         max_grade = row["max_grade"] or 1
         percentage = row["score"] / max_grade * 100
@@ -310,6 +406,7 @@ class GradingService:
             "score": row["score"],
             "max_grade": row["max_grade"],
             "percentage": round(percentage, 2),
+            "letter": self._scale.label_for(percentage),
             "is_passing": row["score"] >= row["passing_grade"],
             "weight": row["weight"],
             "date": row["date"],

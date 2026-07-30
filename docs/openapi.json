@@ -979,7 +979,7 @@
         "type": "object"
       },
       "GradeResponse": {
-        "description": "A recorded grade.\n\n`percentage` and `is_passing` are computed server-side deliberately: two clients\nderiving them independently is two chances to disagree with the report the same\nnumbers appear in.",
+        "description": "A recorded grade.\n\n`percentage`, `letter` and `is_passing` are computed server-side deliberately: two\nclients deriving them independently is two chances to disagree with the report the\nsame numbers appear in. `letter` in particular depends on the organisation's\ngrading scale, which the client would otherwise have to fetch and interpret.",
         "properties": {
           "course_id": {
             "examples": [
@@ -1035,6 +1035,14 @@
             "description": "Whether the score reaches the course threshold.",
             "title": "Is Passing",
             "type": "boolean"
+          },
+          "letter": {
+            "description": "Band label from the organisation's grading scale, e.g. `B`. The bands are configurable, so do not assume A-F.",
+            "examples": [
+              "B"
+            ],
+            "title": "Letter",
+            "type": "string"
           },
           "max_grade": {
             "description": "The course maximum.",
@@ -1114,6 +1122,7 @@
           "score",
           "max_grade",
           "percentage",
+          "letter",
           "is_passing",
           "weight",
           "date",
@@ -4227,7 +4236,7 @@
             }
           },
           {
-            "description": "`date`, `score`, `student`, `course`, `title` or `created`; `-` reverses.",
+            "description": "`date`, `score`, `percentage`, `student`, `course`, `title` or `created`; `-` reverses.",
             "in": "query",
             "name": "sort",
             "required": false,
@@ -4240,7 +4249,7 @@
                   "type": "null"
                 }
               ],
-              "description": "`date`, `score`, `student`, `course`, `title` or `created`; `-` reverses.",
+              "description": "`date`, `score`, `percentage`, `student`, `course`, `title` or `created`; `-` reverses.",
               "title": "Sort"
             }
           },
@@ -4296,6 +4305,78 @@
               ],
               "description": "Only this course's grades.",
               "title": "Course Id"
+            }
+          },
+          {
+            "description": "Earliest date, ISO `YYYY-MM-DD`, inclusive.",
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Earliest date, ISO `YYYY-MM-DD`, inclusive.",
+              "title": "Date From"
+            }
+          },
+          {
+            "description": "Latest date, ISO `YYYY-MM-DD`, inclusive.",
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Latest date, ISO `YYYY-MM-DD`, inclusive.",
+              "title": "Date To"
+            }
+          },
+          {
+            "description": "A band from the organisation's grading scale, e.g. `B`. The bands are configurable — read them from `/org/branding`.",
+            "in": "query",
+            "name": "letter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A band from the organisation's grading scale, e.g. `B`. The bands are configurable — read them from `/org/branding`.",
+              "title": "Letter"
+            }
+          },
+          {
+            "description": "Substring of the assessment name.",
+            "in": "query",
+            "name": "title",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Substring of the assessment name.",
+              "title": "Title"
             }
           }
         ],

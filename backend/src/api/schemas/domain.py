@@ -177,9 +177,10 @@ class StudentCourseResponse(BaseModel):
 class GradeResponse(BaseModel):
     """A recorded grade.
 
-    `percentage` and `is_passing` are computed server-side deliberately: two clients
-    deriving them independently is two chances to disagree with the report the same
-    numbers appear in.
+    `percentage`, `letter` and `is_passing` are computed server-side deliberately: two
+    clients deriving them independently is two chances to disagree with the report the
+    same numbers appear in. `letter` in particular depends on the organisation's
+    grading scale, which the client would otherwise have to fetch and interpret.
     """
 
     grade_id: int = Field(description="Database identifier.")
@@ -191,6 +192,11 @@ class GradeResponse(BaseModel):
     score: float = Field(description="Points awarded.", examples=[85.0])
     max_grade: float = Field(description="The course maximum.", examples=[100.0])
     percentage: float = Field(description="Score as a percentage of the maximum.", examples=[85.0])
+    letter: str = Field(
+        description="Band label from the organisation's grading scale, e.g. `B`. The "
+        "bands are configurable, so do not assume A-F.",
+        examples=["B"],
+    )
     is_passing: bool = Field(description="Whether the score reaches the course threshold.")
     weight: float = Field(description="Relative weight in the course average.", examples=[1.0])
     date: str = Field(description="Award date, ISO `YYYY-MM-DD`.", examples=["2026-01-15"])

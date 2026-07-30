@@ -11,42 +11,16 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
-from notenverwaltung.exceptions import ForbiddenError
+from notenverwaltung.exceptions import ForbiddenError, ValidationError
 from notenverwaltung.gradebook import GradeBook, weighted_mean
-from notenverwaltung.grading_scale import DEFAULT_SCALE, GradingScale
-from notenverwaltung.models import Organization, Role
+from notenverwaltung.models import Role
 from notenverwaltung.reports import CsvReportGenerator, ReportBuilder
 from notenverwaltung.storage import SqliteGradeStore
 from notenverwaltung.storage.scope import Scope
+from services.organization import load_grading_scale, load_organization
 from services.scoping import Principal, course_scope, grade_scope, student_scope
 
-
-def load_organization(conn: sqlite3.Connection) -> Organization:
-    """Read the organisation configuration.
-
-    Args:
-        conn: The connection to query.
-
-    Returns:
-        The organisation, or defaults if the row is somehow missing.
-    """
-    row = conn.execute("SELECT * FROM organization WHERE id = 1").fetchone()
-    return Organization.from_row(row) if row else Organization(name="Grade Tracker")
-
-
-def load_grading_scale(conn: sqlite3.Connection) -> GradingScale:
-    """Read the organisation's grading scale.
-
-    Args:
-        conn: The connection to query.
-
-    Returns:
-        The configured scale, or the specification default.
-    """
-    try:
-        return load_organization(conn).grading_scale
-    except Exception:
-        return DEFAULT_SCALE
+__all__ = ["ReportingService", "load_grading_scale", "load_organization"]
 
 
 class ReportingService:
@@ -219,8 +193,6 @@ class ReportingService:
         Raises:
             ValidationError: If ``kind`` is unknown.
         """
-        from notenverwaltung.exceptions import ValidationError
-
         generator = CsvReportGenerator(headers=headers, delimiter=delimiter, labels=labels)
         if kind == "student":
             self._assert_visible_student(entity_id)

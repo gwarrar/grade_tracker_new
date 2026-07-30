@@ -53,16 +53,40 @@ def list_grades(
     sort: Annotated[
         str | None,
         Query(
-            description="`date`, `score`, `student`, `course`, `title` or `created`; `-` reverses."
+            description="`date`, `score`, `percentage`, `student`, `course`, `title` or "
+            "`created`; `-` reverses."
         ),
     ] = None,
     q: Annotated[str | None, Query(description="Free text over student, course and title.")] = None,
     student_id: Annotated[str | None, Query(description="Only this student's grades.")] = None,
     course_id: Annotated[str | None, Query(description="Only this course's grades.")] = None,
+    date_from: Annotated[
+        str | None, Query(description="Earliest date, ISO `YYYY-MM-DD`, inclusive.")
+    ] = None,
+    date_to: Annotated[
+        str | None, Query(description="Latest date, ISO `YYYY-MM-DD`, inclusive.")
+    ] = None,
+    letter: Annotated[
+        str | None,
+        Query(
+            description="A band from the organisation's grading scale, e.g. `B`. The "
+            "bands are configurable — read them from `/org/branding`."
+        ),
+    ] = None,
+    title: Annotated[str | None, Query(description="Substring of the assessment name.")] = None,
 ) -> PageResponse[GradeResponse]:
     """List grades within the caller's scope."""
     result = service.list_grades(
-        page=page, size=size, sort=sort, search=q, student_id=student_id, course_id=course_id
+        page=page,
+        size=size,
+        sort=sort,
+        search=q,
+        student_id=student_id,
+        course_id=course_id,
+        date_from=date_from,
+        date_to=date_to,
+        letter=letter,
+        title=title,
     )
     return PageResponse[GradeResponse](
         items=[GradeResponse(**item) for item in result.items],
