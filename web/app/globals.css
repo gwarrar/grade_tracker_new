@@ -40,3 +40,60 @@
   --radius-DEFAULT: var(--radius);
   --radius-lg: var(--radius-lg);
 }
+
+/*
+ * The master/detail transition. See components/app/master-detail.tsx for why this is
+ * CSS and not Motion — briefly, a closed panel is never unmounted, so there is no
+ * removal callback to depend on and nothing can be left behind.
+ *
+ * The load-bearing trick is the `visibility` delay. Transitioning `visibility` with a
+ * delay equal to the fade keeps the panel `visible` for the whole way out and then
+ * flips it `hidden`, which removes the subtree from the tab order and the
+ * accessibility tree. Opening uses no delay, so the panel is visible immediately and
+ * the fade is actually seen. Without this the choice is a panel that vanishes with no
+ * transition, or an invisible one that keyboard users can still tab into.
+ */
+.master-list {
+  flex: 1 1 100%;
+  transition: flex-basis 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.master-list[data-open="true"] {
+  flex: 0 0 42%;
+}
+
+.detail-panel {
+  flex: 0 0 0px;
+  opacity: 0;
+  transform: translateX(40px);
+  visibility: hidden;
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms ease-out,
+    visibility 0s linear 200ms;
+}
+
+.detail-panel[data-open="true"] {
+  flex: 1 1 0%;
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    opacity 260ms ease-out,
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s;
+}
+
+/*
+ * Reduced motion gets the finished state, not a faster journey to it — the movement
+ * is the thing being reduced. `visibility` keeps its delay of zero so the panel still
+ * leaves the tab order the instant it closes.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .master-list,
+  .master-list[data-open="true"],
+  .detail-panel,
+  .detail-panel[data-open="true"] {
+    transition: none;
+  }
+}
