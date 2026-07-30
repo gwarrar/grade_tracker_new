@@ -23,6 +23,7 @@
     "signingIn": "Signing in…"
   },
   "student": {
+    "report": "Report",
     "one": "Student",
     "other": "Students",
     "id": "Student ID",
@@ -53,6 +54,7 @@
     "letter": "Letter"
   },
   "enrollment": {
+    "notAssessed": "Not yet assessed",
     "other": "Enrolments",
     "enrolled": "Enrolled",
     "graded": "Graded",
@@ -77,6 +79,7 @@
     "next": "Next"
   },
   "stats": {
+    "loading": "Loading…",
     "average": "Average",
     "passRate": "Pass rate",
     "distribution": "Distribution",
@@ -326,6 +329,8 @@
     "privacy": "Questions are sent to the configured AI provider."
   },
   "report": {
+    "print": "Print / Save as PDF",
+    "generated": "Generated {date}",
     "title": "Reports",
     "pick": "Choose a course",
     "download": "Download CSV",

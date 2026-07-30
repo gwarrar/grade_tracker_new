@@ -13,7 +13,10 @@ import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { Field, Input, PanelHeader } from "@/components/app/detail-fields";
+import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
+import { StudentRecord } from "@/components/app/student-record";
+import { Link } from "@/i18n/navigation";
 import { api, ApiError, type Response } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
 import { can } from "@/lib/permissions";
@@ -22,6 +25,8 @@ import { useDebounced, useSelection } from "@/lib/use-selection";
 
 type Student = Response<"/students/{student_id}", "get">;
 type Page = Response<"/students", "get">;
+type StudentReport = Response<"/reports/student/{student_id}", "get">;
+type StudentCourses = Response<"/students/{student_id}/courses", "get">;
 
 const PAGE_SIZE = 50;
 
@@ -81,6 +86,7 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
               loading={detail.isPending}
               error={detail.error}
               editable={can.writeStudent(me)}
+              locale={locale}
               onClose={() => select(null)}
               onSaved={() => {
                 // Both caches: the panel shows the new name, and so does the row
@@ -170,6 +176,7 @@ function StudentDetail({
   loading,
   error,
   editable,
+  locale,
   onClose,
   onSaved,
 }: {
@@ -177,12 +184,32 @@ function StudentDetail({
   loading: boolean;
   error: unknown;
   editable: boolean;
+  locale: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const t = useTranslations();
   const [editing, setEditing] = useState(false);
   const [code, setCode] = useState<string | null>(null);
+
+  const studentId = student?.student_id;
+
+  // The report the panel renders. The same endpoint the report page uses, and the
+  // same one a student loads for themselves — the server decides what each may see,
+  // so there is no branch here.
+  const record = useQuery({
+    queryKey: ["report", "student", studentId],
+    queryFn: () => api<StudentReport>(`/reports/student/${studentId}`),
+    enabled: Boolean(studentId) && !editing,
+  });
+
+  // Enrolments separately, because a report built from grades cannot show a course
+  // that has none — and "enrolled but not yet assessed" is a real state.
+  const enrolled = useQuery({
+    queryKey: ["student", studentId, "courses"],
+    queryFn: () => api<StudentCourses>(`/students/${studentId}/courses`),
+    enabled: Boolean(studentId) && !editing,
+  });
 
   const save = useMutation({
     mutationFn: (body: Record<string, string>) =>
@@ -225,9 +252,35 @@ function StudentDetail({
         <>
           <dl className="mt-6 space-y-3 text-sm">
             <Field label={t("auth.email")} value={student.email} />
-            <Field label={t("course.other")} value={String(student.enrolled_count)} numeric />
-            <Field label={t("grade.other")} value={String(student.grade_count)} numeric />
           </dl>
+
+          {/* The record itself, which is what anyone opening a student is actually
+              after. Three counts told you how many marks existed without showing one
+              of them. */}
+          <div className="mt-6">
+            {record.isPending && <p className="text-sm text-subtle">{t("stats.loading")}</p>}
+            {record.data && (
+              <StudentRecord
+                report={record.data}
+                courses={enrolled.data ?? []}
+                locale={locale}
+              />
+            )}
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Link
+              href={`/reports/student/${student.student_id}`}
+              className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
+            >
+              {t("student.report")}
+            </Link>
+          </div>
+
+          {/* Already accepts entity_type="student" and was wired only to courses. */}
+          <div className="mt-6">
+            <InsightBlock entityType="student" entityId={student.student_id} />
+          </div>
           {editable && (
             <button
               type="button"

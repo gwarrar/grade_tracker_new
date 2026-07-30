@@ -23,6 +23,7 @@
     "signingIn": "Connexion en cours…"
   },
   "student": {
+    "report": "Bulletin",
     "one": "Étudiant",
     "other": "Étudiants",
     "id": "N° étudiant",
@@ -53,6 +54,7 @@
     "letter": "Mention"
   },
   "enrollment": {
+    "notAssessed": "Pas encore évalué",
     "other": "Inscriptions",
     "enrolled": "Inscrit",
     "graded": "Évalué",
@@ -77,6 +79,7 @@
     "next": "Suivant"
   },
   "stats": {
+    "loading": "Chargement…",
     "average": "Moyenne",
     "passRate": "Taux de réussite",
     "distribution": "Répartition",
@@ -326,6 +329,8 @@
     "privacy": "Les questions sont transmises au fournisseur d’IA configuré."
   },
   "report": {
+    "print": "Imprimer / Enregistrer en PDF",
+    "generated": "Généré le {date}",
     "title": "Rapports",
     "pick": "Choisir un cours",
     "download": "Télécharger le CSV",

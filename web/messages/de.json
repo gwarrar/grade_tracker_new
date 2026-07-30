@@ -23,6 +23,7 @@
     "signingIn": "Anmeldung läuft…"
   },
   "student": {
+    "report": "Bericht",
     "one": "Studierende:r",
     "other": "Studierende",
     "id": "Matrikelnummer",
@@ -53,6 +54,7 @@
     "letter": "Notenstufe"
   },
   "enrollment": {
+    "notAssessed": "Noch nicht bewertet",
     "other": "Anmeldungen",
     "enrolled": "Angemeldet",
     "graded": "Bewertet",
@@ -77,6 +79,7 @@
     "next": "Weiter"
   },
   "stats": {
+    "loading": "Wird geladen…",
     "average": "Durchschnitt",
     "passRate": "Bestehensquote",
     "distribution": "Verteilung",
@@ -326,6 +329,8 @@
     "privacy": "Fragen werden an den eingerichteten KI-Anbieter gesendet."
   },
   "report": {
+    "print": "Drucken / Als PDF speichern",
+    "generated": "Erstellt am {date}",
     "title": "Berichte",
     "pick": "Kurs auswählen",
     "download": "CSV herunterladen",

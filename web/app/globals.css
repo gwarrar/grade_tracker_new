@@ -42,6 +42,65 @@
 }
 
 /*
+ * Printing, which is how this application produces a PDF.
+ *
+ * The browser already renders these pages with the institution's branding, fonts and
+ * locale. A server-side PDF library would be a large dependency reproducing that in a
+ * second layout that then has to be kept in step with the first — so the print
+ * stylesheet *is* the PDF exporter, and Save as PDF is the export.
+ *
+ * The colour reset is the load-bearing part: the app defaults to a dark palette, and
+ * printing that gives a black page and an empty toner cartridge. Forcing the light
+ * token values is not a theme switch — it applies whatever the reader's theme, since
+ * paper is white either way.
+ */
+@media print {
+  /* Every control, and the shell around the content. */
+  .no-print,
+  header.sticky,
+  nav[aria-label],
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  :root {
+    --bg: #ffffff;
+    --bg-subtle: #ffffff;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --text: #000000;
+    --text-muted: #333333;
+    --text-subtle: #555555;
+    --border: #cccccc;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  /* A course and its marks belong on one page; a heading orphaned at the foot of a
+     page is the classic printed-report failure. */
+  section,
+  table {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  /* The starfield and the film grain are decoration that costs ink and prints as a
+     grey wash. */
+  .starfield,
+  [class*="mix-blend-overlay"] {
+    display: none !important;
+  }
+}
+
+/*
  * The drifting starfield. See components/landing/starfield.tsx for why this is CSS
  * and not a canvas — briefly, the brief said it must not block the main thread, and
  * the only way to guarantee that is to have no JavaScript.
