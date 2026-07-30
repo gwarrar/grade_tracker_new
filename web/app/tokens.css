@@ -24,6 +24,7 @@
 
   /* ── Surfaces ──────────────────────────────────────────────────────────── */
   --bg: #fbfbfa;
+  --star: #c9c9c2;
   --bg-subtle: #f4f4f2;
   --surface: #ffffff;
   --surface-raised: #ffffff;
@@ -84,6 +85,7 @@
   --brand-accent: #3dd9ac;
 
   --bg: #08080a;
+  --star: #ffffff;
   --bg-subtle: #101013;
   --surface: #121216;
   --surface-raised: #1a1a20;
@@ -138,6 +140,7 @@
     --brand-accent: #3dd9ac;
 
     --bg: #08080a;
+    --star: #ffffff;
     --bg-subtle: #101013;
     --surface: #121216;
     --surface-raised: #1a1a20;

@@ -16,6 +16,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getBranding } from "@/components/branding/branding";
 import { Reveal } from "@/components/landing/reveal";
 import { SiteNav } from "@/components/landing/site-nav";
+import { Starfield } from "@/components/landing/starfield";
 import { TypingDemo } from "@/components/landing/typing-demo";
 import { Link } from "@/i18n/navigation";
 import { API_BASE } from "@/lib/api";
@@ -73,6 +74,14 @@ export default async function Landing({ params }: Props) {
 
   return (
     <div className="relative min-h-dvh bg-bg">
+      {/* Starfield first, so DOM order puts it *under* the grain — equal z-index
+          means paint order is source order, and no z-index arithmetic is needed.
+          `fixed` rather than `absolute` to match the grain, so the two stay aligned
+          while the page scrolls. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0">
+        <Starfield />
+      </div>
+
       {/* Film grain. An inline SVG turbulence filter rather than an image: it costs
           no request, tiles at any size, and `pointer-events-none` keeps it from ever
           intercepting a click. Hidden from assistive technology entirely. */}
@@ -113,7 +122,7 @@ export default async function Landing({ params }: Props) {
               <Reveal delay={0.18}>
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <Link
-                    href="/students"
+                    href="/dashboard"
                     className="rounded-lg bg-brand px-5 py-2.5 text-sm font-medium text-brand-contrast transition-opacity hover:opacity-90"
                   >
                     {t("landing.hero.cta")}

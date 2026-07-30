@@ -42,6 +42,55 @@
 }
 
 /*
+ * The drifting starfield. See components/landing/starfield.tsx for why this is CSS
+ * and not a canvas — briefly, the brief said it must not block the main thread, and
+ * the only way to guarantee that is to have no JavaScript.
+ *
+ * Each layer is a 1–2px element whose `box-shadow` lists every star in it, so a layer
+ * is one node and one paint rather than one node per star. The field is laid out over
+ * two viewport heights and drifts up by half of that, which is why the loop has no
+ * seam: the second half is a continuation, not a repeat.
+ *
+ * `translate3d` keeps it on the compositor. `mask-image` fades the field out before
+ * the grading-scale band so it ends rather than stops.
+ */
+.starfield {
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+.starfield-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  will-change: transform;
+  animation-name: star-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes star-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -100vh, 0);
+  }
+}
+
+/*
+ * Reduced motion keeps the stars and drops the drift. The field is decoration, so the
+ * honest reading of the preference is a still night sky rather than no sky — removing
+ * it entirely would change the design, not just the motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .starfield-layer {
+    animation: none;
+  }
+}
+
+/*
  * The master/detail transition. See components/app/master-detail.tsx for why this is
  * CSS and not Motion — briefly, a closed panel is never unmounted, so there is no
  * removal callback to depend on and nothing can be left behind.

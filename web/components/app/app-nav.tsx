@@ -52,7 +52,7 @@ export function AppNav({ me }: { me: Me }) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-3">
-        <Link href="/students" className="text-sm font-medium tracking-tight text-text">
+        <Link href="/dashboard" className="text-sm font-medium tracking-tight text-text">
           {t("app.name")}
         </Link>
 

@@ -43,7 +43,10 @@ export function LoginForm() {
       // `refresh` as well as `replace`: the destination's guard reads the session
       // on the server, and without a refresh it may answer from the cached render
       // taken before the cookie existed.
-      router.replace("/students");
+      // The dashboard, not the student list: it is the only page that opens with an
+      // answer rather than a directory, and it is scoped, so every role gets a
+      // useful first screen instead of a table they may have one row in.
+      router.replace("/dashboard");
       router.refresh();
     } catch (error) {
       setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");

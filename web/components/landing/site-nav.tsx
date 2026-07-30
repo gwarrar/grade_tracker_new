@@ -58,7 +58,7 @@ export function SiteNav({ appName }: { appName: string }) {
           <LocaleSwitcher label={tLocale("label")} />
           <ThemeToggle />
           <Link
-            href="/students"
+            href="/dashboard"
             className="rounded-lg bg-brand px-3 py-1.5 text-sm text-brand-contrast transition-opacity hover:opacity-90"
           >
             {t("signIn")}
