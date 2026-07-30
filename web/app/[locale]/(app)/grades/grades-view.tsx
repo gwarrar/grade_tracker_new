@@ -22,18 +22,38 @@ import { useState, type FormEvent } from "react";
 import { AssistantPanel } from "@/components/app/assistant";
 import { Field, Input, PanelHeader } from "@/components/app/detail-fields";
 import { MasterDetail } from "@/components/app/master-detail";
+import { Pager } from "@/components/app/pager";
 import { api, ApiError, type Response } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent, parseLocaleNumber } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import type { Me } from "@/lib/session";
-import { useDebounced, useSelection } from "@/lib/use-selection";
+import { useDebounced, useSelection, useUrlParam } from "@/lib/use-selection";
 
 type Grade = Response<"/grades/{grade_id}", "get">;
 type Page = Response<"/grades", "get">;
+type Courses = Response<"/courses", "get">;
 
 const PAGE_SIZE = 50;
 
-export function GradesView({ me, locale }: { me: Me; locale: string }) {
+/** Sortable columns, mapped to the API's sort keys. */
+const SORTABLE = {
+  student: "student",
+  title: "title",
+  course: "course",
+  date: "date",
+  percentage: "percentage",
+} as const;
+
+export function GradesView({
+  me,
+  locale,
+  bands,
+}: {
+  me: Me;
+  locale: string;
+  /** Band labels from the organisation's scale — configurable, so never hard-coded. */
+  bands: string[];
+}) {
   const t = useTranslations();
   const queryClient = useQueryClient();
 
@@ -42,11 +62,53 @@ export function GradesView({ me, locale }: { me: Me; locale: string }) {
   const [asking, setAsking] = useState(false);
   const query = useDebounced(search.trim());
 
+  // Filters live in the URL, not in state: a filtered list is then linkable, Back
+  // steps through filter changes, and a refresh keeps what you were looking at.
+  // Every setter preserves the other parameters — see lib/use-selection.ts, where
+  // getting that wrong once already reset the whole bar on every row click.
+  const [courseId, setCourseId] = useUrlParam("course_id");
+  const [letter, setLetter] = useUrlParam("letter");
+  const [dateFrom, setDateFrom] = useUrlParam("date_from");
+  const [dateTo, setDateTo] = useUrlParam("date_to");
+  const [sort, setSort] = useUrlParam("sort", "-date");
+  const [pageParam, setPage] = useUrlParam("page", "1");
+  const page = Math.max(1, Number(pageParam) || 1);
+
+  const filtered = Boolean(courseId || letter || dateFrom || dateTo || query);
+
+  // For the course filter. Only staff see more than their own courses anyway, and
+  // the API scopes this exactly as it scopes the grades themselves.
+  const courses = useQuery({
+    queryKey: ["courses", "all"],
+    queryFn: () => api<Courses>("/courses", { query: { size: 200, sort: "name" } }),
+    staleTime: 5 * 60_000,
+  });
+
   const list = useQuery({
-    queryKey: ["grades", { q: query }],
-    queryFn: () => api<Page>("/grades", { query: { q: query, size: PAGE_SIZE } }),
+    queryKey: ["grades", { query, courseId, letter, dateFrom, dateTo, sort, page }],
+    queryFn: () =>
+      api<Page>("/grades", {
+        query: {
+          q: query,
+          size: PAGE_SIZE,
+          page,
+          sort,
+          // Empty strings would become `?course_id=` and filter on nothing.
+          ...(courseId ? { course_id: courseId } : {}),
+          ...(letter ? { letter } : {}),
+          ...(dateFrom ? { date_from: dateFrom } : {}),
+          ...(dateTo ? { date_to: dateTo } : {}),
+        },
+      }),
     placeholderData: (previous) => previous,
   });
+
+  /** Toggle a column between ascending and descending. */
+  const toggleSort = (key: string) => setSort(sort === key ? `-${key}` : key);
+
+  /** `aria-sort` for a header, so the order is announced and not only drawn. */
+  const sortState = (key: string): "ascending" | "descending" | "none" =>
+    sort === key ? "ascending" : sort === `-${key}` ? "descending" : "none";
 
   const detail = useQuery({
     queryKey: ["grade", selectedId],
@@ -94,6 +156,86 @@ export function GradesView({ me, locale }: { me: Me; locale: string }) {
         </div>
       )}
 
+      {/* One row above the table rather than a collapsible drawer: with thousands of
+          rows the filters are the primary control, and hiding them behind a toggle
+          makes the table look like the only thing on the page. */}
+      <fieldset className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-line bg-surface px-4 py-3">
+        <legend className="sr-only">{t("filter.label")}</legend>
+
+        <label className="flex flex-col gap-1 text-xs text-subtle">
+          {t("course.one")}
+          <select
+            value={courseId}
+            onChange={(event) => setCourseId(event.target.value)}
+            className="w-48 rounded-lg border border-line bg-bg px-2 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
+          >
+            <option value="">{t("filter.all")}</option>
+            {(courses.data?.items ?? []).map((course) => (
+              <option key={course.course_id} value={course.course_id}>
+                {course.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-subtle">
+          {t("grade.letter")}
+          <select
+            value={letter}
+            onChange={(event) => setLetter(event.target.value)}
+            className="w-28 rounded-lg border border-line bg-bg px-2 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
+          >
+            <option value="">{t("filter.all")}</option>
+            {/* From the organisation's scale, not a hard-coded A–F: an institution
+                that renamed its bands would otherwise get a filter listing bands it
+                does not use. */}
+            {bands.map((band) => (
+              <option key={band} value={band}>
+                {band}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {/* Native date inputs: they bring the locale's own format and calendar, and a
+            picker component would ship a dependency to reproduce that badly. */}
+        <label className="flex flex-col gap-1 text-xs text-subtle">
+          {t("filter.from")}
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(event) => setDateFrom(event.target.value)}
+            className="rounded-lg border border-line bg-bg px-2 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-subtle">
+          {t("filter.to")}
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(event) => setDateTo(event.target.value)}
+            className="rounded-lg border border-line bg-bg px-2 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
+          />
+        </label>
+
+        {filtered && (
+          <button
+            type="button"
+            onClick={() => {
+              setCourseId(null);
+              setLetter(null);
+              setDateFrom(null);
+              setDateTo(null);
+              setSearch("");
+            }}
+            className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
+          >
+            {t("filter.clear")}
+          </button>
+        )}
+      </fieldset>
+
       <MasterDetail
         detailKey={selectedId}
         detail={
@@ -120,14 +262,45 @@ export function GradesView({ me, locale }: { me: Me; locale: string }) {
             <caption className="sr-only">{t("grade.other")}</caption>
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-subtle">
-                <th scope="col" className="px-4 py-2.5 font-medium">
-                  {t("student.one")}
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-medium">
-                  {t("grade.title")}
-                </th>
+                {(
+                  [
+                    [SORTABLE.student, t("student.one"), "start"],
+                    [SORTABLE.title, t("grade.title"), "start"],
+                    // The course column: without it "Anna — Midterm — 78%" does not
+                    // say *which* midterm, which is the whole problem once a listing
+                    // spans more than one course.
+                    [SORTABLE.course, t("course.one"), "start"],
+                    [SORTABLE.date, t("grade.date"), "start"],
+                    [SORTABLE.percentage, t("grade.percentage"), "end"],
+                  ] as const
+                ).map(([key, label, align]) => (
+                  <th
+                    key={key}
+                    scope="col"
+                    aria-sort={sortState(key)}
+                    className={`px-4 py-2.5 font-medium ${align === "end" ? "text-end" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(key)}
+                      aria-label={t("filter.sortBy", { field: label })}
+                      className="inline-flex items-center gap-1 uppercase tracking-wide outline-none transition-colors hover:text-text focus-visible:ring-2 focus-visible:ring-brand/40"
+                    >
+                      {label}
+                      {/* A caret only on the active column, so the header row does not
+                          read as five interactive arrows competing for attention. */}
+                      <span aria-hidden className="text-[0.65rem]">
+                        {sortState(key) === "ascending"
+                          ? "▲"
+                          : sortState(key) === "descending"
+                            ? "▼"
+                            : ""}
+                      </span>
+                    </button>
+                  </th>
+                ))}
                 <th scope="col" className="px-4 py-2.5 text-end font-medium">
-                  {t("grade.percentage")}
+                  {t("grade.letter")}
                 </th>
               </tr>
             </thead>
@@ -152,6 +325,10 @@ export function GradesView({ me, locale }: { me: Me; locale: string }) {
                       </button>
                     </td>
                     <td className="truncate px-4 py-2.5 text-muted">{grade.title}</td>
+                    <td className="truncate px-4 py-2.5 text-muted">{grade.course_name}</td>
+                    <td className="numeric px-4 py-2.5 text-muted">
+                      {formatDate(grade.date, locale)}
+                    </td>
                     <td className="numeric px-4 py-2.5 text-end">
                       {/* Colour is not the only signal — the pass/fail word is in the
                           panel, and the figure itself carries the meaning. A red
@@ -159,6 +336,11 @@ export function GradesView({ me, locale }: { me: Me; locale: string }) {
                       <span className={grade.is_passing ? "text-text" : "text-fail"}>
                         {formatPercent(grade.percentage, locale)}
                       </span>
+                    </td>
+                    <td className="numeric px-4 py-2.5 text-end font-medium text-text">
+                      {/* The band, computed server-side against the organisation's
+                          scale — so this column and the report can never disagree. */}
+                      {grade.letter}
                     </td>
                   </tr>
                 );
@@ -170,6 +352,19 @@ export function GradesView({ me, locale }: { me: Me; locale: string }) {
           {!list.isPending && rows.length === 0 && (
             <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.noData")}</p>
           )}
+
+          <Pager
+            page={page}
+            size={PAGE_SIZE}
+            total={list.data?.total ?? 0}
+            locale={locale}
+            labels={{
+              previous: t("pager.previous"),
+              next: t("pager.next"),
+              status: (current, pages) => t("pager.page", { page: current, pages }),
+            }}
+            onPage={(next) => setPage(String(next))}
+          />
         </div>
       </MasterDetail>
     </>
