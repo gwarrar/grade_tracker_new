@@ -34,7 +34,8 @@
     "other": "Courses",
     "id": "Course code",
     "term": "Term",
-    "credits": "Credits"
+    "credits": "Credits",
+    "teacher": "Teacher"
   },
   "grade": {
     "one": "Grade",
@@ -47,7 +48,8 @@
     "title": "Assessment",
     "notes": "Notes",
     "passing": "Pass",
-    "failing": "Fail"
+    "failing": "Fail",
+    "status": "Result"
   },
   "enrollment": {
     "other": "Enrolments",
@@ -203,7 +205,8 @@
     "lastSeen": "Last used",
     "revoke": "Sign out",
     "revokeOthers": "Sign out all other devices",
-    "role": "Role"
+    "role": "Role",
+    "name": "Name"
   },
   "role": {
     "superadmin": "Superadmin",

@@ -8,12 +8,12 @@
 
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { ReportsView } from "./reports-view";
 import { getBranding } from "@/components/branding/branding";
-import { getServerSession } from "@/lib/server-session";
+import { can } from "@/lib/permissions";
+import { requireSession } from "@/lib/server-session";
 
 export async function generateMetadata({
   params,
@@ -33,9 +33,7 @@ export default async function ReportsPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const me = await getServerSession();
-  if (!me) redirect(`/${locale}/login`);
-  if (me.role === "student") redirect(`/${locale}/dashboard`);
+  await requireSession(locale, can.viewReports);
 
   const branding = await getBranding();
 

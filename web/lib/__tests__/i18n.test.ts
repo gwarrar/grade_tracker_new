@@ -84,6 +84,7 @@ describe("catalogue parity", () => {
         "theme.system", // "Auto" in French
         "admin.title", // "Administration" is the French word too
         "admin.ai.name", // "Name" is the German word too
+        "profile.name", // likewise
         "admin.ai.kind", // "Type" in French
         "admin.ai.effort", // "Effort" in French
         "assistant.title", // "Assistant" is the French word too

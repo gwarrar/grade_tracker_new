@@ -9,10 +9,10 @@
 
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { redirect } from "next/navigation";
 
 import { AiView } from "./ai-view";
-import { getServerSession } from "@/lib/server-session";
+import { can } from "@/lib/permissions";
+import { requireSession } from "@/lib/server-session";
 
 export async function generateMetadata({
   params,
@@ -32,9 +32,7 @@ export default async function AdminAiPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const me = await getServerSession();
-  if (!me) redirect(`/${locale}/login`);
-  if (me.role !== "superadmin") redirect(`/${locale}/students`);
+  await requireSession(locale, can.manageAi);
 
   return <AiView locale={locale} />;
 }

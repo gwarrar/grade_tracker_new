@@ -30,7 +30,7 @@ export function ProfileView({ me, locale }: { me: Me; locale: string }) {
           {t("profile.title")}
         </h1>
         <dl className="mt-6 space-y-3 rounded-xl border border-line bg-surface p-6 text-sm">
-          <Field label={t("nav.profile")} value={me.full_name} />
+          <Field label={t("profile.name")} value={me.full_name} />
           <Field label={t("auth.email")} value={me.email} />
           <Field label={t("profile.role")} value={t(`role.${me.role}` as "role.student")} />
           {me.student_id && (

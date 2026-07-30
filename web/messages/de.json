@@ -34,7 +34,8 @@
     "other": "Kurse",
     "id": "Kurskennung",
     "term": "Semester",
-    "credits": "Leistungspunkte"
+    "credits": "Leistungspunkte",
+    "teacher": "Lehrkraft"
   },
   "grade": {
     "one": "Note",
@@ -47,7 +48,8 @@
     "title": "Leistung",
     "notes": "Anmerkungen",
     "passing": "Bestanden",
-    "failing": "Nicht bestanden"
+    "failing": "Nicht bestanden",
+    "status": "Ergebnis"
   },
   "enrollment": {
     "other": "Anmeldungen",
@@ -203,7 +205,8 @@
     "lastSeen": "Zuletzt verwendet",
     "revoke": "Abmelden",
     "revokeOthers": "Alle anderen Geräte abmelden",
-    "role": "Rolle"
+    "role": "Rolle",
+    "name": "Name"
   },
   "role": {
     "superadmin": "Hauptadministrator",

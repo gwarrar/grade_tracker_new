@@ -232,7 +232,7 @@ function CourseDetail({
               value={formatNumber(course.credits, locale)}
               numeric
             />
-            <Field label={t("nav.profile")} value={course.teacher_name ?? "—"} />
+            <Field label={t("course.teacher")} value={course.teacher_name ?? "—"} />
             <Field
               label={t("enrollment.graded")}
               value={formatNumber(course.graded_count, locale)}

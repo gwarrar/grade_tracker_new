@@ -34,7 +34,8 @@
     "other": "Cours",
     "id": "Code du cours",
     "term": "Semestre",
-    "credits": "Crédits"
+    "credits": "Crédits",
+    "teacher": "Enseignant"
   },
   "grade": {
     "one": "Note",
@@ -47,7 +48,8 @@
     "title": "Évaluation",
     "notes": "Remarques",
     "passing": "Admis",
-    "failing": "Non admis"
+    "failing": "Non admis",
+    "status": "Résultat"
   },
   "enrollment": {
     "other": "Inscriptions",
@@ -203,7 +205,8 @@
     "lastSeen": "Dernière utilisation",
     "revoke": "Déconnecter",
     "revokeOthers": "Déconnecter tous les autres appareils",
-    "role": "Rôle"
+    "role": "Rôle",
+    "name": "Nom"
   },
   "role": {
     "superadmin": "Super-administrateur",

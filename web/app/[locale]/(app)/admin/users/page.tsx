@@ -7,10 +7,10 @@
 
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { redirect } from "next/navigation";
 
 import { UsersView } from "./users-view";
-import { getServerSession } from "@/lib/server-session";
+import { can } from "@/lib/permissions";
+import { requireSession } from "@/lib/server-session";
 
 export async function generateMetadata({
   params,
@@ -30,9 +30,7 @@ export default async function AdminUsersPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const me = await getServerSession();
-  if (!me) redirect(`/${locale}/login`);
-  if (me.role !== "admin" && me.role !== "superadmin") redirect(`/${locale}/dashboard`);
+  const me = await requireSession(locale, can.manageUsers);
 
   return <UsersView me={me} locale={locale} />;
 }

@@ -285,7 +285,7 @@ function GradeDetail({
               numeric
             />
             <Field
-              label={t("stats.average")}
+              label={t("grade.status")}
               value={
                 <span className={grade.is_passing ? "text-pass" : "text-fail"}>
                   {grade.is_passing ? t("grade.passing") : t("grade.failing")}
