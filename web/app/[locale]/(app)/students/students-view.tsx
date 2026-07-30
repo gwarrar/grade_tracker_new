@@ -16,6 +16,8 @@ import { Field, Input, PanelHeader } from "@/components/app/detail-fields";
 import { MasterDetail } from "@/components/app/master-detail";
 import { api, ApiError, type Response } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
+import { can } from "@/lib/permissions";
+import type { Me } from "@/lib/session";
 import { useDebounced, useSelection } from "@/lib/use-selection";
 
 type Student = Response<"/students/{student_id}", "get">;
@@ -23,7 +25,7 @@ type Page = Response<"/students", "get">;
 
 const PAGE_SIZE = 50;
 
-export function StudentsView({ locale }: { locale: string }) {
+export function StudentsView({ me, locale }: { me: Me; locale: string }) {
   const t = useTranslations();
   const queryClient = useQueryClient();
 
@@ -78,6 +80,7 @@ export function StudentsView({ locale }: { locale: string }) {
               student={detail.data}
               loading={detail.isPending}
               error={detail.error}
+              editable={can.writeStudent(me)}
               onClose={() => select(null)}
               onSaved={() => {
                 // Both caches: the panel shows the new name, and so does the row
@@ -153,17 +156,27 @@ export function StudentsView({ locale }: { locale: string }) {
   );
 }
 
-/** The detail panel: read-only until Edit, then a form that PATCHes. */
+/**
+ * The detail panel: read-only until Edit, then a form that PATCHes.
+ *
+ * `editable` is passed in rather than derived here, so the capability is decided once
+ * per page from the server-known role. When it is false the Edit button is **absent**,
+ * not disabled — a greyed-out control still advertises a capability the reader does not
+ * have, and this one used to render for students, who could open the form and only
+ * learn on submit that the API would refuse them.
+ */
 function StudentDetail({
   student,
   loading,
   error,
+  editable,
   onClose,
   onSaved,
 }: {
   student: Student | undefined;
   loading: boolean;
   error: unknown;
+  editable: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -215,13 +228,15 @@ function StudentDetail({
             <Field label={t("course.other")} value={String(student.enrolled_count)} numeric />
             <Field label={t("grade.other")} value={String(student.grade_count)} numeric />
           </dl>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="mt-6 rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
-          >
-            {t("action.edit")}
-          </button>
+          {editable && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="mt-6 rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
+            >
+              {t("action.edit")}
+            </button>
+          )}
         </>
       )}
 

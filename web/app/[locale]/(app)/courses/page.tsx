@@ -10,6 +10,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Suspense } from "react";
 
 import { CoursesView } from "./courses-view";
+import { requireSession } from "@/lib/server-session";
 
 export async function generateMetadata({
   params,
@@ -29,11 +30,15 @@ export default async function Page({
   const { locale } = await params;
   setRequestLocale(locale);
 
+  // Every role may read the course list; the API scopes which courses. `me` decides
+  // only what the panel offers to change.
+  const me = await requireSession(locale);
+
   // useSearchParams needs a Suspense boundary above it, or the route opts out of
   // static rendering with a build-time error.
   return (
     <Suspense>
-      <CoursesView locale={locale} />
+      <CoursesView me={me} locale={locale} />
     </Suspense>
   );
 }

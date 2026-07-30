@@ -10,6 +10,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Suspense } from "react";
 
 import { GradesView } from "./grades-view";
+import { requireSession } from "@/lib/server-session";
 
 export async function generateMetadata({
   params,
@@ -29,11 +30,15 @@ export default async function Page({
   const { locale } = await params;
   setRequestLocale(locale);
 
+  // A student may read this page — it is where they see their own marks. What they
+  // may not do is change them, which is what `me` decides below.
+  const me = await requireSession(locale);
+
   // useSearchParams needs a Suspense boundary above it, or the route opts out of
   // static rendering with a build-time error.
   return (
     <Suspense>
-      <GradesView locale={locale} />
+      <GradesView me={me} locale={locale} />
     </Suspense>
   );
 }

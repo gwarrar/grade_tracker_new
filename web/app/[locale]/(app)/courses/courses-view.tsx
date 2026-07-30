@@ -17,6 +17,8 @@ import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
 import { api, ApiError, type Response } from "@/lib/api";
 import { formatNumber, parseLocaleNumber } from "@/lib/format";
+import { can } from "@/lib/permissions";
+import type { Me } from "@/lib/session";
 import { useDebounced, useSelection } from "@/lib/use-selection";
 
 type Course = Response<"/courses/{course_id}", "get">;
@@ -25,7 +27,7 @@ type Register = Response<"/courses/{course_id}/enrollments", "get">;
 
 const PAGE_SIZE = 50;
 
-export function CoursesView({ locale }: { locale: string }) {
+export function CoursesView({ me, locale }: { me: Me; locale: string }) {
   const t = useTranslations();
   const queryClient = useQueryClient();
 
@@ -79,6 +81,7 @@ export function CoursesView({ locale }: { locale: string }) {
               course={detail.data}
               loading={detail.isPending}
               error={detail.error}
+              me={me}
               locale={locale}
               onClose={() => select(null)}
               onSaved={() => {
@@ -149,11 +152,20 @@ export function CoursesView({ locale }: { locale: string }) {
   );
 }
 
+/**
+ * The course panel.
+ *
+ * Takes the whole `me` rather than a boolean, because course editing is the one
+ * capability in the app that depends on the *row* and not only the role: an admin may
+ * edit any course, a teacher only their own. So the decision cannot be made once at
+ * the page level the way it is for students — it needs the course in hand.
+ */
 function CourseDetail({
   courseId,
   course,
   loading,
   error,
+  me,
   locale,
   onClose,
   onSaved,
@@ -162,11 +174,15 @@ function CourseDetail({
   course: Course | undefined;
   loading: boolean;
   error: unknown;
+  me: Me;
   locale: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const t = useTranslations();
+  // `course` is undefined while the panel loads, and an absent course is not an
+  // editable one — so the button appears with the data rather than before it.
+  const editable = course !== undefined && can.writeCourse(me, course);
   const [editing, setEditing] = useState(false);
   const [code, setCode] = useState<string | null>(null);
 
@@ -240,13 +256,15 @@ function CourseDetail({
             />
           </dl>
 
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="mt-6 rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
-          >
-            {t("action.edit")}
-          </button>
+          {editable && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="mt-6 rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
+            >
+              {t("action.edit")}
+            </button>
+          )}
 
           <h3 className="mt-8 text-sm font-medium text-text">{t("enrollment.other")}</h3>
           <ul className="mt-3 divide-y divide-line rounded-lg border border-line">

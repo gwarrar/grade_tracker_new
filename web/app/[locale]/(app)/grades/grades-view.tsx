@@ -24,6 +24,8 @@ import { Field, Input, PanelHeader } from "@/components/app/detail-fields";
 import { MasterDetail } from "@/components/app/master-detail";
 import { api, ApiError, type Response } from "@/lib/api";
 import { formatDate, formatNumber, formatPercent, parseLocaleNumber } from "@/lib/format";
+import { can } from "@/lib/permissions";
+import type { Me } from "@/lib/session";
 import { useDebounced, useSelection } from "@/lib/use-selection";
 
 type Grade = Response<"/grades/{grade_id}", "get">;
@@ -31,7 +33,7 @@ type Page = Response<"/grades", "get">;
 
 const PAGE_SIZE = 50;
 
-export function GradesView({ locale }: { locale: string }) {
+export function GradesView({ me, locale }: { me: Me; locale: string }) {
   const t = useTranslations();
   const queryClient = useQueryClient();
 
@@ -102,6 +104,7 @@ export function GradesView({ locale }: { locale: string }) {
               grade={detail.data}
               loading={detail.isPending}
               error={detail.error}
+              editable={can.writeGrade(me)}
               locale={locale}
               onClose={() => select(null)}
               onSaved={() => {
@@ -178,6 +181,7 @@ function GradeDetail({
   grade,
   loading,
   error,
+  editable,
   locale,
   onClose,
   onSaved,
@@ -186,6 +190,8 @@ function GradeDetail({
   grade: Grade | undefined;
   loading: boolean;
   error: unknown;
+  /** Teacher and above. A student reading their own marks gets no edit control. */
+  editable: boolean;
   locale: string;
   onClose: () => void;
   onSaved: () => void;
@@ -299,13 +305,15 @@ function GradeDetail({
 
           {grade.notes && <p className="mt-4 text-sm text-muted">{grade.notes}</p>}
 
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="mt-6 rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
-          >
-            {t("action.edit")}
-          </button>
+          {editable && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="mt-6 rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
+            >
+              {t("action.edit")}
+            </button>
+          )}
         </>
       )}
 

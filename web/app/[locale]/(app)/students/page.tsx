@@ -11,6 +11,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Suspense } from "react";
 
 import { StudentsView } from "./students-view";
+import { requireSession } from "@/lib/server-session";
 
 export async function generateMetadata({
   params,
@@ -30,11 +31,17 @@ export default async function StudentsPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
+  // No capability check: every role may *read* the directory, and the API scopes the
+  // rows. `me` is fetched here rather than in the view so the role is known before
+  // the first paint — a client-side lookup would render an Edit button and then
+  // remove it, which is worse than never showing it.
+  const me = await requireSession(locale);
+
   // useSearchParams needs a Suspense boundary above it, or the whole route opts
   // out of static rendering with a build-time error.
   return (
     <Suspense>
-      <StudentsView locale={locale} />
+      <StudentsView me={me} locale={locale} />
     </Suspense>
   );
 }
