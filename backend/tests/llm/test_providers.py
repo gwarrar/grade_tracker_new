@@ -89,6 +89,19 @@ def _anthropic_tool_response() -> SimpleNamespace:
     )
 
 
+def _anthropic_thinking_response() -> SimpleNamespace:
+    """An Anthropic reply containing a thinking summary and prose."""
+    return SimpleNamespace(
+        content=[
+            SimpleNamespace(type="thinking", thinking="I compared the weighted marks."),
+            SimpleNamespace(type="text", text="The average is 72.4%."),
+        ],
+        stop_reason="end_turn",
+        model="claude-opus-5",
+        usage=SimpleNamespace(input_tokens=120, output_tokens=18, cache_read_input_tokens=64),
+    )
+
+
 def _openai_body(*, tool: bool) -> dict[str, Any]:
     """An OpenAI-compatible reply, with or without a tool call."""
     message: dict[str, Any] = (
@@ -333,6 +346,174 @@ def test_local_endpoint_sends_no_authorization_header(monkeypatch: pytest.Monkey
     ).chat([Message(role=Role.USER, content="hi")])
 
     assert "authorization" not in captured
+
+
+def test_openai_applies_effort_and_parameters_without_replacing_the_prompt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Provider settings may tune generation but may not replace the conversation."""
+    captured: dict[str, Any] = {}
+
+    def capture(*_: Any, **kwargs: Any) -> httpx.Response:
+        captured.update(kwargs["json"])
+        return httpx.Response(200, json=_openai_body(tool=False))
+
+    monkeypatch.setattr(httpx, "post", capture)
+    provider = OpenAICompatibleProvider(
+        name="nvidia",
+        model="deepseek-ai/deepseek-v4-flash",
+        api_key="k",
+        effort="xhigh",
+        params={
+            "temperature": 0.6,
+            "chat_template_kwargs": {"thinking": True, "reasoning_effort": "low"},
+            "model": "must-not-win",
+            "messages": [],
+            "system": "must-not-win",
+        },
+    )
+
+    provider.chat([Message(role=Role.USER, content="real question")], system="real system")
+
+    assert captured["model"] == "deepseek-ai/deepseek-v4-flash"
+    assert captured["messages"] == [
+        {"role": "system", "content": "real system"},
+        {"role": "user", "content": "real question"},
+    ]
+    assert "system" not in captured
+    assert "reasoning_effort" not in captured
+    assert captured["temperature"] == 0.6
+    assert captured["chat_template_kwargs"] == {
+        "thinking": True,
+        "reasoning_effort": "low",
+    }
+
+
+def test_anthropic_applies_effort_without_enabling_unsigned_thinking(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Effort reaches Anthropic without creating blocks the agent cannot replay."""
+    captured: dict[str, Any] = {}
+    provider = AnthropicProvider(
+        api_key="k",
+        model="claude-opus-5",
+        effort="xhigh",
+        params={"temperature": 0.3, "system": "must-not-win"},
+    )
+
+    def capture(**request: Any) -> object:
+        captured.update(request)
+        return _anthropic_text_response()
+
+    monkeypatch.setattr(provider.client.messages, "create", capture)
+    provider.chat([Message(role=Role.USER, content="real question")], system="real system")
+
+    assert "thinking" not in captured
+    assert captured["output_config"]["effort"] == "xhigh"
+    assert captured["temperature"] == 0.3
+    assert captured["system"] == "real system"
+
+
+def test_provider_specific_parameters_override_derived_anthropic_thinking(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An explicit provider setting wins over the routing default."""
+    captured: dict[str, Any] = {}
+    provider = AnthropicProvider(
+        api_key="k",
+        model="claude-opus-5",
+        effort="high",
+        params={"thinking": {"type": "disabled"}, "output_config": {"effort": "low"}},
+    )
+
+    def capture(**request: Any) -> object:
+        captured.update(request)
+        return _anthropic_text_response()
+
+    monkeypatch.setattr(provider.client.messages, "create", capture)
+    provider.chat([Message(role=Role.USER, content="hi")])
+
+    assert captured["thinking"] == {"type": "disabled"}
+    assert captured["output_config"]["effort"] == "low"
+
+
+def test_anthropic_sends_unknown_body_parameters_through_extra_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Vendor extensions use the SDK body escape hatch, not closed keyword arguments."""
+    captured: dict[str, Any] = {}
+    provider = AnthropicProvider(
+        api_key="k",
+        model="claude-opus-5",
+        params={"vendor_preview": {"mode": "fast"}},
+    )
+
+    def capture(
+        *,
+        model: str,
+        max_tokens: int,
+        messages: list[dict[str, Any]],
+        output_config: dict[str, Any],
+        extra_body: dict[str, Any],
+    ) -> object:
+        captured.update(
+            {
+                "model": model,
+                "max_tokens": max_tokens,
+                "messages": messages,
+                "output_config": output_config,
+                "extra_body": extra_body,
+            }
+        )
+        return _anthropic_text_response()
+
+    monkeypatch.setattr(provider.client.messages, "create", capture)
+    provider.chat([Message(role=Role.USER, content="hi")])
+
+    assert captured["extra_body"] == {"vendor_preview": {"mode": "fast"}}
+
+
+def test_anthropic_drops_explicit_thinking_when_tools_are_present(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Tool loops cannot enable thinking until signed blocks can be replayed verbatim."""
+    captured: dict[str, Any] = {}
+    provider = AnthropicProvider(
+        api_key="k",
+        model="claude-opus-5",
+        params={"thinking": {"type": "enabled", "budget_tokens": 1024}},
+    )
+
+    def capture(**request: Any) -> object:
+        captured.update(request)
+        return _anthropic_tool_response()
+
+    monkeypatch.setattr(provider.client.messages, "create", capture)
+    provider.chat([Message(role=Role.USER, content="hi")], tools=[WEATHER])
+
+    assert "thinking" not in captured
+    assert "thinking" not in captured.get("extra_body", {})
+
+
+def test_openai_reasoning_content_is_normalised(monkeypatch: pytest.MonkeyPatch) -> None:
+    """NVIDIA and DeepSeek reasoning is exposed separately from final prose."""
+    body = _openai_body(tool=False)
+    body["choices"][0]["message"]["reasoning_content"] = "I compared the weighted marks."
+
+    result = _openai(monkeypatch, body).chat([Message(role=Role.USER, content="average?")])
+
+    assert result.reasoning == "I compared the weighted marks."
+    assert result.text == "The average is 72.4%."
+
+
+def test_anthropic_thinking_blocks_are_normalised(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Anthropic thinking summaries use the same field as OpenAI-compatible replies."""
+    result = _anthropic(monkeypatch, _anthropic_thinking_response()).chat(
+        [Message(role=Role.USER, content="average?")]
+    )
+
+    assert result.reasoning == "I compared the weighted marks."
+    assert result.text == "The average is 72.4%."
 
 
 # ── Failure modes ────────────────────────────────────────────────────────────

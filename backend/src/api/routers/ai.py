@@ -51,6 +51,13 @@ class AskResponse(BaseModel):
         description="True when the turn cap stopped the assistant before it concluded."
     )
     model: str
+    reasoning: str = Field(
+        default="",
+        description=(
+            "Provider-supplied thinking summary, when available. Kept separate from "
+            "the answer and never replayed into a later model turn."
+        ),
+    )
 
 
 class CommandRequest(BaseModel):
@@ -152,6 +159,7 @@ def ask(body: AskRequest, ai: Ai) -> AskResponse:
         records=[ToolRecordResponse(**record) for record in answer.records],
         truncated=answer.truncated,
         model=answer.model,
+        reasoning=answer.reasoning,
     )
 
 

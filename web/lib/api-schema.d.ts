@@ -1078,6 +1078,12 @@ export interface components {
             /** Model */
             model: string;
             /**
+             * Reasoning
+             * @description Provider-supplied thinking summary, when available. Kept separate from the answer and never replayed into a later model turn.
+             * @default
+             */
+            reasoning: string;
+            /**
              * Records
              * @description Every query the assistant ran, with its results. Rendered beside the prose so a wrong narrative sits next to the numbers that contradict it.
              */
@@ -2007,6 +2013,8 @@ export interface components {
             is_third_party_pool?: boolean | null;
             /** Name */
             name?: string | null;
+            /** Params Json */
+            params_json?: string | null;
         };
         /**
          * ProviderRequest
@@ -2053,6 +2061,13 @@ export interface components {
              * @example openrouter
              */
             name: string;
+            /**
+             * Params Json
+             * @description Extra request-body keys as a JSON object. Use this for generation settings such as temperature or vendor-specific thinking controls.
+             * @default {}
+             * @example {"temperature":0.6,"top_p":0.95,"max_tokens":4096,"chat_template_kwargs":{"thinking":true,"reasoning_effort":"high"}}
+             */
+            params_json: string;
         };
         /**
          * ProviderResponse
@@ -2083,6 +2098,8 @@ export interface components {
             kind: string;
             /** Name */
             name: string;
+            /** Params Json */
+            params_json: string;
         };
         /**
          * RankedLine

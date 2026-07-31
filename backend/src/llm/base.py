@@ -137,6 +137,12 @@ class ChatResult:
         usage: Token counts, for the usage log.
         model: The model that actually answered, which is not always the one asked
             for — routers substitute, and the log should record what ran.
+        reasoning: The model's thinking, when it emitted any and the provider exposed
+            it separately from the answer. Reasoning models return this alongside
+            ``text``; everything else leaves it empty. Surfaced so a UI can offer it
+            behind a disclosure — and deliberately **not** fed back into the next
+            turn, because providers reject replayed thinking blocks that have lost
+            their signatures.
         raw: The undecoded response, for debugging. Never parsed by callers.
     """
 
@@ -145,6 +151,7 @@ class ChatResult:
     finish_reason: FinishReason = FinishReason.STOP
     usage: Usage = field(default_factory=Usage)
     model: str = ""
+    reasoning: str = ""
     raw: dict[str, Any] = field(default_factory=dict)
 
     def as_message(self) -> Message:
@@ -224,7 +231,22 @@ class LLMProvider(ABC):
     serves every request to that provider.
     """
 
-    def __init__(self, *, name: str, model: str, api_key: str, base_url: str | None = None) -> None:
+    # Keys an administrator may not set through `params`, because they *are* the
+    # request rather than a setting on it. A typo in a JSON blob must not be able to
+    # replace the conversation, drop the tools, or turn on streaming the caller cannot
+    # read. This is a trust boundary, not tidiness.
+    _RESERVED = frozenset({"model", "messages", "system", "tools", "response_format", "stream"})
+
+    def __init__(
+        self,
+        *,
+        name: str,
+        model: str,
+        api_key: str,
+        base_url: str | None = None,
+        params: dict[str, Any] | None = None,
+        effort: str = "medium",
+    ) -> None:
         """Initialise the provider.
 
         Args:
@@ -233,11 +255,38 @@ class LLMProvider(ABC):
             api_key: The credential. Read from the environment by the registry —
                 the database stores only the variable's name.
             base_url: Endpoint override, or None for the vendor default.
+            params: Extra request-body keys for this endpoint — ``temperature``,
+                ``top_p``, or a vendor's own such as NVIDIA's
+                ``chat_template_kwargs``. **Construction-time configuration, never a
+                call-time argument**: that is what keeps the agent loop and the four
+                AI features from ever branching on which provider they are talking
+                to, which is the whole promise of this abstraction.
+            effort: How hard the model should think, from the feature's routing row.
+                Each implementation translates it into its own vocabulary.
         """
         self.name = name
         self.model = model
         self._api_key = api_key
         self._base_url = base_url
+        self._params = self._sanitise(params or {})
+        self._effort = effort
+
+    @classmethod
+    def _sanitise(cls, params: dict[str, Any]) -> dict[str, Any]:
+        """Drop reserved keys from configured parameters.
+
+        Silently rather than by raising: the reserved key is ignored and everything
+        else still applies, which is the behaviour that keeps a stray key from taking
+        an AI feature offline. The admin API validates the shape at write time, where
+        someone is present to read an error.
+
+        Args:
+            params: Whatever the administrator configured.
+
+        Returns:
+            The same mapping without any reserved key.
+        """
+        return {k: v for k, v in params.items() if k not in cls._RESERVED}
 
     @abstractmethod
     def chat(

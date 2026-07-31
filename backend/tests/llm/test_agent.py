@@ -202,6 +202,39 @@ def test_usage_accumulates_across_turns(context: ToolContext) -> None:
     assert result.usage.output_tokens == 40  # 10 + 30
 
 
+def test_reasoning_is_collected_but_never_replayed(context: ToolContext) -> None:
+    """Reasoning is display data, not an unsigned assistant message."""
+    provider = ScriptedProvider(
+        [
+            ChatResult(
+                reasoning="I need the course statistics.",
+                tool_calls=(
+                    ToolCall(
+                        id="c1",
+                        name="get_statistics",
+                        arguments={"course_id": "CS101"},
+                    ),
+                ),
+                finish_reason=FinishReason.TOOL_CALLS,
+            ),
+            ChatResult(
+                text="The average is 90%.",
+                reasoning="The only recorded mark is 90 out of 100.",
+                finish_reason=FinishReason.STOP,
+            ),
+        ]
+    )
+
+    result = _run(provider, context)
+
+    assert result.reasoning == (
+        "I need the course statistics.\n\nThe only recorded mark is 90 out of 100."
+    )
+    assistant_turn = provider.seen[1][-2]
+    assert assistant_turn.role is Role.ASSISTANT
+    assert assistant_turn.content == ""
+
+
 # ── Stopping ─────────────────────────────────────────────────────────────────
 
 

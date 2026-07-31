@@ -11,6 +11,7 @@ use. A leak of everything this service writes exposes no credentials.
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import time
@@ -156,6 +157,7 @@ class AiAdminService:
         api_key_env: str = "",
         is_enabled: bool = True,
         is_third_party_pool: bool = False,
+        params_json: str = "{}",
     ) -> ProviderConfig:
         """Add a provider.
 
@@ -168,6 +170,7 @@ class AiAdminService:
             api_key_env: **Name** of the environment variable holding the key.
             is_enabled: Whether it may serve traffic.
             is_third_party_pool: Whether it routes through third parties.
+            params_json: Extra provider request settings as a JSON object.
 
         Returns:
             The stored configuration.
@@ -177,13 +180,14 @@ class AiAdminService:
             DuplicateEntryError: If the name is taken.
         """
         self._check_kind(kind)
+        params_json = _normalise_params_json(params_json)
 
         try:
             cursor = self._conn.execute(
                 "INSERT INTO ai_providers"
                 " (name, kind, base_url, api_key_env, default_model, is_enabled,"
-                "  is_third_party_pool)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "  is_third_party_pool, params_json)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     name,
                     kind,
@@ -192,6 +196,7 @@ class AiAdminService:
                     default_model,
                     int(is_enabled),
                     int(is_third_party_pool),
+                    params_json,
                 ),
             )
         except sqlite3.IntegrityError as error:
@@ -220,6 +225,7 @@ class AiAdminService:
         default_model: str | None = None,
         is_enabled: bool | None = None,
         is_third_party_pool: bool | None = None,
+        params_json: str | None = None,
     ) -> ProviderConfig:
         """Change a provider's configuration.
 
@@ -235,6 +241,7 @@ class AiAdminService:
             default_model: New default model.
             is_enabled: Whether it may serve traffic.
             is_third_party_pool: Whether it routes through third parties.
+            params_json: Extra provider request settings as a JSON object.
 
         Returns:
             The updated configuration.
@@ -258,6 +265,8 @@ class AiAdminService:
             changes["is_enabled"] = int(is_enabled)
         if is_third_party_pool is not None:
             changes["is_third_party_pool"] = int(is_third_party_pool)
+        if params_json is not None:
+            changes["params_json"] = _normalise_params_json(params_json)
 
         if not changes:
             return before
@@ -531,3 +540,32 @@ def _now() -> str:
 def _days_ago(days: int) -> str:
     """Return an ISO-8601 timestamp `days` before now."""
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - days * 86_400))
+
+
+def _normalise_params_json(value: str) -> str:
+    """Validate and canonicalise provider request parameters.
+
+    Args:
+        value: A JSON object encoded as text.
+
+    Returns:
+        Compact, stable JSON for storage.
+
+    Raises:
+        ValidationError: If the value is invalid JSON or is not an object.
+    """
+    try:
+        decoded = json.loads(value or "{}")
+    except json.JSONDecodeError as error:
+        raise ValidationError(
+            f"params_json is not valid JSON: {error.msg}",
+            field="params_json",
+            value=value,
+        ) from error
+    if not isinstance(decoded, dict):
+        raise ValidationError(
+            "params_json must be a JSON object",
+            field="params_json",
+            value=value,
+        )
+    return json.dumps(decoded, sort_keys=True, separators=(",", ":"))

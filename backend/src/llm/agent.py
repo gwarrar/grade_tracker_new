@@ -58,6 +58,8 @@ class AgentResult:
         truncated: Whether the turn cap stopped it before it concluded. Surfaced
             rather than hidden — a capped answer is incomplete, not merely short.
         model: The model that answered.
+        reasoning: Provider-supplied thinking summaries, for an opt-in disclosure.
+            Never copied into the conversation history.
     """
 
     text: str = ""
@@ -66,6 +68,7 @@ class AgentResult:
     turns: int = 0
     truncated: bool = False
     model: str = ""
+    reasoning: str = ""
     latency_ms: int = 0
 
 
@@ -123,6 +126,10 @@ def converse(
         result.turns = turn
         result.usage = _accumulate(result.usage, reply.usage)
         result.model = reply.model or provider.model
+        if reply.reasoning:
+            result.reasoning = (
+                f"{result.reasoning}\n\n{reply.reasoning}" if result.reasoning else reply.reasoning
+            )
 
         if reply.finish_reason is not FinishReason.TOOL_CALLS or not reply.tool_calls:
             result.text = reply.text

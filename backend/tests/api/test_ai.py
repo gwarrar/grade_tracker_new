@@ -145,6 +145,26 @@ def test_ask_returns_the_answer_and_its_supporting_queries(
     assert body["truncated"] is False
 
 
+def test_ask_returns_reasoning_separately_from_the_answer(
+    as_admin: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A reasoning model's explanation is available for an opt-in disclosure."""
+    _install(
+        monkeypatch,
+        ChatResult(
+            text="The CS101 average is 72%.",
+            reasoning="I used the weighted course statistics.",
+            finish_reason=FinishReason.STOP,
+            model="stub-model",
+        ),
+    )
+
+    body = as_admin.post("/ai/ask", json={"question": "CS101 average?"}).json()
+
+    assert body["text"] == "The CS101 average is 72%."
+    assert body["reasoning"] == "I used the weighted course statistics."
+
+
 def test_ask_answers_as_the_caller(
     as_student: TestClient, as_admin: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

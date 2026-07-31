@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Iterator
+from typing import Any
 
+import httpx
 import pytest
 
 from llm.anthropic_provider import AnthropicProvider
-from llm.base import LLMError
+from llm.base import LLMError, Message, Role
 from llm.openai_compatible_provider import OpenAICompatibleProvider
 from llm.registry import Feature, ProviderConfig, Registry, build
 from notenverwaltung.storage.db import apply_migrations, connect
@@ -38,21 +40,29 @@ def _add_provider(
     base_url: str | None = None,
     model: str = "claude-opus-5",
     enabled: bool = True,
+    params_json: str = "{}",
 ) -> int:
     """Insert a provider row and return its id."""
     cursor = conn.execute(
-        "INSERT INTO ai_providers (name, kind, base_url, api_key_env, default_model, is_enabled)"
-        " VALUES (?, ?, ?, ?, ?, ?)",
-        (name, kind, base_url, api_key_env, model, int(enabled)),
+        "INSERT INTO ai_providers"
+        " (name, kind, base_url, api_key_env, default_model, is_enabled, params_json)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (name, kind, base_url, api_key_env, model, int(enabled), params_json),
     )
     return int(cursor.lastrowid or 0)
 
 
-def _route(conn: sqlite3.Connection, feature: Feature, provider_id: int, model: str = "") -> None:
+def _route(
+    conn: sqlite3.Connection,
+    feature: Feature,
+    provider_id: int,
+    model: str = "",
+    effort: str = "medium",
+) -> None:
     """Point a feature at a provider."""
     conn.execute(
-        "INSERT INTO ai_feature_models (feature, provider_id, model) VALUES (?, ?, ?)",
-        (feature.value, provider_id, model),
+        "INSERT INTO ai_feature_models (feature, provider_id, model, effort) VALUES (?, ?, ?, ?)",
+        (feature.value, provider_id, model, effort),
     )
 
 
@@ -146,6 +156,27 @@ def test_an_unknown_kind_is_rejected() -> None:
     assert caught.value.code == "AI_UNKNOWN_KIND"
 
 
+@pytest.mark.parametrize("params_json", ["{broken", "[1, 2, 3]"])
+def test_generation_parameters_must_be_a_json_object(params_json: str) -> None:
+    """Malformed or non-object settings fail before the first real request."""
+    config = ProviderConfig(
+        id=4,
+        name="nvidia",
+        kind="openai_compatible",
+        base_url="https://integrate.api.nvidia.com/v1",
+        api_key_env="",
+        default_model="deepseek-ai/deepseek-v4-flash",
+        is_enabled=True,
+        is_third_party_pool=False,
+        params_json=params_json,
+    )
+
+    with pytest.raises(LLMError) as caught:
+        build(config)
+
+    assert caught.value.code == "AI_BAD_PARAMS"
+
+
 # ── routing ──────────────────────────────────────────────────────────────────
 
 
@@ -176,6 +207,41 @@ def test_resolve_falls_back_to_the_provider_default(
     _route(conn, Feature.ASK, provider_id, model="")
 
     assert Registry(conn).resolve(Feature.ASK).model == "claude-opus-5"
+
+
+def test_resolve_applies_the_route_effort_and_provider_parameters(
+    conn: sqlite3.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Configuration stored in both tables reaches the actual wire payload."""
+    provider_id = _add_provider(
+        conn,
+        name="nvidia",
+        kind="openai_compatible",
+        api_key_env="",
+        base_url="https://integrate.api.nvidia.com/v1",
+        model="deepseek-ai/deepseek-v4-flash",
+        params_json='{"temperature": 0.6}',
+    )
+    _route(conn, Feature.ASK, provider_id, effort="max")
+    captured: dict[str, Any] = {}
+
+    def respond(*_: Any, **kwargs: Any) -> httpx.Response:
+        captured.update(kwargs["json"])
+        return httpx.Response(
+            200,
+            json={
+                "model": "deepseek-ai/deepseek-v4-flash",
+                "choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}],
+                "usage": {},
+            },
+        )
+
+    monkeypatch.setattr(httpx, "post", respond)
+
+    Registry(conn).resolve(Feature.ASK).chat([Message(role=Role.USER, content="hi")])
+
+    assert captured["reasoning_effort"] == "high"
+    assert captured["temperature"] == 0.6
 
 
 def test_an_unrouted_feature_is_reported(conn: sqlite3.Connection) -> None:

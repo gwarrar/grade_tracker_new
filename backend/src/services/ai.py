@@ -115,12 +115,14 @@ class Answer:
             visibly wrong; alone it is convincing.
         truncated: Whether the turn cap stopped it short.
         model: Which model answered.
+        reasoning: Provider-supplied thinking summaries, kept separate from prose.
     """
 
     text: str
     records: list[dict[str, Any]] = field(default_factory=list)
     truncated: bool = False
     model: str = ""
+    reasoning: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -193,6 +195,7 @@ class AiService:
             ],
             truncated=result.truncated,
             model=result.model,
+            reasoning=result.reasoning,
         )
 
     # ── Command ──────────────────────────────────────────────────────────────
@@ -465,6 +468,7 @@ def _single_turn(
         usage=reply.usage,
         turns=1,
         model=reply.model,
+        reasoning=reply.reasoning,
     )
 
 

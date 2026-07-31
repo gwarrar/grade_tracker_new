@@ -107,6 +107,17 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
               {answer.text}
             </p>
 
+            {answer.reasoning && (
+              <details className="mt-4 rounded-lg border border-line bg-bg-subtle px-3 py-2">
+                <summary className="cursor-pointer text-xs font-medium text-muted hover:text-text">
+                  {t("reasoning")}
+                </summary>
+                <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-subtle">
+                  {answer.reasoning}
+                </p>
+              </details>
+            )}
+
             {answer.truncated && (
               <p
                 role="note"

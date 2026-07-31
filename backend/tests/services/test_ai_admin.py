@@ -210,6 +210,7 @@ def test_each_field_updates_independently(service: AiAdminService, provider_id: 
         default_model="claude-sonnet-5",
         is_enabled=False,
         is_third_party_pool=True,
+        params_json='{"temperature": 0.2}',
     )
 
     assert updated.name == "claude"
@@ -218,6 +219,7 @@ def test_each_field_updates_independently(service: AiAdminService, provider_id: 
     assert updated.default_model == "claude-sonnet-5"
     assert updated.is_enabled is False
     assert updated.is_third_party_pool is True
+    assert updated.params_json == '{"temperature":0.2}'
 
 
 def test_clearing_the_base_url_stores_null_not_an_empty_string(

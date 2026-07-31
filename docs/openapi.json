@@ -41,6 +41,12 @@
             "title": "Model",
             "type": "string"
           },
+          "reasoning": {
+            "default": "",
+            "description": "Provider-supplied thinking summary, when available. Kept separate from the answer and never replayed into a later model turn.",
+            "title": "Reasoning",
+            "type": "string"
+          },
           "records": {
             "description": "Every query the assistant ran, with its results. Rendered beside the prose so a wrong narrative sits next to the numbers that contradict it.",
             "items": {
@@ -1766,6 +1772,18 @@
               }
             ],
             "title": "Name"
+          },
+          "params_json": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Params Json"
           }
         },
         "title": "ProviderPatch",
@@ -1836,6 +1854,16 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "params_json": {
+            "default": "{}",
+            "description": "Extra request-body keys as a JSON object. Use this for generation settings such as temperature or vendor-specific thinking controls.",
+            "examples": [
+              "{\"temperature\":0.6,\"top_p\":0.95,\"max_tokens\":4096,\"chat_template_kwargs\":{\"thinking\":true,\"reasoning_effort\":\"high\"}}"
+            ],
+            "maxLength": 20000,
+            "title": "Params Json",
+            "type": "string"
           }
         },
         "required": [
@@ -1893,6 +1921,10 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "params_json": {
+            "title": "Params Json",
+            "type": "string"
           }
         },
         "required": [
@@ -1904,6 +1936,7 @@
           "default_model",
           "is_enabled",
           "is_third_party_pool",
+          "params_json",
           "key_present"
         ],
         "title": "ProviderResponse",

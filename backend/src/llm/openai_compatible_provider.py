@@ -21,7 +21,7 @@ third-party endpoint.
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, ClassVar
 
 import httpx
 
@@ -52,6 +52,17 @@ _FINISH: dict[str, FinishReason] = {
 class OpenAICompatibleProvider(LLMProvider):
     """Any endpoint speaking the OpenAI chat-completions API."""
 
+    #: The five stored effort levels onto the three the wire understands. The extra
+    #: levels exist so the admin page can express intent that a future provider may
+    #: distinguish; today `high`, `xhigh` and `max` all mean "think hard".
+    _EFFORT: ClassVar[dict[str, str]] = {
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "xhigh": "high",
+        "max": "high",
+    }
+
     def __init__(
         self,
         *,
@@ -59,6 +70,8 @@ class OpenAICompatibleProvider(LLMProvider):
         model: str,
         api_key: str,
         base_url: str | None = None,
+        params: dict[str, Any] | None = None,
+        effort: str = "medium",
     ) -> None:
         """Initialise the provider.
 
@@ -68,12 +81,17 @@ class OpenAICompatibleProvider(LLMProvider):
             api_key: Bearer credential. May be empty for a local endpoint such as
                 Ollama, which authenticates nothing.
             base_url: Endpoint root, without ``/chat/completions``.
+            params: Extra request-body keys, merged in last. See
+                :class:`~llm.base.LLMProvider`.
+            effort: Reasoning effort, translated to ``reasoning_effort``.
         """
         super().__init__(
             name=name,
             model=model,
             api_key=api_key,
             base_url=(base_url or DEFAULT_BASE_URL).rstrip("/"),
+            params=params,
+            effort=effort,
         )
 
     def chat(
@@ -133,6 +151,18 @@ class OpenAICompatibleProvider(LLMProvider):
                 "type": "json_schema",
                 "json_schema": {"name": "result", "schema": schema, "strict": True},
             }
+
+        # NVIDIA consumes effort inside `chat_template_kwargs`. Do not also send a
+        # conflicting derived top-level value when that vendor-specific setting is
+        # explicit. A top-level explicit `reasoning_effort` still overwrites the
+        # derived default through the merge below.
+        template_params = self._params.get("chat_template_kwargs")
+        has_nested_effort = (
+            isinstance(template_params, dict) and "reasoning_effort" in template_params
+        )
+        if not has_nested_effort:
+            payload["reasoning_effort"] = self._EFFORT.get(self._effort, "medium")
+        payload.update(self._params)
 
         headers = {"content-type": "application/json"}
         if self._api_key:
@@ -223,6 +253,10 @@ class OpenAICompatibleProvider(LLMProvider):
                 cached_tokens=details.get("cached_tokens") or 0,
             ),
             model=body.get("model") or self.model,
+            # Two spellings because the field is not standardised: DeepSeek and NVIDIA
+            # NIM send `reasoning_content`, others `reasoning`. Both are read so a
+            # deployment does not have to know which flavour it is talking to.
+            reasoning=message.get("reasoning_content") or message.get("reasoning") or "",
             raw=body,
         )
 

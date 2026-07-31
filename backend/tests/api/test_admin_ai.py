@@ -11,6 +11,8 @@ Two properties matter more than the CRUD and are asserted directly:
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -135,6 +137,47 @@ def test_updating_a_provider(as_superadmin: TestClient) -> None:
     assert response.json()["is_enabled"] is False
     # Untouched.
     assert response.json()["default_model"] == "claude-opus-5"
+
+
+def test_generation_parameters_round_trip_and_can_be_patched(
+    as_superadmin: TestClient,
+) -> None:
+    """Vendor-specific request settings are configuration, not hidden server state."""
+    params = {
+        "temperature": 0.6,
+        "top_p": 0.95,
+        "max_tokens": 4096,
+        "chat_template_kwargs": {"thinking": True, "reasoning_effort": "high"},
+    }
+    created = _create(as_superadmin, params_json=json.dumps(params))
+
+    assert json.loads(str(created["params_json"])) == params
+
+    updated = as_superadmin.patch(
+        f"/admin/ai/providers/{created['id']}",
+        json={"params_json": '{"temperature": 0.2}'},
+    )
+
+    assert updated.status_code == 200
+    assert json.loads(updated.json()["params_json"]) == {"temperature": 0.2}
+
+
+@pytest.mark.parametrize("params_json", ["{broken", "[1, 2, 3]"])
+def test_generation_parameters_must_be_a_json_object(
+    as_superadmin: TestClient, params_json: str
+) -> None:
+    """Bad settings are rejected while the administrator is still looking."""
+    response = as_superadmin.post(
+        "/admin/ai/providers",
+        json={
+            "name": "bad-params",
+            "kind": "openai_compatible",
+            "default_model": "m",
+            "params_json": params_json,
+        },
+    )
+
+    assert response.status_code == 422
 
 
 def test_deleting_a_provider_removes_its_routing(as_superadmin: TestClient) -> None:

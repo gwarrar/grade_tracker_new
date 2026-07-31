@@ -30,6 +30,26 @@ _FINISH: dict[str, FinishReason] = {
     "max_tokens": FinishReason.LENGTH,
 }
 
+# Body fields accepted as named arguments by the installed Anthropic SDK. Unknown
+# vendor extensions still belong in the request body, but must travel through the
+# SDK's `extra_body` escape hatch rather than becoming invalid Python keywords.
+_SDK_BODY_PARAMS = frozenset(
+    {
+        "cache_control",
+        "container",
+        "inference_geo",
+        "metadata",
+        "service_tier",
+        "stop_sequences",
+        "temperature",
+        "thinking",
+        "tool_choice",
+        "top_k",
+        "top_p",
+        "user_profile_id",
+    }
+)
+
 
 class AnthropicProvider(LLMProvider):
     """Claude, via the official SDK.
@@ -51,6 +71,8 @@ class AnthropicProvider(LLMProvider):
         api_key: str,
         base_url: str | None = None,
         client: anthropic.Anthropic | None = None,
+        params: dict[str, Any] | None = None,
+        effort: str = "medium",
     ) -> None:
         """Initialise the provider and its SDK client.
 
@@ -63,8 +85,18 @@ class AnthropicProvider(LLMProvider):
                 to one constructed from `api_key` and `base_url`. Public rather
                 than private so tests can substitute the transport without
                 reaching past the class boundary.
+            params: Extra request-body keys, split between typed SDK arguments and
+                the SDK's arbitrary-body escape hatch.
+            effort: Reasoning effort, sent through Anthropic's ``output_config``.
         """
-        super().__init__(name=name, model=model, api_key=api_key, base_url=base_url)
+        super().__init__(
+            name=name,
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            params=params,
+            effort=effort,
+        )
         self.client = client or anthropic.Anthropic(api_key=api_key, base_url=base_url)
 
     def chat(
@@ -95,11 +127,34 @@ class AnthropicProvider(LLMProvider):
         Raises:
             LLMError: On any API or transport failure.
         """
+        params = dict(self._params)
+        # Anthropic requires signed thinking/redacted-thinking blocks to be replayed
+        # verbatim after tool use. The provider-neutral Message intentionally does
+        # not carry those opaque blocks, so a tool loop must keep thinking disabled.
+        if tools:
+            params.pop("thinking", None)
+
+        configured_output = params.pop("output_config", None)
+        output_config: Any = {"effort": self._effort}
+        if isinstance(configured_output, dict):
+            output_config.update(configured_output)
+        elif configured_output is not None:
+            output_config = configured_output
+
         request: dict[str, Any] = {
             "model": model or self.model,
             "max_tokens": max_tokens,
             "messages": [_encode(message) for message in messages],
+            "output_config": output_config,
         }
+        extra_body: dict[str, Any] = {}
+        for key, value in params.items():
+            if key in _SDK_BODY_PARAMS:
+                request[key] = value
+            else:
+                extra_body[key] = value
+        if extra_body:
+            request["extra_body"] = extra_body
         if system:
             request["system"] = system
         if tools:
@@ -108,10 +163,17 @@ class AnthropicProvider(LLMProvider):
                 for t in tools
             ]
         if schema:
-            request["output_config"] = {"format": {"type": "json_schema", "schema": schema}}
+            # Preserve a configured/derived effort while protecting the response
+            # contract selected by the caller.
+            configured = request.get("output_config")
+            merged_output = dict(configured) if isinstance(configured, dict) else {}
+            merged_output["format"] = {"type": "json_schema", "schema": schema}
+            request["output_config"] = merged_output
 
         try:
             response = self.client.messages.create(**request)
+        except TypeError as error:
+            raise LLMError(str(error), code="AI_BAD_PARAMS", provider=self.name) from error
         except anthropic.APIStatusError as error:
             raise LLMError(
                 str(error),
@@ -126,10 +188,15 @@ class AnthropicProvider(LLMProvider):
             raise LLMError(str(error), code="AI_UNAVAILABLE", provider=self.name) from error
 
         text_parts: list[str] = []
+        reasoning_parts: list[str] = []
         calls: list[ToolCall] = []
         for block in response.content:
             if block.type == "text":
                 text_parts.append(block.text)
+            elif block.type == "thinking":
+                thinking = getattr(block, "thinking", "")
+                if thinking:
+                    reasoning_parts.append(thinking)
             elif block.type == "tool_use":
                 arguments = block.input if isinstance(block.input, dict) else {}
                 calls.append(ToolCall(id=block.id, name=block.name, arguments=arguments))
@@ -144,6 +211,7 @@ class AnthropicProvider(LLMProvider):
                 cached_tokens=getattr(response.usage, "cache_read_input_tokens", 0) or 0,
             ),
             model=response.model,
+            reasoning="\n\n".join(reasoning_parts),
         )
 
 

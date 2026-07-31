@@ -55,6 +55,20 @@ class ProviderRequest(BaseModel):
             "the interface shows a privacy warning wherever this is set."
         ),
     )
+    params_json: str = Field(
+        default="{}",
+        max_length=20_000,
+        description=(
+            "Extra request-body keys as a JSON object. Use this for generation "
+            "settings such as temperature or vendor-specific thinking controls."
+        ),
+        examples=[
+            (
+                '{"temperature":0.6,"top_p":0.95,"max_tokens":4096,'
+                '"chat_template_kwargs":{"thinking":true,"reasoning_effort":"high"}}'
+            )
+        ],
+    )
 
 
 class ProviderPatch(BaseModel):
@@ -66,6 +80,7 @@ class ProviderPatch(BaseModel):
     api_key_env: str | None = Field(default=None, max_length=80)
     is_enabled: bool | None = None
     is_third_party_pool: bool | None = None
+    params_json: str | None = Field(default=None, max_length=20_000)
 
 
 class ProviderResponse(BaseModel):
@@ -79,6 +94,7 @@ class ProviderResponse(BaseModel):
     default_model: str
     is_enabled: bool
     is_third_party_pool: bool
+    params_json: str
     key_present: bool = Field(
         description=(
             "Whether the named environment variable is set. A boolean, never a value — "

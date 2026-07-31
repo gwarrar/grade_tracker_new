@@ -99,6 +99,7 @@ function Providers() {
       base_url: String(data.get("base_url") ?? "") || null,
       api_key_env: String(data.get("api_key_env") ?? ""),
       is_third_party_pool: data.get("is_third_party_pool") === "on",
+      params_json: String(data.get("params_json") ?? "{}"),
     });
   }
 
@@ -156,6 +157,17 @@ function Providers() {
             {t("thirdParty")}
           </label>
 
+          <label className="block sm:col-span-2">
+            <span className="block text-sm text-muted">{t("parameters")}</span>
+            <textarea
+              name="params_json"
+              defaultValue="{}"
+              spellCheck={false}
+              className="numeric mt-1.5 min-h-28 w-full resize-y rounded-lg border border-line bg-bg px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
+            />
+            <span className="mt-1 block text-xs text-subtle">{t("parametersHint")}</span>
+          </label>
+
           {code && (
             <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail sm:col-span-2">
               {tError(code as "unknown")}
@@ -206,12 +218,34 @@ function ProviderCard({
   const t = useTranslations("admin.ai");
   const tError = useTranslations("error");
   const tAction = useTranslations("action");
+  const queryClient = useQueryClient();
   const [result, setResult] = useState<TestResult | null>(null);
+  const [code, setCode] = useState<string | null>(null);
 
   const test = useMutation({
     mutationFn: () => api<TestResult>(`/admin/ai/providers/${provider.id}/test`, { method: "POST" }),
     onSuccess: setResult,
   });
+
+  const saveParameters = useMutation({
+    mutationFn: (paramsJson: string) =>
+      api(`/admin/ai/providers/${provider.id}`, {
+        method: "PATCH",
+        body: { params_json: paramsJson },
+      }),
+    onSuccess: () => {
+      setCode(null);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "ai", "providers"] });
+    },
+    onError: (error) =>
+      setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+  });
+
+  function onParametersSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    saveParameters.mutate(String(data.get("params_json") ?? "{}"));
+  }
 
   return (
     <li className="rounded-xl border border-line bg-surface p-5">
@@ -279,6 +313,35 @@ function ProviderCard({
           {t("thirdPartyWarning")}
         </p>
       )}
+
+      <details className="mt-3 border-t border-line pt-3">
+        <summary className="cursor-pointer text-xs font-medium text-muted hover:text-text">
+          {t("parameters")}
+        </summary>
+        <form onSubmit={onParametersSubmit} className="mt-3">
+          <textarea
+            key={provider.params_json}
+            name="params_json"
+            defaultValue={provider.params_json}
+            spellCheck={false}
+            aria-label={t("parameters")}
+            className="numeric min-h-28 w-full resize-y rounded-lg border border-line bg-bg px-3 py-2 text-xs text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
+          />
+          <p className="mt-1 text-xs text-subtle">{t("parametersHint")}</p>
+          {code && (
+            <p role="alert" className="mt-2 rounded-lg bg-fail-bg px-3 py-2 text-xs text-fail">
+              {tError(code as "unknown")}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={saveParameters.isPending}
+            className="mt-3 rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-brand-contrast transition-opacity hover:opacity-90 disabled:opacity-60"
+          >
+            {tAction("save")}
+          </button>
+        </form>
+      </details>
 
       {result && (
         <p
