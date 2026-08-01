@@ -117,3 +117,67 @@ class TestMigrations:
         with pytest.raises(FileNotFoundError):
             apply_migrations(conn, tmp_path / "does-not-exist")
         conn.close()
+
+    def test_directory_metadata_defaults_and_constraints(
+        self, sqlite_conn: sqlite3.Connection
+    ) -> None:
+        sqlite_conn.execute(
+            "INSERT INTO students (student_id, first_name, last_name, email)"
+            " VALUES ('S1', 'A', 'Student', 'a@example.com')"
+        )
+        sqlite_conn.execute("INSERT INTO courses (course_id, name) VALUES ('C1', 'Course')")
+
+        student = sqlite_conn.execute(
+            "SELECT is_active, phone, date_of_birth, cohort FROM students WHERE student_id = 'S1'"
+        ).fetchone()
+        course = sqlite_conn.execute(
+            "SELECT description, room, schedule, department, start_date, end_date, status"
+            " FROM courses WHERE course_id = 'C1'"
+        ).fetchone()
+
+        assert dict(student) == {
+            "is_active": 1,
+            "phone": None,
+            "date_of_birth": None,
+            "cohort": None,
+        }
+        assert dict(course) == {
+            "description": None,
+            "room": None,
+            "schedule": None,
+            "department": None,
+            "start_date": None,
+            "end_date": None,
+            "status": "active",
+        }
+        with pytest.raises(sqlite3.IntegrityError):
+            sqlite_conn.execute("UPDATE students SET is_active = 2 WHERE student_id = 'S1'")
+        with pytest.raises(sqlite3.IntegrityError):
+            sqlite_conn.execute("UPDATE courses SET status = 'deleted' WHERE course_id = 'C1'")
+        with pytest.raises(sqlite3.IntegrityError):
+            sqlite_conn.execute(
+                "UPDATE courses SET start_date = '2026-02-30' WHERE course_id = 'C1'"
+            )
+
+    def test_course_prerequisites_enforce_references_and_cascade(
+        self, sqlite_conn: sqlite3.Connection
+    ) -> None:
+        sqlite_conn.execute("INSERT INTO courses (course_id, name) VALUES ('C1', 'First')")
+        sqlite_conn.execute("INSERT INTO courses (course_id, name) VALUES ('C2', 'Second')")
+        sqlite_conn.execute(
+            "INSERT INTO course_prerequisites (course_id, requires_course_id) VALUES ('C2', 'C1')"
+        )
+
+        with pytest.raises(sqlite3.IntegrityError):
+            sqlite_conn.execute(
+                "INSERT INTO course_prerequisites (course_id, requires_course_id)"
+                " VALUES ('C1', 'C1')"
+            )
+        with pytest.raises(sqlite3.IntegrityError):
+            sqlite_conn.execute(
+                "INSERT INTO course_prerequisites (course_id, requires_course_id)"
+                " VALUES ('C2', 'MISSING')"
+            )
+
+        sqlite_conn.execute("DELETE FROM courses WHERE course_id = 'C1'")
+        assert sqlite_conn.execute("SELECT COUNT(*) FROM course_prerequisites").fetchone()[0] == 0

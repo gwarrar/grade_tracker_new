@@ -1187,6 +1187,12 @@ export interface components {
              * @default 1
              */
             credits: number;
+            /** Department */
+            department?: string | null;
+            /** Description */
+            description?: string | null;
+            /** End Date */
+            end_date?: string | null;
             /**
              * Max Grade
              * @default 100
@@ -1207,6 +1213,20 @@ export interface components {
              * @default 60
              */
             passing_grade: number;
+            /** Prerequisite Ids */
+            prerequisite_ids?: string[];
+            /** Room */
+            room?: string | null;
+            /** Schedule */
+            schedule?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            /**
+             * Status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "archived";
             /**
              * Teacher Id
              * @description Owning teacher. A teacher creating a course owns it by default; only an administrator may set this to somebody else.
@@ -1264,6 +1284,21 @@ export interface components {
              */
             credits: number;
             /**
+             * Department
+             * @description Owning department.
+             */
+            department?: string | null;
+            /**
+             * Description
+             * @description Course description.
+             */
+            description?: string | null;
+            /**
+             * End Date
+             * @description ISO calendar date.
+             */
+            end_date?: string | null;
+            /**
              * Enrolled Count
              * @description Students actively enrolled. Distinct from `graded_count`: a student can be enrolled without having been assessed yet.
              * @default 0
@@ -1300,6 +1335,33 @@ export interface components {
              */
             passing_grade: number;
             /**
+             * Prerequisite Ids
+             * @description Course identifiers required beforehand.
+             */
+            prerequisite_ids?: string[];
+            /**
+             * Room
+             * @description Teaching room.
+             */
+            room?: string | null;
+            /**
+             * Schedule
+             * @description Human-readable meeting schedule.
+             */
+            schedule?: string | null;
+            /**
+             * Start Date
+             * @description ISO calendar date.
+             */
+            start_date?: string | null;
+            /**
+             * Status
+             * @description Directory status.
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "archived";
+            /**
              * Teacher Id
              * @description Owning teacher's user id.
              */
@@ -1328,6 +1390,12 @@ export interface components {
         CourseUpdateRequest: {
             /** Credits */
             credits?: number | null;
+            /** Department */
+            department?: string | null;
+            /** Description */
+            description?: string | null;
+            /** End Date */
+            end_date?: string | null;
             /** Max Grade */
             max_grade?: number | null;
             /** Max Students */
@@ -1336,6 +1404,20 @@ export interface components {
             name?: string | null;
             /** Passing Grade */
             passing_grade?: number | null;
+            /** Prerequisite Ids */
+            prerequisite_ids?: string[];
+            /** Room */
+            room?: string | null;
+            /** Schedule */
+            schedule?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            /**
+             * Status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "archived";
             /**
              * Teacher Id
              * @description Administrators only — reassigning a course changes who can see it.
@@ -2248,6 +2330,10 @@ export interface components {
          * @description A new student.
          */
         StudentCreateRequest: {
+            /** Cohort */
+            cohort?: string | null;
+            /** Date Of Birth */
+            date_of_birth?: string | null;
             /**
              * Email
              * @example nadia@example.com
@@ -2259,10 +2345,17 @@ export interface components {
              */
             first_name: string;
             /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
              * Last Name
              * @example Haddad
              */
             last_name: string;
+            /** Phone */
+            phone?: string | null;
             /**
              * Student Id
              * @example S041
@@ -2297,10 +2390,20 @@ export interface components {
          */
         StudentResponse: {
             /**
+             * Cohort
+             * @description Institution-defined cohort label.
+             */
+            cohort?: string | null;
+            /**
              * Created At
              * @description ISO-8601 UTC.
              */
             created_at?: string | null;
+            /**
+             * Date Of Birth
+             * @description ISO calendar date.
+             */
+            date_of_birth?: string | null;
             /**
              * Email
              * @description Contact address.
@@ -2326,11 +2429,22 @@ export interface components {
              */
             grade_count: number;
             /**
+             * Is Active
+             * @description Whether the student may be enrolled.
+             * @default true
+             */
+            is_active: boolean;
+            /**
              * Last Name
              * @description Family name.
              * @example Schmidt
              */
             last_name: string;
+            /**
+             * Phone
+             * @description Contact telephone number.
+             */
+            phone?: string | null;
             /**
              * Student Id
              * @description Institution-assigned identifier.
@@ -2353,12 +2467,23 @@ export interface components {
          * @description Changes to a student. Omitted fields are left alone.
          */
         StudentUpdateRequest: {
+            /** Cohort */
+            cohort?: string | null;
+            /** Date Of Birth */
+            date_of_birth?: string | null;
             /** Email */
             email?: string | null;
             /** First Name */
             first_name?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
             /** Last Name */
             last_name?: string | null;
+            /** Phone */
+            phone?: string | null;
         };
         /**
          * SummaryReportResponse

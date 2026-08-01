@@ -222,6 +222,42 @@
             "title": "Credits",
             "type": "number"
           },
+          "department": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
           "max_grade": {
             "default": 100.0,
             "exclusiveMinimum": 0.0,
@@ -248,6 +284,58 @@
             "exclusiveMinimum": 0.0,
             "title": "Passing Grade",
             "type": "number"
+          },
+          "prerequisite_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Prerequisite Ids",
+            "type": "array"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room"
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "status": {
+            "default": "active",
+            "enum": [
+              "active",
+              "archived"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "teacher_id": {
             "anyOf": [
@@ -386,6 +474,43 @@
             "title": "Credits",
             "type": "number"
           },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Owning department.",
+            "title": "Department"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Course description.",
+            "title": "Description"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO calendar date.",
+            "title": "End Date"
+          },
           "enrolled_count": {
             "default": 0,
             "description": "Students actively enrolled. Distinct from `graded_count`: a student can be enrolled without having been assessed yet.",
@@ -429,6 +554,61 @@
             ],
             "title": "Passing Grade",
             "type": "number"
+          },
+          "prerequisite_ids": {
+            "description": "Course identifiers required beforehand.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Prerequisite Ids",
+            "type": "array"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Teaching room.",
+            "title": "Room"
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Human-readable meeting schedule.",
+            "title": "Schedule"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO calendar date.",
+            "title": "Start Date"
+          },
+          "status": {
+            "default": "active",
+            "description": "Directory status.",
+            "enum": [
+              "active",
+              "archived"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "teacher_id": {
             "anyOf": [
@@ -508,6 +688,42 @@
             ],
             "title": "Credits"
           },
+          "department": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
           "max_grade": {
             "anyOf": [
               {
@@ -556,6 +772,58 @@
               }
             ],
             "title": "Passing Grade"
+          },
+          "prerequisite_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Prerequisite Ids",
+            "type": "array"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room"
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "status": {
+            "default": "active",
+            "enum": [
+              "active",
+              "archived"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "teacher_id": {
             "anyOf": [
@@ -2191,6 +2459,30 @@
       "StudentCreateRequest": {
         "description": "A new student.",
         "properties": {
+          "cohort": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
           "email": {
             "examples": [
               "nadia@example.com"
@@ -2209,6 +2501,11 @@
             "title": "First Name",
             "type": "string"
           },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
           "last_name": {
             "examples": [
               "Haddad"
@@ -2217,6 +2514,18 @@
             "minLength": 1,
             "title": "Last Name",
             "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
           },
           "student_id": {
             "examples": [
@@ -2299,6 +2608,18 @@
       "StudentResponse": {
         "description": "A student, with the counts a list view needs.",
         "properties": {
+          "cohort": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Institution-defined cohort label.",
+            "title": "Cohort"
+          },
           "created_at": {
             "anyOf": [
               {
@@ -2310,6 +2631,19 @@
             ],
             "description": "ISO-8601 UTC.",
             "title": "Created At"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO calendar date.",
+            "title": "Date Of Birth"
           },
           "email": {
             "description": "Contact address.",
@@ -2339,6 +2673,12 @@
             "title": "Grade Count",
             "type": "integer"
           },
+          "is_active": {
+            "default": true,
+            "description": "Whether the student may be enrolled.",
+            "title": "Is Active",
+            "type": "boolean"
+          },
           "last_name": {
             "description": "Family name.",
             "examples": [
@@ -2346,6 +2686,18 @@
             ],
             "title": "Last Name",
             "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Contact telephone number.",
+            "title": "Phone"
           },
           "student_id": {
             "description": "Institution-assigned identifier.",
@@ -2392,6 +2744,30 @@
       "StudentUpdateRequest": {
         "description": "Changes to a student. Omitted fields are left alone.",
         "properties": {
+          "cohort": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
           "email": {
             "anyOf": [
               {
@@ -2418,6 +2794,11 @@
             ],
             "title": "First Name"
           },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
           "last_name": {
             "anyOf": [
               {
@@ -2430,6 +2811,18 @@
               }
             ],
             "title": "Last Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
           }
         },
         "title": "StudentUpdateRequest",

@@ -163,7 +163,11 @@ class ReportingService:
         Returns:
             ``student_id``, ``name`` and ``average_percentage``, worst first.
         """
-        return [s for s in self._ranked(descending=False) if s["average_percentage"] < threshold]
+        return [
+            student
+            for student in self._ranked(descending=False, active_only=True)
+            if student["average_percentage"] < threshold
+        ]
 
     def export_csv(
         self,
@@ -249,15 +253,16 @@ class ReportingService:
         )
         return {row[0] for row in rows}
 
-    def _ranked(self, *, descending: bool) -> list[dict[str, Any]]:
+    def _ranked(self, *, descending: bool, active_only: bool = False) -> list[dict[str, Any]]:
         """Rank students by weighted average percentage, within scope."""
         g_scope = grade_scope(self._principal, "g.student_id", "g.course_id")
+        active_filter = " AND s.is_active = 1" if active_only else ""
         rows = self._conn.execute(
             "SELECT g.student_id, s.first_name, s.last_name, g.score, g.weight, c.max_grade"  # noqa: S608
             "  FROM grades g"
             "  JOIN students s ON s.student_id = g.student_id"
             "  JOIN courses c ON c.course_id = g.course_id"
-            f" WHERE g.deleted_at IS NULL AND ({g_scope.sql})",
+            f" WHERE g.deleted_at IS NULL AND ({g_scope.sql}){active_filter}",
             g_scope.params,
         ).fetchall()
 

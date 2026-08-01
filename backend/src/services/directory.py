@@ -10,7 +10,9 @@ same transaction as the change.
 
 from __future__ import annotations
 
+import json
 import sqlite3
+from datetime import date
 from typing import Any
 
 from notenverwaltung.exceptions import (
@@ -49,6 +51,11 @@ COURSE_SORTABLE = {
 _COURSE_SELECT = (
     "c.course_id, c.name, c.max_grade, c.passing_grade, c.max_students,"
     " c.teacher_id, c.term, c.credits, c.created_at, c.updated_at,"
+    " c.description, c.room, c.schedule, c.department, c.start_date, c.end_date, c.status,"
+    " COALESCE((SELECT json_group_array(requires_course_id)"
+    "   FROM (SELECT requires_course_id FROM course_prerequisites"
+    "         WHERE course_id = c.course_id ORDER BY requires_course_id)), '[]')"
+    "   AS prerequisite_ids_json,"
     " u.full_name AS teacher_name,"
     " (SELECT COUNT(*) FROM enrollments e"
     "   WHERE e.course_id = c.course_id AND e.status = 'active') AS enrolled_count,"
@@ -59,6 +66,7 @@ _COURSE_FROM = "courses AS c LEFT JOIN users AS u ON u.id = c.teacher_id"
 
 _STUDENT_SELECT = (
     "s.student_id, s.first_name, s.last_name, s.email, s.user_id,"
+    " s.is_active, s.phone, s.date_of_birth, s.cohort,"
     " s.created_at, s.updated_at,"
     " (SELECT COUNT(*) FROM enrollments e"
     "   WHERE e.student_id = s.student_id AND e.status = 'active') AS enrolled_count,"
@@ -123,7 +131,7 @@ class DirectoryService:
             search_columns=["s.first_name", "s.last_name", "s.email", "s.student_id"],
             extra=extra,
         )
-        return Page(items=[dict(r) for r in rows], total=total, page=page, size=size)
+        return Page(items=[_student_dict(r) for r in rows], total=total, page=page, size=size)
 
     def get_student(self, student_id: str) -> dict[str, Any]:
         """Fetch one student the caller may see.
@@ -147,10 +155,19 @@ class DirectoryService:
         ).fetchone()
         if row is None:
             raise StudentNotFoundError(f"No student with id {student_id!r}.", student_id=student_id)
-        return dict(row)
+        return _student_dict(row)
 
     def create_student(
-        self, *, student_id: str, first_name: str, last_name: str, email: str
+        self,
+        *,
+        student_id: str,
+        first_name: str,
+        last_name: str,
+        email: str,
+        is_active: bool = True,
+        phone: str | None = None,
+        date_of_birth: date | None = None,
+        cohort: str | None = None,
     ) -> dict[str, Any]:
         """Add a student.
 
@@ -159,6 +176,10 @@ class DirectoryService:
             first_name: Given name.
             last_name: Family name.
             email: Contact address.
+            is_active: Whether the student may be enrolled.
+            phone: Contact telephone number.
+            date_of_birth: Calendar date of birth.
+            cohort: Institution-defined cohort label.
 
         Returns:
             The stored student.
@@ -168,15 +189,32 @@ class DirectoryService:
             ValidationError: If a field is invalid.
         """
         student = Student(student_id, first_name, last_name, email)
+        metadata = {
+            "is_active": is_active,
+            "phone": phone,
+            "date_of_birth": _date_text(date_of_birth),
+            "cohort": cohort,
+        }
         with transaction(self._conn):
             self._store.add_student(student)
+            self._conn.execute(
+                "UPDATE students SET is_active = ?, phone = ?, date_of_birth = ?, cohort = ?"
+                " WHERE student_id = ?",
+                (
+                    int(is_active),
+                    phone,
+                    metadata["date_of_birth"],
+                    cohort,
+                    student.student_id,
+                ),
+            )
             audit.record(
                 self._conn,
                 actor_user_id=self._principal.user_id,
                 entity="student",
                 entity_id=student.student_id,
                 action="create",
-                after=student.to_dict(),
+                after={**student.to_dict(), **metadata},
             )
         return self.get_student(student.student_id)
 
@@ -195,7 +233,7 @@ class DirectoryService:
             DuplicateEntryError: If the new email is taken.
             ValidationError: If a new value is invalid.
         """
-        self.get_student(student_id)  # scope check before any write
+        current = self.get_student(student_id)  # scope check before any write
         before = self._store.get_student(student_id)
 
         updated = Student(
@@ -205,6 +243,13 @@ class DirectoryService:
             email=str(changes.get("email", before.email)),
             user_id=before.user_id,
         )
+        new_is_active = bool(changes.get("is_active", current["is_active"]))
+        metadata = {
+            "is_active": new_is_active,
+            "phone": changes.get("phone", current["phone"]),
+            "date_of_birth": _date_text(changes.get("date_of_birth", current["date_of_birth"])),
+            "cohort": changes.get("cohort", current["cohort"]),
+        }
         with transaction(self._conn):
             try:
                 self._store.update_student(updated)
@@ -212,14 +257,64 @@ class DirectoryService:
                 raise DuplicateEntryError(
                     f"Email {updated.email!r} is already in use.", email=updated.email
                 ) from exc
+            try:
+                self._conn.execute(
+                    "UPDATE students SET is_active = ?, phone = ?, date_of_birth = ?, cohort = ?"
+                    " WHERE student_id = ?",
+                    (
+                        int(new_is_active),
+                        metadata["phone"],
+                        metadata["date_of_birth"],
+                        metadata["cohort"],
+                        student_id,
+                    ),
+                )
+            except sqlite3.IntegrityError as exc:
+                raise ValidationError("Invalid student directory metadata.") from exc
+
+            if current["is_active"] and not new_is_active:
+                active = self._conn.execute(
+                    "SELECT student_id, course_id, status, enrolled_at, enrolled_by"
+                    " FROM enrollments WHERE student_id = ? AND status = 'active'",
+                    (student_id,),
+                ).fetchall()
+                self._conn.execute(
+                    "UPDATE enrollments SET status = 'withdrawn'"
+                    " WHERE student_id = ? AND status = 'active'",
+                    (student_id,),
+                )
+                for row in active:
+                    enrollment_before = Enrollment.from_row(row)
+                    enrollment_after = Enrollment(
+                        student_id=enrollment_before.student_id,
+                        course_id=enrollment_before.course_id,
+                        status=EnrollmentStatus.WITHDRAWN,
+                        enrolled_at=enrollment_before.enrolled_at,
+                        enrolled_by=enrollment_before.enrolled_by,
+                    )
+                    audit.record(
+                        self._conn,
+                        actor_user_id=self._principal.user_id,
+                        entity="enrollment",
+                        entity_id=f"{student_id}:{enrollment_before.course_id}",
+                        action="update",
+                        before=enrollment_before.to_dict(),
+                        after=enrollment_after.to_dict(),
+                    )
             audit.record(
                 self._conn,
                 actor_user_id=self._principal.user_id,
                 entity="student",
                 entity_id=student_id,
                 action="update",
-                before=before.to_dict(),
-                after=updated.to_dict(),
+                before={
+                    **before.to_dict(),
+                    "is_active": current["is_active"],
+                    "phone": current["phone"],
+                    "date_of_birth": current["date_of_birth"],
+                    "cohort": current["cohort"],
+                },
+                after={**updated.to_dict(), **metadata},
             )
         return self.get_student(student_id)
 
@@ -279,7 +374,7 @@ class DirectoryService:
             search_columns=["c.name", "c.course_id"],
             extra=Scope("c.term = ?", (term,)) if term else None,
         )
-        return Page(items=[dict(r) for r in rows], total=total, page=page, size=size)
+        return Page(items=[_course_dict(r) for r in rows], total=total, page=page, size=size)
 
     def get_course(self, course_id: str) -> dict[str, Any]:
         """Fetch one course the caller may see.
@@ -301,7 +396,7 @@ class DirectoryService:
         ).fetchone()
         if row is None:
             raise CourseNotFoundError(f"No course with id {course_id!r}.", course_id=course_id)
-        return dict(row)
+        return _course_dict(row)
 
     def create_course(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Add a course.
@@ -321,6 +416,9 @@ class DirectoryService:
         if teacher_id is None and not self._principal.is_admin:
             teacher_id = self._principal.user_id
 
+        prerequisite_ids = [str(value) for value in payload.get("prerequisite_ids", [])]
+        self._validate_prerequisites(str(payload["course_id"]), prerequisite_ids)
+
         course = Course(
             course_id=str(payload["course_id"]),
             name=str(payload["name"]),
@@ -331,15 +429,27 @@ class DirectoryService:
             term=payload.get("term"),
             credits=float(payload.get("credits", 1.0)),
         )
+        metadata = {
+            "description": payload.get("description"),
+            "room": payload.get("room"),
+            "schedule": payload.get("schedule"),
+            "department": payload.get("department"),
+            "start_date": _date_text(payload.get("start_date")),
+            "end_date": _date_text(payload.get("end_date")),
+            "status": payload.get("status", "active"),
+            "prerequisite_ids": prerequisite_ids,
+        }
         with transaction(self._conn):
             self._store.add_course(course)
+            self._update_course_metadata(course.course_id, metadata)
+            self._replace_prerequisites(course.course_id, prerequisite_ids)
             audit.record(
                 self._conn,
                 actor_user_id=self._principal.user_id,
                 entity="course",
                 entity_id=course.course_id,
                 action="create",
-                after=course.to_dict(),
+                after={**course.to_dict(), **metadata},
             )
         return self.get_course(course.course_id)
 
@@ -363,6 +473,12 @@ class DirectoryService:
         self._assert_can_write(current)
         before = self._store.get_course(course_id)
 
+        prerequisite_ids = [
+            str(value) for value in changes.get("prerequisite_ids", current["prerequisite_ids"])
+        ]
+        if "prerequisite_ids" in changes:
+            self._validate_prerequisites(course_id, prerequisite_ids)
+
         updated = Course(
             course_id=course_id,
             name=str(changes.get("name", before.name)),
@@ -373,6 +489,16 @@ class DirectoryService:
             term=changes.get("term", before.term),
             credits=float(changes.get("credits", before.credits)),
         )
+        metadata = {
+            "description": changes.get("description", current["description"]),
+            "room": changes.get("room", current["room"]),
+            "schedule": changes.get("schedule", current["schedule"]),
+            "department": changes.get("department", current["department"]),
+            "start_date": _date_text(changes.get("start_date", current["start_date"])),
+            "end_date": _date_text(changes.get("end_date", current["end_date"])),
+            "status": changes.get("status", current["status"]),
+            "prerequisite_ids": prerequisite_ids,
+        }
 
         # Only an administrator may hand a course to somebody else -- otherwise a
         # teacher could give away a course and lose access to their own grade history.
@@ -381,14 +507,30 @@ class DirectoryService:
 
         with transaction(self._conn):
             self._store.update_course(updated)
+            try:
+                self._update_course_metadata(course_id, metadata)
+            except sqlite3.IntegrityError as exc:
+                raise ValidationError("Invalid course directory metadata.") from exc
+            if "prerequisite_ids" in changes:
+                self._replace_prerequisites(course_id, prerequisite_ids)
             audit.record(
                 self._conn,
                 actor_user_id=self._principal.user_id,
                 entity="course",
                 entity_id=course_id,
                 action="update",
-                before=before.to_dict(),
-                after=updated.to_dict(),
+                before={
+                    **before.to_dict(),
+                    "description": current["description"],
+                    "room": current["room"],
+                    "schedule": current["schedule"],
+                    "department": current["department"],
+                    "start_date": current["start_date"],
+                    "end_date": current["end_date"],
+                    "status": current["status"],
+                    "prerequisite_ids": current["prerequisite_ids"],
+                },
+                after={**updated.to_dict(), **metadata},
             )
         return self.get_course(course_id)
 
@@ -477,6 +619,15 @@ class DirectoryService:
         course = self.get_course(course_id)
         self._assert_can_write(course)
         self._store.get_student(student_id)
+        active = self._conn.execute(
+            "SELECT is_active FROM students WHERE student_id = ?", (student_id,)
+        ).fetchone()
+        if active is not None and not active["is_active"]:
+            raise ValidationError(
+                f"Inactive student {student_id!r} cannot be enrolled.",
+                student_id=student_id,
+                field="is_active",
+            )
 
         if int(course["enrolled_count"]) >= int(course["max_students"]):
             raise CourseFullError(
@@ -641,6 +792,61 @@ class DirectoryService:
         )
         return [dict(row) for row in rows]
 
+    def _validate_prerequisites(self, course_id: str, prerequisite_ids: list[str]) -> None:
+        """Validate a complete prerequisite set before replacing it."""
+        if len(set(prerequisite_ids)) != len(prerequisite_ids):
+            raise ValidationError(
+                "Prerequisite course identifiers must be unique.",
+                field="prerequisite_ids",
+            )
+        if course_id in prerequisite_ids:
+            raise ValidationError(
+                "A course cannot require itself.",
+                field="prerequisite_ids",
+                course_id=course_id,
+            )
+        if not prerequisite_ids:
+            return
+
+        placeholders = ", ".join("?" for _ in prerequisite_ids)
+        rows = self._conn.execute(
+            f"SELECT course_id FROM courses WHERE course_id IN ({placeholders})",  # noqa: S608
+            prerequisite_ids,
+        )
+        found = {row["course_id"] for row in rows}
+        missing = sorted(set(prerequisite_ids) - found)
+        if missing:
+            raise ValidationError(
+                "One or more prerequisite courses do not exist.",
+                field="prerequisite_ids",
+                missing=missing,
+            )
+
+    def _replace_prerequisites(self, course_id: str, prerequisite_ids: list[str]) -> None:
+        """Replace a course's prerequisite set inside the caller's transaction."""
+        self._conn.execute("DELETE FROM course_prerequisites WHERE course_id = ?", (course_id,))
+        self._conn.executemany(
+            "INSERT INTO course_prerequisites (course_id, requires_course_id) VALUES (?, ?)",
+            ((course_id, prerequisite_id) for prerequisite_id in prerequisite_ids),
+        )
+
+    def _update_course_metadata(self, course_id: str, metadata: dict[str, Any]) -> None:
+        """Persist the directory fields kept outside the coursework dataclass."""
+        self._conn.execute(
+            "UPDATE courses SET description = ?, room = ?, schedule = ?, department = ?,"
+            " start_date = ?, end_date = ?, status = ? WHERE course_id = ?",
+            (
+                metadata["description"],
+                metadata["room"],
+                metadata["schedule"],
+                metadata["department"],
+                metadata["start_date"],
+                metadata["end_date"],
+                metadata["status"],
+                course_id,
+            ),
+        )
+
     def _assert_can_write(self, course: dict[str, Any]) -> None:
         """Verify the caller may modify a course.
 
@@ -673,3 +879,26 @@ class DirectoryService:
             else course_scope(self._principal, column)
         )
         return exists(self._conn, table, column, value, scope)
+
+
+def _student_dict(row: Any) -> dict[str, Any]:
+    """Convert a student row, preserving the public boolean type."""
+    payload = dict(row)
+    payload["is_active"] = bool(payload["is_active"])
+    return payload
+
+
+def _course_dict(row: Any) -> dict[str, Any]:
+    """Convert a course row and decode its aggregated prerequisite ids."""
+    payload = dict(row)
+    payload["prerequisite_ids"] = json.loads(payload.pop("prerequisite_ids_json"))
+    return payload
+
+
+def _date_text(value: object) -> str | None:
+    """Return a nullable ISO date suitable for SQLite."""
+    if value is None:
+        return None
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value)

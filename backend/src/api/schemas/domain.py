@@ -7,7 +7,8 @@ endpoint documented as "object".
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from datetime import date
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -43,6 +44,10 @@ class StudentResponse(BaseModel):
         default=None,
         description="Linked login account, or null. Not every student signs in.",
     )
+    is_active: bool = Field(default=True, description="Whether the student may be enrolled.")
+    phone: str | None = Field(default=None, description="Contact telephone number.")
+    date_of_birth: date | None = Field(default=None, description="ISO calendar date.")
+    cohort: str | None = Field(default=None, description="Institution-defined cohort label.")
     enrolled_count: int = Field(default=0, description="Active enrolments.")
     grade_count: int = Field(default=0, description="Grades recorded.")
     created_at: str | None = Field(default=None, description="ISO-8601 UTC.")
@@ -56,6 +61,10 @@ class StudentCreateRequest(BaseModel):
     first_name: str = Field(min_length=1, max_length=100, examples=["Nadia"])
     last_name: str = Field(min_length=1, max_length=100, examples=["Haddad"])
     email: str = Field(min_length=3, max_length=255, examples=["nadia@example.com"])
+    is_active: bool = Field(default=True)
+    phone: str | None = Field(default=None, max_length=100)
+    date_of_birth: date | None = Field(default=None)
+    cohort: str | None = Field(default=None, max_length=100)
 
 
 class StudentUpdateRequest(BaseModel):
@@ -64,6 +73,10 @@ class StudentUpdateRequest(BaseModel):
     first_name: str | None = Field(default=None, min_length=1, max_length=100)
     last_name: str | None = Field(default=None, min_length=1, max_length=100)
     email: str | None = Field(default=None, min_length=3, max_length=255)
+    is_active: bool = Field(default=True)
+    phone: str | None = Field(default=None, max_length=100)
+    date_of_birth: date | None = Field(default=None)
+    cohort: str | None = Field(default=None, max_length=100)
 
 
 # ── Courses ──────────────────────────────────────────────────────────────────
@@ -79,6 +92,16 @@ class CourseResponse(BaseModel):
     teacher_name: str | None = Field(default=None, description="Owning teacher's name.")
     term: str | None = Field(default=None, description="Academic term.", examples=["2026-SS"])
     credits: float = Field(description="Weight in a GPA calculation.", examples=[5.0])
+    description: str | None = Field(default=None, description="Course description.")
+    room: str | None = Field(default=None, description="Teaching room.")
+    schedule: str | None = Field(default=None, description="Human-readable meeting schedule.")
+    department: str | None = Field(default=None, description="Owning department.")
+    start_date: date | None = Field(default=None, description="ISO calendar date.")
+    end_date: date | None = Field(default=None, description="ISO calendar date.")
+    status: Literal["active", "archived"] = Field(default="active", description="Directory status.")
+    prerequisite_ids: list[str] = Field(
+        default_factory=list, description="Course identifiers required beforehand."
+    )
     enrolled_count: int = Field(
         default=0,
         description=(
@@ -108,6 +131,14 @@ class CourseCreateRequest(BaseModel):
     )
     term: str | None = Field(default=None, max_length=32)
     credits: float = Field(default=1.0, gt=0)
+    description: str | None = Field(default=None, max_length=2000)
+    room: str | None = Field(default=None, max_length=100)
+    schedule: str | None = Field(default=None, max_length=500)
+    department: str | None = Field(default=None, max_length=200)
+    start_date: date | None = Field(default=None)
+    end_date: date | None = Field(default=None)
+    status: Literal["active", "archived"] = Field(default="active")
+    prerequisite_ids: list[str] = Field(default_factory=list)
 
 
 class CourseUpdateRequest(BaseModel):
@@ -123,6 +154,14 @@ class CourseUpdateRequest(BaseModel):
     )
     term: str | None = Field(default=None, max_length=32)
     credits: float | None = Field(default=None, gt=0)
+    description: str | None = Field(default=None, max_length=2000)
+    room: str | None = Field(default=None, max_length=100)
+    schedule: str | None = Field(default=None, max_length=500)
+    department: str | None = Field(default=None, max_length=200)
+    start_date: date | None = Field(default=None)
+    end_date: date | None = Field(default=None)
+    status: Literal["active", "archived"] = Field(default="active")
+    prerequisite_ids: list[str] = Field(default_factory=list)
 
 
 # ── Enrolments ───────────────────────────────────────────────────────────────
