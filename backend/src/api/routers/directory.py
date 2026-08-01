@@ -24,6 +24,7 @@ from api.schemas.domain import (
     StudentResponse,
     StudentUpdateRequest,
 )
+from services.academic_records import AcademicRecords
 from services.directory import DirectoryService
 
 students_router = APIRouter(prefix="/students", tags=["Students"])
@@ -51,6 +52,14 @@ def directory(conn: DbConn, principal: CurrentUser) -> DirectoryService:
 
 
 Directory = Annotated[DirectoryService, Depends(directory)]
+
+
+def academic_records(conn: DbConn, principal: CurrentUser) -> AcademicRecords:
+    """Build the enrollment capability for this request."""
+    return DirectoryService(conn, principal)
+
+
+Records = Annotated[AcademicRecords, Depends(academic_records)]
 
 
 # ── Students ─────────────────────────────────────────────────────────────────
@@ -156,7 +165,7 @@ def delete_student(student_id: str, service: Directory, _: AdminUser) -> None:
     summary="List a student's courses",
     responses={404: {"description": "`STUDENT_NOT_FOUND`."}},
 )
-def student_courses(student_id: str, service: Directory) -> list[StudentCourseResponse]:
+def student_courses(student_id: str, service: Records) -> list[StudentCourseResponse]:
     """List the courses a student is enrolled on."""
     return [StudentCourseResponse(**row) for row in service.student_courses(student_id)]
 
@@ -261,7 +270,7 @@ def delete_course(course_id: str, service: Directory, _: TeacherUser) -> None:
     ),
     responses={404: {"description": "`COURSE_NOT_FOUND`."}},
 )
-def list_enrollments(course_id: str, service: Directory) -> list[EnrollmentResponse]:
+def list_enrollments(course_id: str, service: Records) -> list[EnrollmentResponse]:
     """List a course's enrolments."""
     return [EnrollmentResponse(**row) for row in service.list_enrollments(course_id)]
 
@@ -277,7 +286,7 @@ def list_enrollments(course_id: str, service: Directory) -> list[EnrollmentRespo
     },
 )
 def enroll(
-    course_id: str, payload: EnrollRequest, service: Directory, _: TeacherUser
+    course_id: str, payload: EnrollRequest, service: Records, _: TeacherUser
 ) -> EnrollmentResponse:
     """Enrol a student on a course."""
     return EnrollmentResponse(**service.enroll(course_id, payload.student_id))
@@ -296,7 +305,7 @@ def set_enrollment_status(
     course_id: str,
     student_id: str,
     payload: EnrollmentStatusRequest,
-    service: Directory,
+    service: Records,
     _: TeacherUser,
 ) -> EnrollmentResponse:
     """Change an enrolment's status."""
@@ -314,6 +323,6 @@ def set_enrollment_status(
         "setting the status to `withdrawn` so the record survives."
     ),
 )
-def unenroll(course_id: str, student_id: str, service: Directory, _: TeacherUser) -> None:
+def unenroll(course_id: str, student_id: str, service: Records, _: TeacherUser) -> None:
     """Remove an enrolment outright."""
     service.unenroll(course_id, student_id)

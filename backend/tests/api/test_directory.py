@@ -8,8 +8,10 @@ right rows by accident.
 
 from __future__ import annotations
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from api.routers import directory as directory_router
 from tests.api.conftest import sign_in
 
 
@@ -124,6 +126,40 @@ class TestCourseScoping:
 
 
 class TestEnrollments:
+    def test_register_controller_uses_academic_records_dependency(self, app: FastAPI) -> None:
+        """The controller serialises the capability result, not a concrete service."""
+
+        class FakeAcademicRecords:
+            def list_enrollments(self, course_id: str) -> list[dict[str, object]]:
+                assert course_id == "FAKE101"
+                return [
+                    {
+                        "student_id": "S777",
+                        "course_id": "FAKE101",
+                        "status": "active",
+                        "grade_count": 0,
+                    }
+                ]
+
+        app.dependency_overrides[directory_router.academic_records] = FakeAcademicRecords
+        with TestClient(app) as client:
+            response = client.get("/courses/FAKE101/enrollments")
+
+        assert response.status_code == 200
+        assert response.json() == [
+            {
+                "student_id": "S777",
+                "course_id": "FAKE101",
+                "status": "active",
+                "enrolled_at": None,
+                "enrolled_by": None,
+                "first_name": None,
+                "last_name": None,
+                "email": None,
+                "grade_count": 0,
+            }
+        ]
+
     def test_register_includes_ungraded_students(self, as_admin: TestClient) -> None:
         as_admin.post("/courses/CS101/enrollments", json={"student_id": "S003"})
         rows = as_admin.get("/courses/CS101/enrollments").json()
