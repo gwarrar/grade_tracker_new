@@ -15,7 +15,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const css = readFileSync(join(process.cwd(), "app", "tokens.css"), "utf8");
+const css = readFileSync(join(process.cwd(), "app", "tokens.css"), "utf8").replace(/\r\n/g, "\n");
 
 /** Every `--name: value` declaration inside the first block matching `pattern`. */
 function declarationsIn(pattern: RegExp): Map<string, string> {
