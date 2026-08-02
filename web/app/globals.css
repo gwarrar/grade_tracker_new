@@ -205,3 +205,153 @@
     transition: none;
   }
 }
+
+/* F6 shared primitives. Keep colours in tokens so branding applies everywhere. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+}
+
+.btn:hover {
+  background: var(--bg-subtle);
+}
+
+.btn-primary {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
+}
+
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--brand-primary) 88%, var(--text));
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.btn-danger {
+  border-color: var(--fail);
+  background: var(--fail);
+  color: var(--text-inverse);
+}
+
+.btn-danger:hover {
+  background: color-mix(in srgb, var(--fail) 88%, var(--text));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.field-input {
+  width: 100%;
+  margin-top: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.field-input:focus-visible {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-primary) 30%, transparent);
+}
+
+textarea.field-input {
+  resize: vertical;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+}
+
+.data-table th {
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-pass {
+  background: var(--pass-bg);
+  color: var(--pass);
+}
+
+.badge-fail {
+  background: var(--fail-bg);
+  color: var(--fail);
+}
+
+.badge-warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.empty {
+  padding: 2rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+dialog {
+  width: min(32rem, calc(100% - 2rem));
+  margin: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  background: var(--surface-overlay);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+}
+
+dialog::backdrop {
+  background: color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+dialog h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+dialog footer {
+  margin-top: 1.5rem;
+}

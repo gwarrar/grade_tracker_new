@@ -73,7 +73,7 @@ export function Input({
         defaultValue={value}
         required={required}
         aria-describedby={describedBy}
-        className="mt-1.5 w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
+        className="field-input"
       />
       {hint && (
         <p id={describedBy} className="mt-1 text-xs text-subtle">
@@ -81,6 +81,72 @@ export function Input({
         </p>
       )}
     </div>
+  );
+}
+
+/** One labelled native select inside a panel's uncontrolled edit form. */
+export function Select({
+  name,
+  label,
+  value,
+  required = true,
+  children,
+}: {
+  name: string;
+  label: string;
+  value: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={name} className="block text-sm text-muted">
+        {label}
+      </label>
+      <select id={name} name={name} defaultValue={value} required={required} className="field-input">
+        {children}
+      </select>
+    </div>
+  );
+}
+
+/** One labelled native textarea inside a panel's uncontrolled edit form. */
+export function Textarea({
+  name,
+  label,
+  value,
+  required = true,
+  rows = 4,
+}: {
+  name: string;
+  label: string;
+  value: string;
+  required?: boolean;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label htmlFor={name} className="block text-sm text-muted">
+        {label}
+      </label>
+      <textarea
+        id={name}
+        name={name}
+        defaultValue={value}
+        required={required}
+        rows={rows}
+        className="field-input"
+      />
+    </div>
+  );
+}
+
+/** Submission feedback from a panel form. */
+export function FormError({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="mt-3 text-sm text-fail">
+      {children}
+    </p>
   );
 }
 
