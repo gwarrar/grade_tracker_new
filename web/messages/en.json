@@ -76,7 +76,7 @@
     "schedule": "Schedule",
     "description": "Description",
     "prerequisites": "Prerequisites",
-    "prerequisitesHint": "Select all required courses. Leave empty when there are none.",
+    "prerequisitesHint": "Select all required courses from the first 200 available. Existing IDs outside that list remain selected.",
     "deleteTitle": "Delete course?",
     "deleteDescription": "This permanently deletes the course and its grades and enrolments."
   },

@@ -76,7 +76,7 @@
     "schedule": "Horaire",
     "description": "Présentation du cours",
     "prerequisites": "Prérequis",
-    "prerequisitesHint": "Sélectionnez tous les cours requis. Laissez vide s’il n’y en a aucun.",
+    "prerequisitesHint": "Sélectionnez les cours requis parmi les 200 premiers disponibles. Les identifiants existants hors liste restent sélectionnés.",
     "deleteTitle": "Supprimer le cours ?",
     "deleteDescription": "Le cours, ses notes et ses inscriptions seront définitivement supprimés."
   },

@@ -76,7 +76,7 @@
     "schedule": "Zeitplan",
     "description": "Beschreibung",
     "prerequisites": "Voraussetzungen",
-    "prerequisitesHint": "Alle erforderlichen Kurse auswählen. Leer lassen, wenn es keine gibt.",
+    "prerequisitesHint": "Alle erforderlichen Kurse aus den ersten 200 verfügbaren auswählen. Bestehende Kennungen außerhalb dieser Liste bleiben ausgewählt.",
     "deleteTitle": "Kurs löschen?",
     "deleteDescription": "Der Kurs sowie seine Noten und Anmeldungen werden dauerhaft gelöscht."
   },

@@ -59,7 +59,7 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
   });
 
   const courses = useQuery({
-    queryKey: ["courses", "all"],
+    queryKey: ["courses", "management"],
     queryFn: () => api<CoursePage>("/courses", { query: { size: 200 } }),
     enabled: can.createCourse(me),
   });
@@ -72,6 +72,10 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
       queryClient.invalidateQueries({ queryKey: ["reports"] }),
       queryClient.invalidateQueries({ queryKey: ["courses"] }),
       queryClient.invalidateQueries({ queryKey: ["course"] }),
+      queryClient.invalidateQueries({ queryKey: ["grades"] }),
+      queryClient.invalidateQueries({ queryKey: ["grade"] }),
+      queryClient.invalidateQueries({ queryKey: ["analytics"] }),
+      queryClient.invalidateQueries({ queryKey: ["palette"] }),
     ]);
 
   const create = useMutation({
@@ -193,6 +197,9 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
               editable={editable}
               me={me}
               courses={courses.data?.items ?? []}
+              coursesReady={courses.isSuccess}
+              coursesLoading={courses.isPending}
+              coursesError={courses.error}
               locale={locale}
               onClose={() => select(null)}
               onSaved={refresh}
@@ -300,6 +307,9 @@ function StudentDetail({
   editable,
   me,
   courses,
+  coursesReady,
+  coursesLoading,
+  coursesError,
   locale,
   onClose,
   onSaved,
@@ -311,6 +321,9 @@ function StudentDetail({
   editable: boolean;
   me: Me;
   courses: Course[];
+  coursesReady: boolean;
+  coursesLoading: boolean;
+  coursesError: unknown;
   locale: string;
   onClose: () => void;
   onSaved: () => void | Promise<unknown>;
@@ -342,7 +355,8 @@ function StudentDetail({
   });
 
   const save = useMutation({
-    mutationFn: (body: StudentUpdate) => api(`/students/${studentId}`, { method: "PATCH", body }),
+    mutationFn: (body: Omit<StudentUpdate, "is_active">) =>
+      api(`/students/${studentId}`, { method: "PATCH", body }),
     onSuccess: () => {
       setEditing(false);
       setCode(null);
@@ -369,7 +383,10 @@ function StudentDetail({
 
   const removeStudent = useMutation({
     mutationFn: () => api(`/students/${studentId}`, { method: "DELETE" }),
-    onSuccess: onDeleted,
+    onSuccess: () => {
+      setDeleting(false);
+      onDeleted();
+    },
     onError: (err) => {
       setDeleting(false);
       setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
@@ -413,7 +430,6 @@ function StudentDetail({
       date_of_birth: String(data.get("date_of_birth") ?? "") || null,
       phone: String(data.get("phone") ?? "").trim() || null,
       cohort: String(data.get("cohort") ?? "").trim() || null,
-      is_active: student.is_active,
     });
   }
 
@@ -455,8 +471,17 @@ function StudentDetail({
           </dl>
 
           <div className="mt-6">
-            {record.isPending && <p className="text-sm text-subtle">{t("stats.loading")}</p>}
-            {record.data && <StudentRecord report={record.data} courses={enrolled.data ?? []} locale={locale} />}
+            {(record.isPending || enrolled.isPending) && (
+              <p className="text-sm text-subtle">{t("stats.loading")}</p>
+            )}
+            {enrolled.error && (
+              <FormError>
+                {t(`error.${enrolled.error instanceof ApiError ? enrolled.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+              </FormError>
+            )}
+            {record.data && enrolled.isSuccess && (
+              <StudentRecord report={record.data} courses={enrolled.data} locale={locale} />
+            )}
           </div>
 
           <div className="mt-6 flex flex-wrap gap-2">
@@ -465,7 +490,14 @@ function StudentDetail({
             </Link>
             {editable && (
               <>
-                <button type="button" className="btn btn-ghost" onClick={() => setEditing(true)}>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setCode(null);
+                    setEditing(true);
+                  }}
+                >
                   {t("action.edit")}
                 </button>
                 {student.is_active ? (
@@ -489,48 +521,68 @@ function StudentDetail({
               <h3 id="student-enrollments-heading" className="text-sm font-medium text-text">
                 {t("enrollment.manage")}
               </h3>
-              {student.is_active && availableCourses.length > 0 ? (
-                <form onSubmit={submitEnrollment} className="mt-3 flex items-end gap-2">
-                  <div className="min-w-0 flex-1">
-                    <Select name="course_id" label={t("enrollment.course")} value={availableCourses[0].course_id}>
-                      {availableCourses.map((course) => <option key={course.course_id} value={course.course_id}>{course.course_id} — {course.name}</option>)}
-                    </Select>
-                  </div>
-                  <button type="submit" className="btn btn-primary" disabled={enrollment.isPending}>
-                    {t("action.enroll")}
-                  </button>
-                </form>
-              ) : (
-                <p className="mt-3 text-sm text-subtle">
-                  {t(student.is_active ? "enrollment.noAvailableCourses" : "enrollment.inactiveStudent")}
-                </p>
+              {(coursesLoading || enrolled.isPending) && (
+                <p className="mt-3 text-sm text-subtle">{t("stats.loading")}</p>
               )}
-
-              <ul className="mt-4 divide-y divide-line rounded-lg border border-line">
-                {(enrolled.data ?? []).map((entry) => {
-                  const ownedCourse = manageableCourses.find((course) => course.course_id === entry.course_id);
-                  return (
-                    <li key={entry.course_id} className="flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-sm">
-                      <span className="text-text">{entry.name}</span>
-                      <div className="flex items-center gap-2">
-                        <span className={`badge ${entry.status === "active" ? "badge-pass" : entry.status === "withdrawn" ? "badge-warn" : ""}`}>
-                          {t(`enrollment.status.${entry.status}` as "enrollment.status.active")}
-                        </span>
-                        {ownedCourse && entry.status === "active" && (
-                          <button type="button" className="btn btn-ghost" onClick={() => setEnrollmentAction({ kind: "withdraw", courseId: entry.course_id, courseName: entry.name })}>
-                            {t("action.withdraw")}
-                          </button>
-                        )}
-                        {ownedCourse && (
-                          <button type="button" className="btn btn-danger" onClick={() => setEnrollmentAction({ kind: "remove", courseId: entry.course_id, courseName: entry.name })}>
-                            {t("action.remove")}
-                          </button>
-                        )}
+              {Boolean(coursesError) && (
+                <FormError>
+                  {t(`error.${coursesError instanceof ApiError ? coursesError.code : "NETWORK_ERROR"}` as "error.unknown")}
+                </FormError>
+              )}
+              {enrolled.error && (
+                <FormError>
+                  {t(`error.${enrolled.error instanceof ApiError ? enrolled.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+                </FormError>
+              )}
+              {coursesReady && enrolled.isSuccess && (
+                <>
+                  {student.is_active && availableCourses.length > 0 ? (
+                    <form onSubmit={submitEnrollment} className="mt-3 flex items-end gap-2">
+                      <div className="min-w-0 flex-1">
+                        <Select name="course_id" label={t("enrollment.course")} value={availableCourses[0].course_id}>
+                          {availableCourses.map((course) => <option key={course.course_id} value={course.course_id}>{course.course_id} — {course.name}</option>)}
+                        </Select>
                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                      <button type="submit" className="btn btn-primary" disabled={enrollment.isPending}>
+                        {t("action.enroll")}
+                      </button>
+                    </form>
+                  ) : (
+                    <p className="mt-3 text-sm text-subtle">
+                      {t(student.is_active ? "enrollment.noAvailableCourses" : "enrollment.inactiveStudent")}
+                    </p>
+                  )}
+
+                  <ul className="mt-4 divide-y divide-line rounded-lg border border-line">
+                    {enrolled.data.map((entry) => {
+                      const ownedCourse = manageableCourses.find((course) => course.course_id === entry.course_id);
+                      return (
+                        <li key={entry.course_id} className="flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-sm">
+                          <span className="text-text">{entry.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`badge ${entry.status === "active" ? "badge-pass" : entry.status === "withdrawn" ? "badge-warn" : ""}`}>
+                              {t(`enrollment.status.${entry.status}` as "enrollment.status.active")}
+                            </span>
+                            {ownedCourse && entry.status === "active" && (
+                              <button type="button" className="btn btn-ghost" onClick={() => setEnrollmentAction({ kind: "withdraw", courseId: entry.course_id, courseName: entry.name })}>
+                                {t("action.withdraw")}
+                              </button>
+                            )}
+                            {ownedCourse && (
+                              <button type="button" className="btn btn-danger" onClick={() => setEnrollmentAction({ kind: "remove", courseId: entry.course_id, courseName: entry.name })}>
+                                {t("action.remove")}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                    {enrolled.data.length === 0 && (
+                      <li className="px-3 py-4 text-center text-sm text-subtle">{t("stats.noData")}</li>
+                    )}
+                  </ul>
+                </>
+              )}
             </section>
           )}
 
