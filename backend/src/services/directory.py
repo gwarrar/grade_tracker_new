@@ -233,29 +233,25 @@ class DirectoryService:
             DuplicateEntryError: If the new email is taken.
             ValidationError: If a new value is invalid.
         """
-        current = self.get_student(student_id)  # scope check before any write
-        before = self._store.get_student(student_id)
-
-        updated = Student(
-            student_id=student_id,
-            first_name=str(changes.get("first_name", before.first_name)),
-            last_name=str(changes.get("last_name", before.last_name)),
-            email=str(changes.get("email", before.email)),
-            user_id=before.user_id,
-        )
-        new_is_active = bool(changes.get("is_active", current["is_active"]))
-        metadata = {
-            "is_active": new_is_active,
-            "phone": changes.get("phone", current["phone"]),
-            "date_of_birth": _date_text(changes.get("date_of_birth", current["date_of_birth"])),
-            "cohort": changes.get("cohort", current["cohort"]),
-        }
+        self.get_student(student_id)  # scope check before any write
         with transaction(self._conn):
-            was_active = bool(
-                self._conn.execute(
-                    "SELECT is_active FROM students WHERE student_id = ?", (student_id,)
-                ).fetchone()["is_active"]
+            current = self.get_student(student_id)
+            before = Student.from_dict(current)
+            updated = Student(
+                student_id=student_id,
+                first_name=str(changes.get("first_name", current["first_name"])),
+                last_name=str(changes.get("last_name", current["last_name"])),
+                email=str(changes.get("email", current["email"])),
+                user_id=current["user_id"],
             )
+            new_is_active = bool(changes.get("is_active", current["is_active"]))
+            metadata = {
+                "is_active": new_is_active,
+                "phone": changes.get("phone", current["phone"]),
+                "date_of_birth": _date_text(changes.get("date_of_birth", current["date_of_birth"])),
+                "cohort": changes.get("cohort", current["cohort"]),
+            }
+            was_active = bool(current["is_active"])
             try:
                 self._store.update_student(updated)
             except sqlite3.IntegrityError as exc:

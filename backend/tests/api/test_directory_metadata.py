@@ -205,6 +205,36 @@ def test_enrollment_and_deactivation_use_activity_state_inside_transaction(
     }
 
 
+def test_metadata_update_preserves_changes_committed_before_its_transaction(
+    as_admin: TestClient,
+    seeded_db: sqlite3.Connection,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_transaction = directory_service.transaction
+
+    @contextmanager
+    def update_before_transaction(
+        conn: sqlite3.Connection,
+    ) -> Generator[sqlite3.Connection]:
+        assert conn is not seeded_db
+        seeded_db.execute(
+            "UPDATE students SET is_active = 0, phone = '+49 30 987654' WHERE student_id = 'S001'"
+        )
+        with real_transaction(conn):
+            yield conn
+
+    monkeypatch.setattr(directory_service, "transaction", update_before_transaction)
+
+    response = as_admin.patch("/students/S001", json={"cohort": "2026-B"})
+
+    assert response.status_code == 200
+    assert {key: response.json()[key] for key in ("is_active", "phone", "cohort")} == {
+        "is_active": False,
+        "phone": "+49 30 987654",
+        "cohort": "2026-B",
+    }
+
+
 def test_deactivation_withdraws_every_active_enrollment_and_audits_each(
     as_admin: TestClient, seeded_db: sqlite3.Connection
 ) -> None:

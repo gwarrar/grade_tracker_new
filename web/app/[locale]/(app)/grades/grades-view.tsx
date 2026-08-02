@@ -93,7 +93,7 @@ export function GradesView({
   // For the course filter. Only staff see more than their own courses anyway, and
   // the API scopes this exactly as it scopes the grades themselves.
   const courses = useQuery({
-    queryKey: ["courses", "all"],
+    queryKey: ["courses", "grade-picker"],
     queryFn: () => api<Courses>("/courses", { query: { size: 200, sort: "name" } }),
     staleTime: 5 * 60_000,
   });

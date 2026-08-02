@@ -404,6 +404,7 @@ function CourseDetail({
   const [deleting, setDeleting] = useState(false);
   const [studentSearch, setStudentSearch] = useState("");
   const studentQuery = useDebounced(studentSearch.trim());
+  const studentSearchUnsettled = studentQuery !== studentSearch.trim();
   const [enrollmentAction, setEnrollmentAction] = useState<{
     kind: "withdraw" | "remove";
     studentId: string;
@@ -513,13 +514,15 @@ function CourseDetail({
   function submitEnrollment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const studentId = String(new FormData(event.currentTarget).get("student_id") ?? "");
-    if (studentId) enrollment.mutate({ kind: "enroll", studentId });
+    if (!studentSearchUnsettled && studentId) enrollment.mutate({ kind: "enroll", studentId });
   }
 
   const registeredIds = new Set((register.data ?? []).map((entry) => entry.student_id));
-  const candidates = (students.data?.items ?? []).filter(
-    (student) => student.is_active && !registeredIds.has(student.student_id),
-  );
+  const candidates = studentSearchUnsettled
+    ? []
+    : (students.data?.items ?? []).filter(
+        (student) => student.is_active && !registeredIds.has(student.student_id),
+      );
 
   return (
     <div className="rounded-xl border border-line bg-surface p-6">
@@ -607,7 +610,7 @@ function CourseDetail({
                       {t(`error.${students.error instanceof ApiError ? students.error.code : "NETWORK_ERROR"}` as "error.unknown")}
                     </FormError>
                   )}
-                  {studentQuery.length >= 2 && students.isSuccess && candidates.length > 0 && (
+                  {!studentSearchUnsettled && studentQuery.length >= 2 && students.isSuccess && candidates.length > 0 && (
                     <form onSubmit={submitEnrollment} className="mt-3 flex items-end gap-2">
                       <div className="min-w-0 flex-1">
                         <Select name="student_id" label={t("enrollment.student")} value={candidates[0].student_id}>
@@ -618,10 +621,10 @@ function CourseDetail({
                           ))}
                         </Select>
                       </div>
-                      <button type="submit" className="btn btn-primary" disabled={enrollment.isPending}>{t("action.enroll")}</button>
+                      <button type="submit" className="btn btn-primary" disabled={enrollment.isPending || studentSearchUnsettled}>{t("action.enroll")}</button>
                     </form>
                   )}
-                  {studentQuery.length >= 2 && students.isSuccess && candidates.length === 0 && (
+                  {!studentSearchUnsettled && studentQuery.length >= 2 && students.isSuccess && candidates.length === 0 && (
                     <p className="mt-3 text-sm text-subtle">{t("enrollment.noStudents")}</p>
                   )}
                 </div>
