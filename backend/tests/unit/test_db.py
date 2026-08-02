@@ -159,6 +159,30 @@ class TestMigrations:
                 "UPDATE courses SET start_date = '2026-02-30' WHERE course_id = 'C1'"
             )
 
+    @pytest.mark.parametrize(
+        "statement",
+        [
+            "UPDATE students SET date_of_birth = ? WHERE student_id = 'S1'",
+            "UPDATE courses SET start_date = ? WHERE course_id = 'C1'",
+            "UPDATE courses SET end_date = ? WHERE course_id = 'C1'",
+        ],
+    )
+    @pytest.mark.parametrize("value", ["not-a-date", "2026-02-30"])
+    def test_directory_dates_reject_malformed_and_non_normalized_values(
+        self,
+        sqlite_conn: sqlite3.Connection,
+        statement: str,
+        value: str,
+    ) -> None:
+        sqlite_conn.execute(
+            "INSERT INTO students (student_id, first_name, last_name, email)"
+            " VALUES ('S1', 'A', 'Student', 'a@example.com')"
+        )
+        sqlite_conn.execute("INSERT INTO courses (course_id, name) VALUES ('C1', 'Course')")
+
+        with pytest.raises(sqlite3.IntegrityError):
+            sqlite_conn.execute(statement, (value,))
+
     def test_course_prerequisites_enforce_references_and_cascade(
         self, sqlite_conn: sqlite3.Connection
     ) -> None:

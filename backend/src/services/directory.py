@@ -251,6 +251,11 @@ class DirectoryService:
             "cohort": changes.get("cohort", current["cohort"]),
         }
         with transaction(self._conn):
+            was_active = bool(
+                self._conn.execute(
+                    "SELECT is_active FROM students WHERE student_id = ?", (student_id,)
+                ).fetchone()["is_active"]
+            )
             try:
                 self._store.update_student(updated)
             except sqlite3.IntegrityError as exc:
@@ -272,7 +277,7 @@ class DirectoryService:
             except sqlite3.IntegrityError as exc:
                 raise ValidationError("Invalid student directory metadata.") from exc
 
-            if current["is_active"] and not new_is_active:
+            if was_active and not new_is_active:
                 active = self._conn.execute(
                     "SELECT student_id, course_id, status, enrolled_at, enrolled_by"
                     " FROM enrollments WHERE student_id = ? AND status = 'active'",
@@ -309,7 +314,7 @@ class DirectoryService:
                 action="update",
                 before={
                     **before.to_dict(),
-                    "is_active": current["is_active"],
+                    "is_active": was_active,
                     "phone": current["phone"],
                     "date_of_birth": current["date_of_birth"],
                     "cohort": current["cohort"],
@@ -417,7 +422,6 @@ class DirectoryService:
             teacher_id = self._principal.user_id
 
         prerequisite_ids = [str(value) for value in payload.get("prerequisite_ids", [])]
-        self._validate_prerequisites(str(payload["course_id"]), prerequisite_ids)
 
         course = Course(
             course_id=str(payload["course_id"]),
@@ -442,6 +446,7 @@ class DirectoryService:
         with transaction(self._conn):
             self._store.add_course(course)
             self._update_course_metadata(course.course_id, metadata)
+            self._validate_prerequisites(course.course_id, prerequisite_ids)
             self._replace_prerequisites(course.course_id, prerequisite_ids)
             audit.record(
                 self._conn,
@@ -476,8 +481,6 @@ class DirectoryService:
         prerequisite_ids = [
             str(value) for value in changes.get("prerequisite_ids", current["prerequisite_ids"])
         ]
-        if "prerequisite_ids" in changes:
-            self._validate_prerequisites(course_id, prerequisite_ids)
 
         updated = Course(
             course_id=course_id,
@@ -512,6 +515,7 @@ class DirectoryService:
             except sqlite3.IntegrityError as exc:
                 raise ValidationError("Invalid course directory metadata.") from exc
             if "prerequisite_ids" in changes:
+                self._validate_prerequisites(course_id, prerequisite_ids)
                 self._replace_prerequisites(course_id, prerequisite_ids)
             audit.record(
                 self._conn,
@@ -619,15 +623,6 @@ class DirectoryService:
         course = self.get_course(course_id)
         self._assert_can_write(course)
         self._store.get_student(student_id)
-        active = self._conn.execute(
-            "SELECT is_active FROM students WHERE student_id = ?", (student_id,)
-        ).fetchone()
-        if active is not None and not active["is_active"]:
-            raise ValidationError(
-                f"Inactive student {student_id!r} cannot be enrolled.",
-                student_id=student_id,
-                field="is_active",
-            )
 
         if int(course["enrolled_count"]) >= int(course["max_students"]):
             raise CourseFullError(
@@ -641,10 +636,17 @@ class DirectoryService:
         )
         with transaction(self._conn):
             try:
-                self._conn.execute(
+                cursor = self._conn.execute(
                     "INSERT INTO enrollments (student_id, course_id, status, enrolled_by)"
-                    " VALUES (?, ?, ?, ?)",
-                    (student_id, course_id, str(enrollment.status), self._principal.user_id),
+                    " SELECT ?, ?, ?, ? FROM students"
+                    " WHERE student_id = ? AND is_active = 1",
+                    (
+                        student_id,
+                        course_id,
+                        str(enrollment.status),
+                        self._principal.user_id,
+                        student_id,
+                    ),
                 )
             except sqlite3.IntegrityError as exc:
                 raise DuplicateEntryError(
@@ -652,6 +654,12 @@ class DirectoryService:
                     student_id=student_id,
                     course_id=course_id,
                 ) from exc
+            if cursor.rowcount == 0:
+                raise ValidationError(
+                    f"Inactive student {student_id!r} cannot be enrolled.",
+                    student_id=student_id,
+                    field="is_active",
+                )
             audit.record(
                 self._conn,
                 actor_user_id=self._principal.user_id,
@@ -824,11 +832,20 @@ class DirectoryService:
 
     def _replace_prerequisites(self, course_id: str, prerequisite_ids: list[str]) -> None:
         """Replace a course's prerequisite set inside the caller's transaction."""
-        self._conn.execute("DELETE FROM course_prerequisites WHERE course_id = ?", (course_id,))
-        self._conn.executemany(
-            "INSERT INTO course_prerequisites (course_id, requires_course_id) VALUES (?, ?)",
-            ((course_id, prerequisite_id) for prerequisite_id in prerequisite_ids),
-        )
+        try:
+            self._conn.execute("DELETE FROM course_prerequisites WHERE course_id = ?", (course_id,))
+            self._conn.executemany(
+                "INSERT INTO course_prerequisites (course_id, requires_course_id) VALUES (?, ?)",
+                ((course_id, prerequisite_id) for prerequisite_id in prerequisite_ids),
+            )
+        except sqlite3.IntegrityError as exc:
+            try:
+                self._validate_prerequisites(course_id, prerequisite_ids)
+            except ValidationError as validation_error:
+                raise validation_error from exc
+            raise ValidationError(
+                "Invalid course prerequisites.", field="prerequisite_ids"
+            ) from exc
 
     def _update_course_metadata(self, course_id: str, metadata: dict[str, Any]) -> None:
         """Persist the directory fields kept outside the coursework dataclass."""

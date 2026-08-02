@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 
 from services import audit
+from services import directory as directory_service
 
 
 def test_student_metadata_create_and_update(as_admin: TestClient) -> None:
@@ -94,6 +97,43 @@ def test_prerequisite_replacement_and_cascade(
     assert as_admin.get("/courses/CS301").json()["prerequisite_ids"] == []
 
 
+def test_prerequisite_revalidation_and_residual_constraint_error_are_controlled(
+    as_admin: TestClient,
+    seeded_db: sqlite3.Connection,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert (
+        as_admin.post(
+            "/courses",
+            json={"course_id": "CS301", "name": "Compilers", "prerequisite_ids": ["CS101"]},
+        ).status_code
+        == 201
+    )
+    real_validation = directory_service.DirectoryService._validate_prerequisites  # pyright: ignore[reportPrivateUsage]
+
+    def validate_then_remove_prerequisite(
+        service: directory_service.DirectoryService,
+        course_id: str,
+        prerequisite_ids: list[str],
+    ) -> None:
+        conn = service._conn  # pyright: ignore[reportPrivateUsage]
+        assert conn.in_transaction
+        real_validation(service, course_id, prerequisite_ids)
+        conn.execute("DELETE FROM courses WHERE course_id = 'CS999'")
+
+    monkeypatch.setattr(
+        directory_service.DirectoryService,
+        "_validate_prerequisites",
+        validate_then_remove_prerequisite,
+    )
+
+    response = as_admin.patch("/courses/CS301", json={"prerequisite_ids": ["CS999"]})
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+    assert as_admin.get("/courses/CS301").json()["prerequisite_ids"] == ["CS101"]
+
+
 @pytest.mark.parametrize("prerequisite_ids", [["MISSING"], ["CS101", "CS101"]])
 def test_bad_prerequisites_return_controlled_validation(
     as_admin: TestClient, prerequisite_ids: list[str]
@@ -120,6 +160,49 @@ def test_inactive_student_cannot_be_enrolled(as_admin: TestClient) -> None:
 
     assert response.status_code == 422
     assert response.json()["code"] == "VALIDATION_ERROR"
+
+
+def test_enrollment_and_deactivation_use_activity_state_inside_transaction(
+    as_admin: TestClient,
+    seeded_db: sqlite3.Connection,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_transaction = directory_service.transaction
+    student_ids = iter(("S003", "S001"))
+
+    @contextmanager
+    def deactivate_before_transaction(
+        conn: sqlite3.Connection,
+    ) -> Generator[sqlite3.Connection]:
+        seeded_db.execute(
+            "UPDATE students SET is_active = 0 WHERE student_id = ?", (next(student_ids),)
+        )
+        with real_transaction(conn):
+            yield conn
+
+    monkeypatch.setattr(directory_service, "transaction", deactivate_before_transaction)
+
+    enrollment_response = as_admin.post("/courses/CS101/enrollments", json={"student_id": "S003"})
+    deactivation_response = as_admin.patch("/students/S001", json={"is_active": False})
+
+    actual = {
+        "enrollment_http_status": enrollment_response.status_code,
+        "enrollment_error_code": enrollment_response.json().get("code"),
+        "enrollment_count": seeded_db.execute(
+            "SELECT COUNT(*) FROM enrollments WHERE student_id = 'S003' AND course_id = 'CS101'"
+        ).fetchone()[0],
+        "deactivation_http_status": deactivation_response.status_code,
+        "existing_enrollment_status": seeded_db.execute(
+            "SELECT status FROM enrollments WHERE student_id = 'S001' AND course_id = 'CS101'"
+        ).fetchone()[0],
+    }
+    assert actual == {
+        "enrollment_http_status": 422,
+        "enrollment_error_code": "VALIDATION_ERROR",
+        "enrollment_count": 0,
+        "deactivation_http_status": 200,
+        "existing_enrollment_status": "active",
+    }
 
 
 def test_deactivation_withdraws_every_active_enrollment_and_audits_each(
