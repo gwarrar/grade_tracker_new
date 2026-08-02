@@ -28,6 +28,7 @@ export function Modal({
   return (
     <dialog
       ref={dialogRef}
+      className="no-print"
       aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault();

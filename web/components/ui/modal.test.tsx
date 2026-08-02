@@ -17,6 +17,17 @@ describe("Modal", () => {
     expect(titleId).toBeTruthy();
     expect(html).toContain(`aria-labelledby="${titleId}"`);
   });
+
+  it("keeps dialogs out of printed reports", () => {
+    // Removing this class lets an open destructive dialog become part of a saved PDF.
+    const html = renderToStaticMarkup(
+      <Modal open title="Delete student" onClose={() => {}}>
+        <p>This cannot be undone.</p>
+      </Modal>,
+    );
+
+    expect(html).toMatch(/<dialog\b(?=[^>]*\bclass="no-print")[^>]*>/);
+  });
 });
 
 describe("Confirm", () => {
