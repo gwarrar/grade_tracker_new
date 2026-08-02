@@ -74,6 +74,7 @@ export function GradesView({
   const [studentSearch, setStudentSearch] = useState("");
   const query = useDebounced(search.trim());
   const studentQuery = useDebounced(studentSearch.trim());
+  const studentSearchUnsettled = studentQuery !== studentSearch.trim();
 
   // Filters live in the URL, not in state: a filtered list is then linkable, Back
   // steps through filter changes, and a refresh keeps what you were looking at.
@@ -133,6 +134,7 @@ export function GradesView({
     queryKey: ["course", selectedCourseId, "enrollments"],
     queryFn: () => api<Register>(`/courses/${selectedCourseId}/enrollments`),
     enabled: creating && selectedCourseId !== "" && can.writeGrade(me),
+    staleTime: 0,
   });
 
   const refresh = () =>
@@ -177,7 +179,7 @@ export function GradesView({
 
     setInvalidScore(score === null);
     setInvalidWeight(weight === null);
-    if (score === null || weight === null || !validStudent) {
+    if (score === null || weight === null || studentSearchUnsettled || !validStudent) {
       setCreateCode("VALIDATION_ERROR");
       return;
     }
@@ -200,7 +202,7 @@ export function GradesView({
     (course) => course.course_id === selectedCourseId,
   );
   const matchingStudents =
-    studentQuery.length >= 2
+    !studentSearchUnsettled && studentQuery.length >= 2
       ? (register.data ?? []).filter((entry) => {
           const haystack = `${entry.student_id} ${entry.first_name ?? ""} ${entry.last_name ?? ""} ${entry.email ?? ""}`.toLocaleLowerCase(
             locale,
@@ -368,7 +370,9 @@ export function GradesView({
                       ))}
                     </Select>
                   )}
-                  {studentQuery.length >= 2 && matchingStudents.length === 0 && (
+                  {!studentSearchUnsettled &&
+                    studentQuery.length >= 2 &&
+                    matchingStudents.length === 0 && (
                     <p role="status" className="mt-3 text-sm text-subtle">
                       {t("grade.noStudents")}
                     </p>
@@ -427,6 +431,7 @@ export function GradesView({
                     create.isPending ||
                     register.isFetching ||
                     !register.isSuccess ||
+                    studentSearchUnsettled ||
                     matchingStudents.length === 0
                   }
                 >
