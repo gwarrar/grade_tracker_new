@@ -31,22 +31,22 @@ FORBIDDEN: dict[str, set[str]] = {
 
 
 def imports_of(path: pathlib.Path) -> set[str]:
-    """Return the top-level packages a module imports.
+    """Return the absolute module paths a module imports.
 
     Args:
         path: The Python file to inspect.
 
     Returns:
-        Top-level package names, e.g. ``{"sqlite3", "notenverwaltung"}``.
+        Imported paths, e.g. ``{"sqlite3", "notenverwaltung.storage.db.transaction"}``.
     """
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     found: set[str] = set()
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            found.update(alias.name.split(".")[0] for alias in node.names)
+            found.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
-            found.add(node.module.split(".")[0])
+            found.update(f"{node.module}.{alias.name}" for alias in node.names)
 
     return found
 
@@ -69,10 +69,43 @@ def test_the_package_exists(package: str) -> None:
 )
 def test_no_upward_imports(package: str, path: pathlib.Path) -> None:
     """No module may import from a layer above its own."""
-    violations = imports_of(path) & FORBIDDEN[package]
+    violations = {name.split(".")[0] for name in imports_of(path)} & FORBIDDEN[package]
     assert not violations, (
         f"{path.relative_to(SRC)} imports {sorted(violations)}, which sits above "
         f"{package!r}. Move the shared symbol down instead of importing upward."
+    )
+
+
+def test_migrated_enrollment_controllers_do_not_import_infrastructure() -> None:
+    """The migrated enrollment seam depends on its capability, not infrastructure.
+
+    Imports are module-scoped, so this protects the complete directory router that
+    owns the five migrated handlers. Migration, seed and admin entry points, plus
+    not-yet-migrated routers and services, intentionally remain outside this rule.
+    """
+    path = SRC / "api" / "routers" / "directory.py"
+    assert path.is_file(), "The migrated directory router has moved"
+
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    functions = {node.name for node in tree.body if isinstance(node, ast.FunctionDef)}
+    expected = {
+        "student_courses",
+        "list_enrollments",
+        "enroll",
+        "set_enrollment_status",
+        "unenroll",
+    }
+    assert expected <= functions, f"Enrollment controllers missing: {sorted(expected - functions)}"
+
+    forbidden = ("sqlite3", "notenverwaltung.storage", "services.audit")
+    violations = sorted(
+        name
+        for name in imports_of(path)
+        if any(name == prefix or name.startswith(f"{prefix}.") for prefix in forbidden)
+    )
+    assert not violations, (
+        f"{path.relative_to(SRC)} imports infrastructure directly: {violations}. "
+        "Use the AcademicRecords capability instead."
     )
 
 
