@@ -1,44 +1,57 @@
 "use client";
 
-/**
- * Courses list with the sliding detail panel.
- *
- * The panel shows the register alongside the course, because "who is enrolled" is
- * the question anyone opening a course is actually asking — and it is the one
- * place where an enrolled-but-ungraded student is visible at all.
- */
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
-import { Field, Input, PanelHeader } from "@/components/app/detail-fields";
+import {
+  Field,
+  FormError,
+  Input,
+  PanelHeader,
+  Select,
+  Textarea,
+} from "@/components/app/detail-fields";
 import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
+import { Confirm } from "@/components/ui/confirm";
+import { Modal } from "@/components/ui/modal";
 import { api, ApiError, type Response } from "@/lib/api";
-import { formatNumber, parseLocaleNumber } from "@/lib/format";
+import type { paths } from "@/lib/api-schema";
+import { formatDate, formatNumber, parseLocaleNumber } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import type { Me } from "@/lib/session";
 import { useDebounced, useSelection } from "@/lib/use-selection";
 
 type Course = Response<"/courses/{course_id}", "get">;
-type Page = Response<"/courses", "get">;
+type CoursePage = Response<"/courses", "get">;
 type Register = Response<"/courses/{course_id}/enrollments", "get">;
+type StudentPage = Response<"/students", "get">;
+type CourseCreate = paths["/courses"]["post"]["requestBody"]["content"]["application/json"];
+type CourseUpdate = paths["/courses/{course_id}"]["patch"]["requestBody"]["content"]["application/json"];
 
 const PAGE_SIZE = 50;
 
 export function CoursesView({ me, locale }: { me: Me; locale: string }) {
   const t = useTranslations();
   const queryClient = useQueryClient();
-
   const [selectedId, select] = useSelection();
   const [search, setSearch] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [code, setCode] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const query = useDebounced(search.trim());
 
   const list = useQuery({
     queryKey: ["courses", { q: query }],
-    queryFn: () => api<Page>("/courses", { query: { q: query, size: PAGE_SIZE } }),
+    queryFn: () => api<CoursePage>("/courses", { query: { q: query, size: PAGE_SIZE } }),
     placeholderData: (previous) => previous,
+  });
+
+  const allCourses = useQuery({
+    queryKey: ["courses", "all"],
+    queryFn: () => api<CoursePage>("/courses", { query: { size: 200 } }),
+    enabled: can.createCourse(me),
   });
 
   const detail = useQuery({
@@ -46,6 +59,71 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
     queryFn: () => api<Course>(`/courses/${selectedId}`),
     enabled: selectedId !== null,
   });
+
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["courses"] }),
+      queryClient.invalidateQueries({ queryKey: ["course"] }),
+      queryClient.invalidateQueries({ queryKey: ["students"] }),
+      queryClient.invalidateQueries({ queryKey: ["student"] }),
+      queryClient.invalidateQueries({ queryKey: ["report"] }),
+      queryClient.invalidateQueries({ queryKey: ["reports"] }),
+    ]);
+
+  const create = useMutation({
+    mutationFn: (body: CourseCreate) => api<Course>("/courses", { method: "POST", body }),
+    onSuccess: (course) => {
+      setCreating(false);
+      setCode(null);
+      setNotice(t("course.created"));
+      select(course.course_id);
+      void refresh();
+    },
+    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+  });
+
+  function createCourse(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const credits = parseLocaleNumber(String(data.get("credits") ?? ""), locale);
+    const maxGrade = parseLocaleNumber(String(data.get("max_grade") ?? ""), locale);
+    const passingGrade = parseLocaleNumber(String(data.get("passing_grade") ?? ""), locale);
+    const maxStudents = Number(data.get("max_students"));
+    const teacherText = String(data.get("teacher_id") ?? "").trim();
+    const teacherId = teacherText ? Number(teacherText) : null;
+    if (
+      credits === null ||
+      maxGrade === null ||
+      passingGrade === null ||
+      !Number.isInteger(maxStudents) ||
+      maxStudents < 1 ||
+      (teacherId !== null && (!Number.isInteger(teacherId) || teacherId < 1))
+    ) {
+      setCode("VALIDATION_ERROR");
+      return;
+    }
+
+    setCode(null);
+    setNotice(null);
+    create.mutate({
+      course_id: String(data.get("course_id") ?? "").trim(),
+      name: String(data.get("name") ?? "").trim(),
+      term: String(data.get("term") ?? "").trim() || null,
+      credits,
+      max_students: maxStudents,
+      max_grade: maxGrade,
+      passing_grade: passingGrade,
+      teacher_id: teacherId,
+      status: data.get("status") === "archived" ? "archived" : "active",
+      start_date: String(data.get("start_date") ?? "") || null,
+      end_date: String(data.get("end_date") ?? "") || null,
+      department: String(data.get("department") ?? "").trim() || null,
+      room: String(data.get("room") ?? "").trim() || null,
+      schedule: String(data.get("schedule") ?? "").trim() || null,
+      description: String(data.get("description") ?? "").trim() || null,
+      prerequisite_ids: data.getAll("prerequisite_ids").map(String),
+    });
+  }
 
   const rows = list.data?.items ?? [];
 
@@ -61,32 +139,89 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
           )}
         </h1>
 
-        <input
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={t("action.search")}
-          aria-label={t("action.search")}
-          className="w-56 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          {can.createCourse(me) && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setCode(null);
+                setCreating(true);
+              }}
+            >
+              {t("course.add")}
+            </button>
+          )}
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={t("action.search")}
+            aria-label={t("action.search")}
+            className="w-56 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
+          />
+        </div>
       </div>
 
+      {notice && (
+        <p role="status" className="mb-4 rounded-lg bg-pass-bg px-3 py-2 text-sm text-pass">
+          {notice}
+        </p>
+      )}
+
+      {creating && (
+        <Modal
+          open
+          title={t("course.createTitle")}
+          onClose={() => {
+            if (!create.isPending) {
+              setCreating(false);
+              setCode(null);
+            }
+          }}
+        >
+          <form onSubmit={createCourse} className="max-h-[70vh] space-y-4 overflow-y-auto pe-1">
+            <CourseFields courses={allCourses.data?.items ?? []} me={me} locale={locale} includeId />
+            {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={create.isPending}
+                onClick={() => {
+                  setCreating(false);
+                  setCode(null);
+                }}
+              >
+                {t("action.cancel")}
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={create.isPending}>
+                {t("action.save")}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
       <MasterDetail
-        detailKey={selectedId}
+        detailKey={creating ? null : selectedId}
         detail={
-          selectedId && (
+          !creating && selectedId && (
             <CourseDetail
               key={selectedId}
               courseId={selectedId}
               course={detail.data}
+              courses={allCourses.data?.items ?? []}
               loading={detail.isPending}
               error={detail.error}
               me={me}
               locale={locale}
               onClose={() => select(null)}
-              onSaved={() => {
-                void queryClient.invalidateQueries({ queryKey: ["course", selectedId] });
-                void queryClient.invalidateQueries({ queryKey: ["courses"] });
+              onSaved={refresh}
+              onDeleted={() => {
+                setNotice(t("course.deleted"));
+                select(null);
+                void refresh();
               }}
             />
           )
@@ -97,27 +232,17 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
             <caption className="sr-only">{t("course.other")}</caption>
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-subtle">
-                <th scope="col" className="px-4 py-2.5 font-medium">
-                  {t("course.id")}
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-medium">
-                  {t("course.one")}
-                </th>
-                <th scope="col" className="px-4 py-2.5 text-end font-medium">
-                  {t("enrollment.enrolled")}
-                </th>
+                <th scope="col" className="px-4 py-2.5 font-medium">{t("course.id")}</th>
+                <th scope="col" className="px-4 py-2.5 font-medium">{t("course.one")}</th>
+                <th scope="col" className="px-4 py-2.5 font-medium">{t("course.status")}</th>
+                <th scope="col" className="px-4 py-2.5 text-end font-medium">{t("enrollment.enrolled")}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((course) => {
                 const active = course.course_id === selectedId;
                 return (
-                  <tr
-                    key={course.course_id}
-                    className={`border-b border-line last:border-0 transition-colors ${
-                      active ? "bg-bg-subtle" : "hover:bg-bg-subtle"
-                    }`}
-                  >
+                  <tr key={course.course_id} className={`border-b border-line last:border-0 transition-colors ${active ? "bg-bg-subtle" : "hover:bg-bg-subtle"}`}>
                     <td className="px-4 py-0">
                       <button
                         type="button"
@@ -129,19 +254,20 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
                       </button>
                     </td>
                     <td className="px-4 py-2.5 text-text">{course.name}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`badge ${course.status === "active" ? "badge-pass" : "badge-warn"}`}>
+                        {t(`course.statusValue.${course.status}`)}
+                      </span>
+                    </td>
                     <td className="numeric px-4 py-2.5 text-end text-muted">
                       {formatNumber(course.enrolled_count, locale)}
-                      <span className="text-subtle">
-                        {" / "}
-                        {formatNumber(course.max_students, locale)}
-                      </span>
+                      <span className="text-subtle"> / {formatNumber(course.max_students, locale)}</span>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-
           {list.isPending && <p className="px-4 py-8 text-center text-sm text-subtle">…</p>}
           {!list.isPending && rows.length === 0 && (
             <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.noData")}</p>
@@ -152,39 +278,99 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
   );
 }
 
-/**
- * The course panel.
- *
- * Takes the whole `me` rather than a boolean, because course editing is the one
- * capability in the app that depends on the *row* and not only the role: an admin may
- * edit any course, a teacher only their own. So the decision cannot be made once at
- * the page level the way it is for students — it needs the course in hand.
- */
+function CourseFields({
+  course,
+  courses,
+  me,
+  locale,
+  includeId = false,
+}: {
+  course?: Course;
+  courses: Course[];
+  me: Me;
+  locale: string;
+  includeId?: boolean;
+}) {
+  const t = useTranslations();
+  return (
+    <>
+      {includeId && <Input name="course_id" label={t("course.id")} value="" />}
+      <Input name="name" label={t("course.name")} value={course?.name ?? ""} />
+      <Input name="term" label={t("course.term")} value={course?.term ?? ""} required={false} />
+      <Input name="credits" label={t("course.credits")} value={course ? formatNumber(course.credits, locale) : "1"} inputMode="decimal" />
+      <Input name="max_students" label={t("course.maxStudents")} value={String(course?.max_students ?? 30)} type="number" inputMode="numeric" />
+      <Input name="max_grade" label={t("course.maxGrade")} value={course ? formatNumber(course.max_grade, locale) : "100"} inputMode="decimal" />
+      <Input name="passing_grade" label={t("course.passingGrade")} value={course ? formatNumber(course.passing_grade, locale) : "60"} inputMode="decimal" />
+      {can.writeStudent(me) && (
+        <Input name="teacher_id" label={t("course.teacherId")} value={course?.teacher_id ? String(course.teacher_id) : ""} type="number" inputMode="numeric" required={false} />
+      )}
+      <Select name="status" label={t("course.status")} value={course?.status ?? "active"}>
+        <option value="active">{t("course.statusValue.active")}</option>
+        <option value="archived">{t("course.statusValue.archived")}</option>
+      </Select>
+      <Input name="start_date" label={t("course.startDate")} value={course?.start_date ?? ""} type="date" required={false} />
+      <Input name="end_date" label={t("course.endDate")} value={course?.end_date ?? ""} type="date" required={false} />
+      <Input name="department" label={t("course.department")} value={course?.department ?? ""} required={false} />
+      <Input name="room" label={t("course.room")} value={course?.room ?? ""} required={false} />
+      <Input name="schedule" label={t("course.schedule")} value={course?.schedule ?? ""} required={false} />
+      <Textarea name="description" label={t("course.description")} value={course?.description ?? ""} required={false} />
+      <div>
+        <label htmlFor="prerequisite_ids" className="block text-sm text-muted">{t("course.prerequisites")}</label>
+        <select
+          id="prerequisite_ids"
+          name="prerequisite_ids"
+          multiple
+          defaultValue={course?.prerequisite_ids ?? []}
+          aria-describedby="prerequisite_ids-hint"
+          className="field-input min-h-28"
+        >
+          {courses.filter((candidate) => candidate.course_id !== course?.course_id).map((candidate) => (
+            <option key={candidate.course_id} value={candidate.course_id}>{candidate.course_id} — {candidate.name}</option>
+          ))}
+        </select>
+        <p id="prerequisite_ids-hint" className="mt-1 text-xs text-subtle">{t("course.prerequisitesHint")}</p>
+      </div>
+    </>
+  );
+}
+
 function CourseDetail({
   courseId,
   course,
+  courses,
   loading,
   error,
   me,
   locale,
   onClose,
   onSaved,
+  onDeleted,
 }: {
   courseId: string;
   course: Course | undefined;
+  courses: Course[];
   loading: boolean;
   error: unknown;
   me: Me;
   locale: string;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: () => void | Promise<unknown>;
+  onDeleted: () => void;
 }) {
   const t = useTranslations();
-  // `course` is undefined while the panel loads, and an absent course is not an
-  // editable one — so the button appears with the data rather than before it.
   const editable = course !== undefined && can.writeCourse(me, course);
+  const manageable = course !== undefined && can.writeEnrolment(me, course);
   const [editing, setEditing] = useState(false);
   const [code, setCode] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
+  const studentQuery = useDebounced(studentSearch.trim());
+  const [enrollmentAction, setEnrollmentAction] = useState<{
+    kind: "withdraw" | "remove";
+    studentId: string;
+    studentName: string;
+  } | null>(null);
 
   const register = useQuery({
     queryKey: ["course", courseId, "enrollments"],
@@ -192,104 +378,203 @@ function CourseDetail({
     enabled: !editing,
   });
 
+  const students = useQuery({
+    queryKey: ["students", { q: studentQuery, enrollmentCourse: courseId }],
+    queryFn: () => api<StudentPage>("/students", { query: { q: studentQuery, size: 20 } }),
+    enabled: manageable && !editing && studentQuery.length >= 2,
+  });
+
   const save = useMutation({
-    mutationFn: (body: Record<string, unknown>) =>
-      api(`/courses/${courseId}`, { method: "PATCH", body }),
+    mutationFn: (body: CourseUpdate) => api(`/courses/${courseId}`, { method: "PATCH", body }),
     onSuccess: () => {
       setEditing(false);
       setCode(null);
-      onSaved();
+      setNotice(t("course.saved"));
+      void onSaved();
     },
     onError: (err) => setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR"),
   });
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  const removeCourse = useMutation({
+    mutationFn: () => api(`/courses/${courseId}`, { method: "DELETE" }),
+    onSuccess: onDeleted,
+    onError: (err) => {
+      setDeleting(false);
+      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+    },
+  });
+
+  const enrollment = useMutation({
+    mutationFn: ({ kind, studentId }: { kind: "enroll" | "withdraw" | "remove"; studentId: string }) => {
+      const path = `/courses/${courseId}/enrollments/${studentId}`;
+      if (kind === "enroll") {
+        return api(`/courses/${courseId}/enrollments`, { method: "POST", body: { student_id: studentId } });
+      }
+      if (kind === "withdraw") return api(path, { method: "PATCH", body: { status: "withdrawn" } });
+      return api(path, { method: "DELETE" });
+    },
+    onSuccess: (_, action) => {
+      setEnrollmentAction(null);
+      setCode(null);
+      setNotice(t(`enrollment.${action.kind}Success` as "enrollment.enrollSuccess"));
+      if (action.kind === "enroll") setStudentSearch("");
+      void onSaved();
+    },
+    onError: (err) => {
+      setEnrollmentAction(null);
+      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+    },
+  });
+
+  function submitEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-
-    // Parsed against the active locale, so a German user's "1,5" credits is 1.5
-    // and not 15. A null means the text was not a number in this locale — reported
-    // rather than silently coerced.
     const credits = parseLocaleNumber(String(data.get("credits") ?? ""), locale);
-    if (credits === null) {
+    const maxGrade = parseLocaleNumber(String(data.get("max_grade") ?? ""), locale);
+    const passingGrade = parseLocaleNumber(String(data.get("passing_grade") ?? ""), locale);
+    const maxStudents = Number(data.get("max_students"));
+    const teacherText = String(data.get("teacher_id") ?? "").trim();
+    const teacherId = teacherText ? Number(teacherText) : course?.teacher_id ?? null;
+    if (
+      credits === null ||
+      maxGrade === null ||
+      passingGrade === null ||
+      !Number.isInteger(maxStudents) ||
+      maxStudents < 1 ||
+      (teacherId !== null && (!Number.isInteger(teacherId) || teacherId < 1))
+    ) {
       setCode("VALIDATION_ERROR");
       return;
     }
 
+    setCode(null);
+    setNotice(null);
     save.mutate({
-      name: String(data.get("name") ?? ""),
-      term: String(data.get("term") ?? "") || null,
+      name: String(data.get("name") ?? "").trim(),
+      term: String(data.get("term") ?? "").trim() || null,
       credits,
+      max_students: maxStudents,
+      max_grade: maxGrade,
+      passing_grade: passingGrade,
+      teacher_id: teacherId,
+      status: data.get("status") === "archived" ? "archived" : "active",
+      start_date: String(data.get("start_date") ?? "") || null,
+      end_date: String(data.get("end_date") ?? "") || null,
+      department: String(data.get("department") ?? "").trim() || null,
+      room: String(data.get("room") ?? "").trim() || null,
+      schedule: String(data.get("schedule") ?? "").trim() || null,
+      description: String(data.get("description") ?? "").trim() || null,
+      prerequisite_ids: data.getAll("prerequisite_ids").map(String),
     });
   }
 
+  function submitEnrollment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const studentId = String(new FormData(event.currentTarget).get("student_id") ?? "");
+    if (studentId) enrollment.mutate({ kind: "enroll", studentId });
+  }
+
+  const registeredIds = new Set((register.data ?? []).map((entry) => entry.student_id));
+  const candidates = (students.data?.items ?? []).filter(
+    (student) => student.is_active && !registeredIds.has(student.student_id),
+  );
+
   return (
     <div className="rounded-xl border border-line bg-surface p-6">
-      <PanelHeader
-        title={course?.name ?? "…"}
-        subtitle={course?.course_id}
-        closeLabel={t("action.close")}
-        onClose={onClose}
-      />
-
+      <PanelHeader title={course?.name ?? "…"} subtitle={course?.course_id} closeLabel={t("action.close")} onClose={onClose} />
       {loading && <p className="mt-4 text-sm text-subtle">…</p>}
-      {error instanceof ApiError && (
-        <p role="alert" className="mt-4 text-sm text-fail">
-          {t(`error.${error.code}` as "error.unknown")}
-        </p>
-      )}
+      {error instanceof ApiError && <FormError>{t(`error.${error.code}` as "error.unknown")}</FormError>}
+      {notice && <p role="status" className="mt-4 text-sm text-pass">{notice}</p>}
+      {code && !editing && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
 
       {course && !editing && (
         <>
           <dl className="mt-6 space-y-3 text-sm">
             <Field label={t("course.term")} value={course.term ?? "—"} />
-            <Field
-              label={t("course.credits")}
-              value={formatNumber(course.credits, locale)}
-              numeric
-            />
+            <Field label={t("course.credits")} value={formatNumber(course.credits, locale)} numeric />
+            <Field label={t("course.maxStudents")} value={formatNumber(course.max_students, locale)} numeric />
+            <Field label={t("course.maxGrade")} value={formatNumber(course.max_grade, locale)} numeric />
+            <Field label={t("course.passingGrade")} value={formatNumber(course.passing_grade, locale)} numeric />
             <Field label={t("course.teacher")} value={course.teacher_name ?? "—"} />
-            <Field
-              label={t("enrollment.graded")}
-              value={formatNumber(course.graded_count, locale)}
-              numeric
-            />
+            <Field label={t("course.status")} value={t(`course.statusValue.${course.status}`)} />
+            <Field label={t("course.startDate")} value={formatDate(course.start_date, locale)} />
+            <Field label={t("course.endDate")} value={formatDate(course.end_date, locale)} />
+            <Field label={t("course.department")} value={course.department ?? "—"} />
+            <Field label={t("course.room")} value={course.room ?? "—"} />
+            <Field label={t("course.schedule")} value={course.schedule ?? "—"} />
+            <Field label={t("course.description")} value={course.description ?? "—"} />
+            <Field label={t("course.prerequisites")} value={course.prerequisite_ids?.join(", ") || "—"} />
           </dl>
 
           {editable && (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="mt-6 rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
-            >
-              {t("action.edit")}
-            </button>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <button type="button" className="btn btn-ghost" onClick={() => setEditing(true)}>{t("action.edit")}</button>
+              <button type="button" className="btn btn-danger" onClick={() => setDeleting(true)}>{t("action.delete")}</button>
+            </div>
           )}
 
           <h3 className="mt-8 text-sm font-medium text-text">{t("enrollment.other")}</h3>
+
+          {manageable && (
+            <div className="mt-3 rounded-lg border border-line p-3">
+              <label htmlFor={`student-search-${courseId}`} className="block text-sm text-muted">
+                {t("enrollment.searchStudents")}
+              </label>
+              <input
+                id={`student-search-${courseId}`}
+                type="search"
+                value={studentSearch}
+                onChange={(event) => setStudentSearch(event.target.value)}
+                className="field-input"
+                aria-describedby={`student-search-${courseId}-hint`}
+              />
+              <p id={`student-search-${courseId}-hint`} className="mt-1 text-xs text-subtle">
+                {t("enrollment.searchHint")}
+              </p>
+              {studentQuery.length >= 2 && candidates.length > 0 && (
+                <form onSubmit={submitEnrollment} className="mt-3 flex items-end gap-2">
+                  <div className="min-w-0 flex-1">
+                    <Select name="student_id" label={t("enrollment.student")} value={candidates[0].student_id}>
+                      {candidates.map((student) => (
+                        <option key={student.student_id} value={student.student_id}>
+                          {student.student_id} — {student.first_name} {student.last_name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <button type="submit" className="btn btn-primary" disabled={enrollment.isPending}>{t("action.enroll")}</button>
+                </form>
+              )}
+              {studentQuery.length >= 2 && !students.isPending && candidates.length === 0 && (
+                <p className="mt-3 text-sm text-subtle">{t("enrollment.noStudents")}</p>
+              )}
+            </div>
+          )}
+
           <ul className="mt-3 divide-y divide-line rounded-lg border border-line">
-            {(register.data ?? []).map((entry) => (
-              <li
-                key={entry.student_id}
-                className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
-              >
-                <span className="min-w-0 truncate text-text">
-                  {entry.first_name} {entry.last_name}
-                </span>
-                {/* The distinction the schema was missing: enrolled and graded are
-                    not the same state, and only this view shows the difference. */}
-                <span className="numeric shrink-0 text-xs text-subtle">
-                  {entry.grade_count > 0
-                    ? `${formatNumber(entry.grade_count, locale)} ${t("grade.other")}`
-                    : t("enrollment.notAssessed")}
-                </span>
-              </li>
-            ))}
-            {register.data?.length === 0 && (
-              <li className="px-3 py-4 text-center text-sm text-subtle">
-                {t("stats.noData")}
-              </li>
-            )}
+            {(register.data ?? []).map((entry) => {
+              const studentName = `${entry.first_name ?? ""} ${entry.last_name ?? ""}`.trim() || entry.student_id;
+              return (
+                <li key={entry.student_id} className="flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-sm">
+                  <span className="min-w-0 truncate text-text">{studentName}</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`badge ${entry.status === "active" ? "badge-pass" : entry.status === "withdrawn" ? "badge-warn" : ""}`}>
+                      {t(`enrollment.status.${entry.status}` as "enrollment.status.active")}
+                    </span>
+                    <span className="numeric text-xs text-subtle">
+                      {entry.grade_count > 0 ? `${formatNumber(entry.grade_count, locale)} ${t("grade.other")}` : t("enrollment.notAssessed")}
+                    </span>
+                    {manageable && entry.status === "active" && (
+                      <button type="button" className="btn btn-ghost" onClick={() => setEnrollmentAction({ kind: "withdraw", studentId: entry.student_id, studentName })}>{t("action.withdraw")}</button>
+                    )}
+                    {manageable && (
+                      <button type="button" className="btn btn-danger" onClick={() => setEnrollmentAction({ kind: "remove", studentId: entry.student_id, studentName })}>{t("action.remove")}</button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+            {register.data?.length === 0 && <li className="px-3 py-4 text-center text-sm text-subtle">{t("stats.noData")}</li>}
           </ul>
 
           <InsightBlock entityType="course" entityId={courseId} />
@@ -297,43 +582,37 @@ function CourseDetail({
       )}
 
       {course && editing && (
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <Input name="name" label={t("course.one")} value={course.name} />
-          <Input name="term" label={t("course.term")} value={course.term ?? ""} required={false} />
-          <Input
-            name="credits"
-            label={t("course.credits")}
-            value={formatNumber(course.credits, locale)}
-            inputMode="decimal"
-          />
-
-          {code && (
-            <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-              {t(`error.${code}` as "error.unknown")}
-            </p>
-          )}
-
+        <form onSubmit={submitEdit} className="mt-6 space-y-4">
+          <CourseFields course={course} courses={courses} me={me} locale={locale} />
+          {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
           <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={save.isPending}
-              className="rounded-lg bg-brand px-3 py-1.5 text-sm text-brand-contrast transition-opacity hover:opacity-90 disabled:opacity-60"
-            >
-              {t("action.save")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEditing(false);
-                setCode(null);
-              }}
-              className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
-            >
-              {t("action.cancel")}
-            </button>
+            <button type="submit" disabled={save.isPending} className="btn btn-primary">{t("action.save")}</button>
+            <button type="button" className="btn btn-ghost" onClick={() => { setEditing(false); setCode(null); }}>{t("action.cancel")}</button>
           </div>
         </form>
       )}
+
+      <Confirm
+        open={deleting}
+        title={t("course.deleteTitle")}
+        description={t("course.deleteDescription")}
+        confirmLabel={t("action.delete")}
+        cancelLabel={t("action.cancel")}
+        onConfirm={() => removeCourse.mutateAsync().then(() => undefined).catch(() => undefined)}
+        onCancel={() => setDeleting(false)}
+      />
+      <Confirm
+        open={enrollmentAction !== null}
+        title={t(enrollmentAction?.kind === "remove" ? "enrollment.removeTitle" : "enrollment.withdrawTitle")}
+        description={t(
+          enrollmentAction?.kind === "remove" ? "enrollment.removeStudentDescription" : "enrollment.withdrawStudentDescription",
+          { student: enrollmentAction?.studentName ?? "" },
+        )}
+        confirmLabel={t(enrollmentAction?.kind === "remove" ? "action.remove" : "action.withdraw")}
+        cancelLabel={t("action.cancel")}
+        onConfirm={() => enrollmentAction ? enrollment.mutateAsync(enrollmentAction).then(() => undefined).catch(() => undefined) : undefined}
+        onCancel={() => setEnrollmentAction(null)}
+      />
     </div>
   );
 }
