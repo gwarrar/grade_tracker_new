@@ -81,6 +81,10 @@
     "deleteDescription": "Le cours, ses notes et ses inscriptions seront définitivement supprimés."
   },
   "grade": {
+    "add": "Ajouter une note",
+    "createTitle": "Ajouter une note",
+    "created": "Note ajoutée.",
+    "retired": "Note retirée.",
     "one": "Note",
     "other": "Notes",
     "score": "Note",
@@ -93,7 +97,16 @@
     "passing": "Admis",
     "failing": "Non admis",
     "status": "Résultat",
-    "letter": "Mention"
+    "letter": "Mention",
+    "chooseCourse": "Choisir un cours",
+    "noCourses": "Aucun cours n’est disponible pour la notation.",
+    "searchStudents": "Rechercher les étudiants inscrits",
+    "searchHint": "Saisissez au moins deux caractères. Seules les inscriptions actives au cours sélectionné sont affichées.",
+    "noStudents": "Aucun étudiant inscrit et actif ne correspond à cette recherche.",
+    "invalidScore": "Saisissez la note au format numérique de votre langue.",
+    "invalidWeight": "Saisissez le coefficient au format numérique de votre langue.",
+    "retireTitle": "Retirer la note ?",
+    "retireDescription": "Cette note disparaîtra des vues ordinaires, mais son dossier sera conservé en cas de contestation."
   },
   "enrollment": {
     "other": "Inscriptions",
@@ -168,6 +181,7 @@
     "deactivate": "Désactiver",
     "withdraw": "Retirer",
     "remove": "Supprimer",
+    "retire": "Retirer",
     "search": "Rechercher",
     "export": "Exporter en CSV",
     "close": "Fermer"

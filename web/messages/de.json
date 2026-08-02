@@ -81,6 +81,10 @@
     "deleteDescription": "Der Kurs sowie seine Noten und Anmeldungen werden dauerhaft gelöscht."
   },
   "grade": {
+    "add": "Note hinzufügen",
+    "createTitle": "Note hinzufügen",
+    "created": "Note wurde hinzugefügt.",
+    "retired": "Note wurde stillgelegt.",
     "one": "Note",
     "other": "Noten",
     "score": "Punkte",
@@ -93,7 +97,16 @@
     "passing": "Bestanden",
     "failing": "Nicht bestanden",
     "status": "Ergebnis",
-    "letter": "Notenstufe"
+    "letter": "Notenstufe",
+    "chooseCourse": "Kurs auswählen",
+    "noCourses": "Es ist kein Kurs für die Benotung verfügbar.",
+    "searchStudents": "Angemeldete Studierende suchen",
+    "searchHint": "Mindestens zwei Zeichen eingeben. Es werden nur aktive Anmeldungen im ausgewählten Kurs angezeigt.",
+    "noStudents": "Keine aktiv angemeldete Person entspricht der Suche.",
+    "invalidScore": "Geben Sie die Punkte im Zahlenformat Ihrer Sprache ein.",
+    "invalidWeight": "Geben Sie die Gewichtung im Zahlenformat Ihrer Sprache ein.",
+    "retireTitle": "Note stilllegen?",
+    "retireDescription": "Diese Note verschwindet aus den normalen Ansichten, der Datensatz bleibt jedoch für mögliche Einsprüche erhalten."
   },
   "enrollment": {
     "other": "Anmeldungen",
@@ -168,6 +181,7 @@
     "deactivate": "Deaktivieren",
     "withdraw": "Abmelden",
     "remove": "Entfernen",
+    "retire": "Stilllegen",
     "search": "Suchen",
     "export": "CSV exportieren",
     "close": "Schließen"

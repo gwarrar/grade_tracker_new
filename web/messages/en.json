@@ -81,6 +81,10 @@
     "deleteDescription": "This permanently deletes the course and its grades and enrolments."
   },
   "grade": {
+    "add": "Add grade",
+    "createTitle": "Add grade",
+    "created": "Grade added.",
+    "retired": "Grade retired.",
     "one": "Grade",
     "other": "Grades",
     "score": "Score",
@@ -93,7 +97,16 @@
     "passing": "Pass",
     "failing": "Fail",
     "status": "Result",
-    "letter": "Letter"
+    "letter": "Letter",
+    "chooseCourse": "Choose a course",
+    "noCourses": "No course is available for grading.",
+    "searchStudents": "Search enrolled students",
+    "searchHint": "Type at least two characters. Only active enrolments in the selected course are shown.",
+    "noStudents": "No active enrolled student matches that search.",
+    "invalidScore": "Enter the score using your locale's number format.",
+    "invalidWeight": "Enter the weight using your locale's number format.",
+    "retireTitle": "Retire grade?",
+    "retireDescription": "This grade will disappear from normal views, but its record is retained for possible disputes."
   },
   "enrollment": {
     "other": "Enrolments",
@@ -168,6 +181,7 @@
     "deactivate": "Deactivate",
     "withdraw": "Withdraw",
     "remove": "Remove",
+    "retire": "Retire",
     "search": "Search",
     "export": "Export CSV",
     "close": "Close"
