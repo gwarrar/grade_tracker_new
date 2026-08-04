@@ -24,6 +24,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { ConfirmCard } from "@/components/app/assistant";
 import { api, ApiError, type Response } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/app-routes";
 import { atLeast, type Me } from "@/lib/session";
 import { useDebounced } from "@/lib/use-selection";
 
@@ -34,20 +35,6 @@ type Proposal = Response<"/ai/command", "post">;
 /** Below this, a query matches too much to be worth a round trip. */
 const MIN_QUERY = 2;
 const LIMIT = 5;
-
-// Only routes that exist. A nav that lists /reports before /reports is built is a
-// link straight to a 404 — worse than the feature being absent, because it reads
-// as broken rather than as not-yet-there. Restored as each page lands.
-const ROUTES = [
-  { href: "/dashboard", key: "dashboard", min: "student" },
-  { href: "/students", key: "students", min: "student" },
-  { href: "/courses", key: "courses", min: "student" },
-  { href: "/grades", key: "grades", min: "student" },
-  { href: "/reports", key: "reports", min: "teacher" },
-  { href: "/profile", key: "profile", min: "student" },
-  { href: "/admin/users", key: "admin", min: "admin" },
-  { href: "/admin/ai", key: "aiSettings", min: "superadmin" },
-] as const;
 
 export function CommandPalette({ me }: { me: Me }) {
   const t = useTranslations();
@@ -112,7 +99,7 @@ export function CommandPalette({ me }: { me: Me }) {
     router.push(href);
   }
 
-  const routes = ROUTES.filter((route) => atLeast(me.role, route.min));
+  const routes = APP_ROUTES.filter((route) => atLeast(me.role, route.min));
   const lower = query.toLowerCase();
   const matchedRoutes = query
     ? routes.filter((route) => t(`nav.${route.key}`).toLowerCase().includes(lower))

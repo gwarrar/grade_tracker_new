@@ -13,6 +13,7 @@ import {
 } from "@/components/app/detail-fields";
 import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
+import { Pager } from "@/components/app/pager";
 import { StudentRecord } from "@/components/app/student-record";
 import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
@@ -22,7 +23,7 @@ import type { paths } from "@/lib/api-schema";
 import { formatDate, formatNumber } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import type { Me } from "@/lib/session";
-import { useDebounced, useSelection } from "@/lib/use-selection";
+import { useDebounced, useSelection, useUrlParam } from "@/lib/use-selection";
 
 type Student = Response<"/students/{student_id}", "get">;
 type StudentPage = Response<"/students", "get">;
@@ -44,11 +45,14 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
   const [code, setCode] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const query = useDebounced(search.trim());
+  const [pageParam, setPage] = useUrlParam("page", "1");
+  const page = Math.max(1, Number(pageParam) || 1);
   const editable = can.writeStudent(me);
 
   const list = useQuery({
-    queryKey: ["students", { q: query }],
-    queryFn: () => api<StudentPage>("/students", { query: { q: query, size: PAGE_SIZE } }),
+    queryKey: ["students", { q: query, page }],
+    queryFn: () =>
+      api<StudentPage>("/students", { query: { q: query, page, size: PAGE_SIZE } }),
     placeholderData: (previous) => previous,
   });
 
@@ -255,10 +259,24 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
               })}
             </tbody>
           </table>
-          {list.isPending && <p className="px-4 py-8 text-center text-sm text-subtle">…</p>}
+          {list.isPending && (
+            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.loading")}</p>
+          )}
           {!list.isPending && rows.length === 0 && (
             <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.noData")}</p>
           )}
+          <Pager
+            page={page}
+            size={PAGE_SIZE}
+            total={list.data?.total ?? 0}
+            locale={locale}
+            labels={{
+              previous: t("pager.previous"),
+              next: t("pager.next"),
+              status: (current, pages) => t("pager.page", { page: current, pages }),
+            }}
+            onPage={(next) => setPage(String(next))}
+          />
         </div>
       </MasterDetail>
     </>
@@ -446,13 +464,13 @@ function StudentDetail({
   return (
     <div className="rounded-xl border border-line bg-surface p-6">
       <PanelHeader
-        title={student ? `${student.first_name} ${student.last_name}` : "…"}
+        title={student ? `${student.first_name} ${student.last_name}` : t("stats.loading")}
         subtitle={student?.student_id}
         closeLabel={t("action.close")}
         onClose={onClose}
       />
 
-      {loading && <p className="mt-4 text-sm text-subtle">…</p>}
+      {loading && <p className="mt-4 text-sm text-subtle">{t("stats.loading")}</p>}
       {error instanceof ApiError && <FormError>{t(`error.${error.code}` as "error.unknown")}</FormError>}
       {notice && <p role="status" className="mt-4 text-sm text-pass">{notice}</p>}
       {code && !editing && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}

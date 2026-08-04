@@ -128,6 +128,63 @@ class TestNarrowingFilters:
 
         assert {r["title"] for r in rows} == {"Midterm"}
 
+    def test_minimum_score_is_inclusive(
+        self, as_admin: TestClient, graded: sqlite3.Connection
+    ) -> None:
+        rows = as_admin.get(
+            "/grades", params={"course_id": "CS101", "min_score": 90, "size": 100}
+        ).json()["items"]
+
+        assert {r["title"] for r in rows} == {"Quiz", "Midterm"}
+
+    def test_maximum_score_is_inclusive(
+        self, as_admin: TestClient, graded: sqlite3.Connection
+    ) -> None:
+        rows = as_admin.get(
+            "/grades", params={"course_id": "CS101", "max_score": 80, "size": 100}
+        ).json()["items"]
+
+        assert {r["title"] for r in rows} == {"Final", "Resit"}
+
+    def test_minimum_percentage_uses_the_course_maximum(
+        self, as_admin: TestClient, graded: sqlite3.Connection
+    ) -> None:
+        graded.execute("UPDATE courses SET max_grade = ? WHERE course_id = ?", (200, "CS101"))
+        graded.commit()
+
+        rows = as_admin.get(
+            "/grades", params={"course_id": "CS101", "min_percentage": 45, "size": 100}
+        ).json()["items"]
+
+        assert {r["title"] for r in rows} == {"Quiz", "Midterm"}
+
+    def test_maximum_percentage_uses_the_course_maximum(
+        self, as_admin: TestClient, graded: sqlite3.Connection
+    ) -> None:
+        graded.execute("UPDATE courses SET max_grade = ? WHERE course_id = ?", (200, "CS101"))
+        graded.commit()
+
+        rows = as_admin.get(
+            "/grades", params={"course_id": "CS101", "max_percentage": 40, "size": 100}
+        ).json()["items"]
+
+        assert {r["title"] for r in rows} == {"Final", "Resit"}
+
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {"min_score": 90, "max_score": 80},
+            {"min_percentage": 90, "max_percentage": 80},
+        ],
+    )
+    def test_crossed_numeric_ranges_are_rejected(
+        self, as_admin: TestClient, params: dict[str, int]
+    ) -> None:
+        response = as_admin.get("/grades", params=params)
+
+        assert response.status_code == 422
+        assert response.json()["code"] == "VALIDATION_ERROR"
+
     def test_a_wildcard_in_the_title_is_a_literal(
         self, as_admin: TestClient, graded: sqlite3.Connection
     ) -> None:

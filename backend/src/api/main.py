@@ -6,6 +6,7 @@ lives here.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -17,7 +18,10 @@ from api.problems import register_handlers
 from api.routers import admin_ai, ai, auth, directory, grades, localization, profile, reports, users
 from notenverwaltung import __version__
 from notenverwaltung.storage import apply_migrations, connect
+from services.ai_admin import AiAdminService
 from services.auth import LoginThrottle
+
+logger = logging.getLogger(__name__)
 
 DESCRIPTION = """
 Student grade management: students, courses, enrolments, grades, reports and an
@@ -68,6 +72,8 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
     conn = connect(settings.database_file)
     try:
         apply_migrations(conn)
+        if not AiAdminService(conn).is_configured():
+            logger.warning("AI is unconfigured; configure a provider at /admin/ai")
     finally:
         conn.close()
     yield

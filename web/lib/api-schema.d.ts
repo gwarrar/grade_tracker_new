@@ -3742,6 +3742,14 @@ export interface operations {
                 student_id?: string | null;
                 /** @description Only this course's grades. */
                 course_id?: string | null;
+                /** @description Minimum score, inclusive. */
+                min_score?: number | null;
+                /** @description Maximum score, inclusive. */
+                max_score?: number | null;
+                /** @description Minimum percentage, inclusive. */
+                min_percentage?: number | null;
+                /** @description Maximum percentage, inclusive. */
+                max_percentage?: number | null;
                 /** @description Earliest date, ISO `YYYY-MM-DD`, inclusive. */
                 date_from?: string | null;
                 /** @description Latest date, ISO `YYYY-MM-DD`, inclusive. */

@@ -47,9 +47,18 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-text">{t("report.title")}</h1>
-        <p className="mt-1 max-w-2xl text-sm text-muted">{t("report.hint")}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-text">{t("report.title")}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted">{t("report.hint")}</p>
+        </div>
+        <a
+          href={`${API_BASE}/reports/summary/summary/export.csv?locale=${locale}`}
+          download
+          className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-text"
+        >
+          {t("report.summaryDownload")}
+        </a>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -76,8 +85,45 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
       </div>
 
       {data && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-3">
           <Distribution distribution={data.distribution} order={bands} locale={locale} />
+
+          <section className="rounded-xl border border-line bg-surface p-6">
+            <h2 className="text-sm font-medium text-text">{t("stats.topStudents")}</h2>
+
+            {data.top_students.length === 0 ? (
+              <p className="mt-4 text-center text-sm text-subtle">{t("stats.noData")}</p>
+            ) : (
+              <table className="mt-3 w-full text-sm">
+                <caption className="sr-only">{t("stats.topStudents")}</caption>
+                <thead className="sr-only">
+                  <tr>
+                    <th scope="col">{t("report.rank")}</th>
+                    <th scope="col">{t("profile.name")}</th>
+                    <th scope="col">{t("stats.average")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {data.top_students.map((student, index) => (
+                    <tr key={student.student_id}>
+                      <td className="numeric w-8 py-2 text-subtle">
+                        {formatNumber(index + 1, locale)}
+                      </td>
+                      <th
+                        scope="row"
+                        className="min-w-0 truncate py-2 text-start font-normal text-muted"
+                      >
+                        {student.name}
+                      </th>
+                      <td className="numeric py-2 text-end text-text">
+                        {formatPercent(student.average_percentage, locale)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
 
           <section className="rounded-xl border border-line bg-surface p-6">
             <h2 className="text-sm font-medium text-text">{t("stats.atRisk")}</h2>
@@ -179,7 +225,7 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
         )}
 
         {courseId && report.isPending && (
-          <p className="mt-6 text-center text-sm text-subtle">…</p>
+          <p className="mt-6 text-center text-sm text-subtle">{t("stats.loading")}</p>
         )}
       </section>
     </div>

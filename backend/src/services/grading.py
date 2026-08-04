@@ -100,6 +100,10 @@ class GradingService:
         search: str | None = None,
         student_id: str | None = None,
         course_id: str | None = None,
+        min_score: float | None = None,
+        max_score: float | None = None,
+        min_percentage: float | None = None,
+        max_percentage: float | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
         letter: str | None = None,
@@ -118,6 +122,10 @@ class GradingService:
             search: Free text matched against student and course names.
             student_id: Restrict to one student.
             course_id: Restrict to one course.
+            min_score: Minimum score, inclusive.
+            max_score: Maximum score, inclusive.
+            min_percentage: Minimum percentage, inclusive.
+            max_percentage: Maximum percentage, inclusive.
             date_from: Earliest date, ISO ``YYYY-MM-DD``, inclusive.
             date_to: Latest date, ISO ``YYYY-MM-DD``, inclusive.
             letter: A band label from the organisation's scale, such as ``B``.
@@ -127,13 +135,36 @@ class GradingService:
             One page of grade dictionaries.
 
         Raises:
-            ValidationError: If ``letter`` is not a band in the configured scale.
+            ValidationError: If a minimum exceeds its maximum, or ``letter`` is not
+                a band in the configured scale.
         """
+        if min_score is not None and max_score is not None and min_score > max_score:
+            raise ValidationError(
+                "min_score cannot exceed max_score", fields=["min_score", "max_score"]
+            )
+        if (
+            min_percentage is not None
+            and max_percentage is not None
+            and min_percentage > max_percentage
+        ):
+            raise ValidationError(
+                "min_percentage cannot exceed max_percentage",
+                fields=["min_percentage", "max_percentage"],
+            )
+
         extra = Scope("g.deleted_at IS NULL")
         if student_id:
             extra = extra & Scope("g.student_id = ?", (student_id,))
         if course_id:
             extra = extra & Scope("g.course_id = ?", (course_id,))
+        if min_score is not None:
+            extra = extra & Scope("g.score >= ?", (min_score,))
+        if max_score is not None:
+            extra = extra & Scope("g.score <= ?", (max_score,))
+        if min_percentage is not None:
+            extra = extra & Scope(f"{_PERCENTAGE} >= ?", (min_percentage,))
+        if max_percentage is not None:
+            extra = extra & Scope(f"{_PERCENTAGE} <= ?", (max_percentage,))
         # ISO-8601 dates sort correctly as text, so a range is a plain string
         # comparison and needs no date functions -- which is also what keeps this
         # portable to Postgres.

@@ -13,7 +13,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from api.deps import CurrentUser, DbConn, TeacherUser
+from api.deps import AdminUser, CurrentUser, DbConn, TeacherUser
 from services.ai import MAX_QUESTION_LENGTH, AiService
 
 router = APIRouter(prefix="/ai", tags=["AI"])
@@ -223,12 +223,12 @@ def insight(entity_type: str, entity_id: str, _: TeacherUser, ai: Ai) -> Insight
         "existing import endpoint does the writing."
     ),
 )
-def import_map(body: ImportMapRequest, _: TeacherUser, ai: Ai) -> ImportMapResponse:
+def import_map(body: ImportMapRequest, _: AdminUser, ai: Ai) -> ImportMapResponse:
     """Propose how spreadsheet columns map onto gradebook fields.
 
     Args:
         body: Header row and samples.
-        _: Enforces the teacher role.
+        _: Enforces the admin role.
         ai: The service.
 
     Returns:

@@ -60,6 +60,14 @@ def list_grades(
     q: Annotated[str | None, Query(description="Free text over student, course and title.")] = None,
     student_id: Annotated[str | None, Query(description="Only this student's grades.")] = None,
     course_id: Annotated[str | None, Query(description="Only this course's grades.")] = None,
+    min_score: Annotated[float | None, Query(description="Minimum score, inclusive.")] = None,
+    max_score: Annotated[float | None, Query(description="Maximum score, inclusive.")] = None,
+    min_percentage: Annotated[
+        float | None, Query(description="Minimum percentage, inclusive.")
+    ] = None,
+    max_percentage: Annotated[
+        float | None, Query(description="Maximum percentage, inclusive.")
+    ] = None,
     date_from: Annotated[
         str | None, Query(description="Earliest date, ISO `YYYY-MM-DD`, inclusive.")
     ] = None,
@@ -83,6 +91,10 @@ def list_grades(
         search=q,
         student_id=student_id,
         course_id=course_id,
+        min_score=min_score,
+        max_score=max_score,
+        min_percentage=min_percentage,
+        max_percentage=max_percentage,
         date_from=date_from,
         date_to=date_to,
         letter=letter,

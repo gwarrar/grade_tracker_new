@@ -130,6 +130,12 @@ class AiAdminService:
         self._conn = conn
         self._registry = Registry(conn)
 
+    def is_configured(self) -> bool:
+        """Return whether an enabled provider and feature route both exist."""
+        return any(provider.config.is_enabled for provider in self.list_providers()) and bool(
+            self.routing()
+        )
+
     # ── Providers ────────────────────────────────────────────────────────────
 
     def list_providers(self) -> list[ProviderStatus]:

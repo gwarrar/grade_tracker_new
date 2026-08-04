@@ -411,6 +411,8 @@
   "report": {
     "print": "Print / Save as PDF",
     "generated": "Generated {date}",
+    "rank": "Rank",
+    "summaryDownload": "Download summary CSV",
     "title": "Reports",
     "pick": "Choose a course",
     "download": "Download CSV",

@@ -411,6 +411,8 @@
   "report": {
     "print": "Drucken / Als PDF speichern",
     "generated": "Erstellt am {date}",
+    "rank": "Rang",
+    "summaryDownload": "Zusammenfassung als CSV herunterladen",
     "title": "Berichte",
     "pick": "Kurs auswählen",
     "download": "CSV herunterladen",

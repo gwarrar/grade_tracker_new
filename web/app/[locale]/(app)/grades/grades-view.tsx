@@ -639,7 +639,9 @@ export function GradesView({
             </tbody>
           </table>
 
-          {list.isPending && <p className="px-4 py-8 text-center text-sm text-subtle">…</p>}
+          {list.isPending && (
+            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.loading")}</p>
+          )}
           {!list.isPending && rows.length === 0 && (
             <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.noData")}</p>
           )}
@@ -766,13 +768,13 @@ function GradeDetail({
   return (
     <div className="rounded-xl border border-line bg-surface p-6">
       <PanelHeader
-        title={grade?.student_name ?? "…"}
+        title={grade?.student_name ?? t("stats.loading")}
         subtitle={grade && `${grade.course_id} · ${grade.title}`}
         closeLabel={t("action.close")}
         onClose={onClose}
       />
 
-      {loading && <p className="mt-4 text-sm text-subtle">…</p>}
+      {loading && <p className="mt-4 text-sm text-subtle">{t("stats.loading")}</p>}
       {error instanceof ApiError && (
         <p role="alert" className="mt-4 text-sm text-fail">
           {t(`error.${error.code}` as "error.unknown")}

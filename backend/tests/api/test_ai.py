@@ -115,6 +115,21 @@ def test_a_student_cannot_map_an_import(as_student: TestClient) -> None:
     assert response.status_code == 403
 
 
+def test_only_admins_can_map_an_import(
+    as_teacher: TestClient, as_admin: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A teacher cannot plan an admin-only import, while an admin can."""
+    payload = {"column_mapping": {"student_id": "Student"}, "issues": [], "confidence": "high"}
+    _install(monkeypatch, _text(json.dumps(payload)))
+
+    denied = as_teacher.post("/ai/import-map", json={"headers": ["Student"], "samples": [["S001"]]})
+    allowed = as_admin.post("/ai/import-map", json={"headers": ["Student"], "samples": [["S001"]]})
+
+    assert denied.status_code == 403
+    assert allowed.status_code == 200
+    assert allowed.json() == payload
+
+
 # ── Ask ──────────────────────────────────────────────────────────────────────
 
 
@@ -368,6 +383,38 @@ def test_an_unknown_entity_type_is_rejected(
     _install(monkeypatch, _text(_insight_json()))
 
     assert as_admin.get("/ai/insight/teacher/1").status_code == 422
+
+
+def test_malformed_insight_is_logged_as_an_error(
+    as_admin: TestClient, as_superadmin: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Unreadable structured output is a failed call, not a successful empty insight."""
+    _install(monkeypatch, _text("{not-json"))
+
+    response = as_admin.get("/ai/insight/course/CS101")
+    usage = as_superadmin.get("/admin/ai/usage").json()
+
+    assert response.status_code == 502
+    assert response.json()["code"] == "AI_BAD_OUTPUT"
+    assert len(usage) == 1
+    assert usage[0]["feature"] == "insight"
+    assert usage[0]["errors"] == 1
+
+
+def test_malformed_import_map_is_logged_as_an_error(
+    as_admin: TestClient, as_superadmin: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Unreadable mapping output must not count as a successful provider call."""
+    _install(monkeypatch, _text("{not-json"))
+
+    response = as_admin.post("/ai/import-map", json={"headers": ["Student"], "samples": [["S001"]]})
+    usage = as_superadmin.get("/admin/ai/usage").json()
+
+    assert response.status_code == 502
+    assert response.json()["code"] == "AI_BAD_OUTPUT"
+    assert len(usage) == 1
+    assert usage[0]["feature"] == "import"
+    assert usage[0]["errors"] == 1
 
 
 # ── Usage accounting ─────────────────────────────────────────────────────────

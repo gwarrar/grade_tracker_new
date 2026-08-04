@@ -4734,6 +4734,78 @@
             }
           },
           {
+            "description": "Minimum score, inclusive.",
+            "in": "query",
+            "name": "min_score",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Minimum score, inclusive.",
+              "title": "Min Score"
+            }
+          },
+          {
+            "description": "Maximum score, inclusive.",
+            "in": "query",
+            "name": "max_score",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Maximum score, inclusive.",
+              "title": "Max Score"
+            }
+          },
+          {
+            "description": "Minimum percentage, inclusive.",
+            "in": "query",
+            "name": "min_percentage",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Minimum percentage, inclusive.",
+              "title": "Min Percentage"
+            }
+          },
+          {
+            "description": "Maximum percentage, inclusive.",
+            "in": "query",
+            "name": "max_percentage",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Maximum percentage, inclusive.",
+              "title": "Max Percentage"
+            }
+          },
+          {
             "description": "Earliest date, ISO `YYYY-MM-DD`, inclusive.",
             "in": "query",
             "name": "date_from",

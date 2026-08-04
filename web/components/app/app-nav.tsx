@@ -15,19 +15,8 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { LocaleSwitcher } from "@/components/ui/locale-switcher";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { api } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/app-routes";
 import { atLeast, type Me } from "@/lib/session";
-
-// Only routes that exist. A nav that lists /reports before /reports is built is a
-// link straight to a 404 — worse than the feature being absent, because it reads
-// as broken rather than as not-yet-there. Restored as each page lands.
-const LINKS = [
-  { href: "/dashboard", key: "dashboard", min: "student" },
-  { href: "/students", key: "students", min: "student" },
-  { href: "/courses", key: "courses", min: "student" },
-  { href: "/grades", key: "grades", min: "student" },
-  { href: "/reports", key: "reports", min: "teacher" },
-  { href: "/admin/users", key: "admin", min: "admin" },
-] as const;
 
 export function AppNav({ me }: { me: Me }) {
   const t = useTranslations();
@@ -47,7 +36,7 @@ export function AppNav({ me }: { me: Me }) {
     },
   });
 
-  const visible = LINKS.filter((link) => atLeast(me.role, link.min));
+  const visible = APP_ROUTES.filter((link) => link.nav && atLeast(me.role, link.min));
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur-md">

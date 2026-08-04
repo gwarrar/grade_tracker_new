@@ -463,6 +463,7 @@ def _single_turn(
         The reply, in the same shape the agent loop returns.
     """
     reply = provider.chat([Message(role=Role.USER, content=prompt)], system=system, schema=schema)
+    _decode(reply.text)
     return AgentResult(
         text=reply.text,
         usage=reply.usage,
