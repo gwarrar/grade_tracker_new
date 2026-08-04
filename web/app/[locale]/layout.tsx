@@ -18,7 +18,7 @@ import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { BrandingStyle, getBranding } from "@/components/branding/branding";
+import { assetUrl, BrandingStyle, getBranding } from "@/components/branding/branding";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { COOKIE, normalise } from "@/components/theme/theme";
 import { routing } from "@/i18n/routing";
@@ -58,7 +58,7 @@ export async function generateMetadata({
   return {
     title: { default: t("name"), template: `%s · ${branding.short_name || t("name")}` },
     description: t("tagline"),
-    icons: branding.favicon_path ? { icon: branding.favicon_path } : undefined,
+    icons: branding.favicon_path ? { icon: assetUrl(branding.favicon_path) } : undefined,
   };
 }
 

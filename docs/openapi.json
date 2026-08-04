@@ -150,6 +150,159 @@
         "title": "AuditEntryResponse",
         "type": "object"
       },
+      "Body_replace_asset_org_assets__kind__post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "description": "PNG, JPEG, WebP or icon image.",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_replace_asset_org_assets__kind__post",
+        "type": "object"
+      },
+      "BrandColors": {
+        "description": "Brand colours for both display modes.",
+        "properties": {
+          "dark": {
+            "title": "Dark",
+            "type": "string"
+          },
+          "light": {
+            "title": "Light",
+            "type": "string"
+          }
+        },
+        "required": [
+          "light",
+          "dark"
+        ],
+        "title": "BrandColors",
+        "type": "object"
+      },
+      "BrandingPatch": {
+        "description": "Brand, locale and display settings to change.",
+        "properties": {
+          "color_accent_dark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Accent Dark"
+          },
+          "color_accent_light": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Accent Light"
+          },
+          "color_primary_dark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Primary Dark"
+          },
+          "color_primary_light": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Primary Light"
+          },
+          "default_locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Locale"
+          },
+          "default_theme": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Theme"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enabled_locales": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled Locales"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "short_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Name"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          }
+        },
+        "title": "BrandingPatch",
+        "type": "object"
+      },
       "CommandRequest": {
         "description": "An instruction for the command palette.",
         "properties": {
@@ -1105,6 +1258,44 @@
         "title": "Feature",
         "type": "string"
       },
+      "GradeBandRequest": {
+        "description": "One replacement grading band.",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "min_percentage": {
+            "title": "Min Percentage",
+            "type": "number"
+          }
+        },
+        "required": [
+          "min_percentage",
+          "label"
+        ],
+        "title": "GradeBandRequest",
+        "type": "object"
+      },
+      "GradeBandResponse": {
+        "description": "One configured grading band.",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "min_percentage": {
+            "title": "Min Percentage",
+            "type": "number"
+          }
+        },
+        "required": [
+          "min_percentage",
+          "label"
+        ],
+        "title": "GradeBandResponse",
+        "type": "object"
+      },
       "GradeCreateRequest": {
         "description": "A new grade.",
         "properties": {
@@ -1649,6 +1840,112 @@
           "code"
         ],
         "title": "MessageResponse",
+        "type": "object"
+      },
+      "OrganizationColors": {
+        "description": "Primary and accent colour pairs.",
+        "properties": {
+          "accent": {
+            "$ref": "#/components/schemas/BrandColors"
+          },
+          "primary": {
+            "$ref": "#/components/schemas/BrandColors"
+          }
+        },
+        "required": [
+          "primary",
+          "accent"
+        ],
+        "title": "OrganizationColors",
+        "type": "object"
+      },
+      "OrganizationResponse": {
+        "description": "The public organisation configuration after a write.",
+        "properties": {
+          "colors": {
+            "$ref": "#/components/schemas/OrganizationColors"
+          },
+          "default_locale": {
+            "title": "Default Locale",
+            "type": "string"
+          },
+          "default_theme": {
+            "$ref": "#/components/schemas/Theme"
+          },
+          "enabled_locales": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Enabled Locales",
+            "type": "array"
+          },
+          "favicon_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Favicon Path"
+          },
+          "grading_scale": {
+            "items": {
+              "$ref": "#/components/schemas/GradeBandResponse"
+            },
+            "title": "Grading Scale",
+            "type": "array"
+          },
+          "logo_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Path"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "short_name": {
+            "title": "Short Name",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "name",
+          "short_name",
+          "logo_path",
+          "favicon_path",
+          "colors",
+          "default_locale",
+          "enabled_locales",
+          "default_theme",
+          "timezone",
+          "grading_scale",
+          "updated_at"
+        ],
+        "title": "OrganizationResponse",
         "type": "object"
       },
       "OverrideRequest": {
@@ -2922,6 +3219,16 @@
         ],
         "title": "TestResponse",
         "type": "object"
+      },
+      "Theme": {
+        "description": "A user's colour-scheme preference.\n\n``SYSTEM`` follows the operating system and is the default: it is the only value\nthat is correct both at midday and at midnight without the user intervening.",
+        "enum": [
+          "light",
+          "dark",
+          "system"
+        ],
+        "title": "Theme",
+        "type": "string"
       },
       "ToolRecordResponse": {
         "description": "One tool call the assistant made.",
@@ -5161,6 +5468,120 @@
         ]
       }
     },
+    "/org/assets/{kind}": {
+      "delete": {
+        "description": "Clear a logo or favicon and return the updated organisation.",
+        "operationId": "delete_asset_org_assets__kind__delete",
+        "parameters": [
+          {
+            "description": "Asset to replace or clear.",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "description": "Asset to replace or clear.",
+              "enum": [
+                "logo",
+                "favicon"
+              ],
+              "examples": [
+                "logo"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — superadmins only."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restore the organisation wordmark",
+        "tags": [
+          "Organisation"
+        ]
+      },
+      "post": {
+        "description": "Validate and store a logo or favicon under a fixed name.",
+        "operationId": "replace_asset_org_assets__kind__post",
+        "parameters": [
+          {
+            "description": "Asset to replace or clear.",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "description": "Asset to replace or clear.",
+              "enum": [
+                "logo",
+                "favicon"
+              ],
+              "examples": [
+                "logo"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_replace_asset_org_assets__kind__post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — superadmins only."
+          },
+          "413": {
+            "description": "`PAYLOAD_TOO_LARGE` — above the configured limit."
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — unsupported image type."
+          }
+        },
+        "summary": "Upload an organisation asset",
+        "tags": [
+          "Organisation"
+        ]
+      }
+    },
     "/org/branding": {
       "get": {
         "description": "**Public** — the sign-in page needs the logo and colours before anyone has signed in.\n\nColours carry a `light` and a `dark` variant. The client injects them as CSS custom properties, so re-theming needs no rebuild; two variants because a colour legible on white is frequently illegible on near-black.\n\nAlso carries the enabled locales, the default theme, and the grading scale — the A/B/C/D/F bands are configuration, not code.",
@@ -5180,6 +5601,84 @@
           }
         },
         "summary": "Organisation branding and configuration",
+        "tags": [
+          "Organisation"
+        ]
+      },
+      "patch": {
+        "description": "Merge supplied branding fields into the organisation.",
+        "operationId": "update_branding_org_branding_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandingPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — superadmins only."
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — invalid branding configuration."
+          }
+        },
+        "summary": "Change organisation branding",
+        "tags": [
+          "Organisation"
+        ]
+      }
+    },
+    "/org/grading-scale": {
+      "put": {
+        "description": "Replace all grading bands as one audited decision.",
+        "operationId": "replace_grading_scale_org_grading_scale_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/GradeBandRequest"
+                },
+                "title": "Body",
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — superadmins only."
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — invalid grading scale."
+          }
+        },
+        "summary": "Replace the grading scale",
         "tags": [
           "Organisation"
         ]

@@ -11,6 +11,7 @@ bands live in a value object that an organisation can configure.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from notenverwaltung.exceptions import ValidationError
@@ -27,6 +28,24 @@ class GradeBand:
 
     min_percentage: float
     label: str
+
+    def __post_init__(self) -> None:
+        """Validate and normalise one displayed grade band.
+
+        Raises:
+            ValidationError: If the threshold is outside a finite percentage range
+                or the displayed label is blank.
+        """
+        if not math.isfinite(self.min_percentage) or not 0 <= self.min_percentage <= 100:
+            raise ValidationError(
+                "A grading threshold must be a finite percentage from 0 to 100.",
+                field="min_percentage",
+                value=self.min_percentage,
+            )
+        label = self.label.strip()
+        if not label:
+            raise ValidationError("A grading band label cannot be blank.", field="label")
+        object.__setattr__(self, "label", label)
 
 
 @dataclass(frozen=True)
@@ -53,13 +72,16 @@ class GradingScale:
             raise ValidationError("A grading scale needs at least one band.")
 
         thresholds = [b.min_percentage for b in self.bands]
+        if len(thresholds) != len(set(thresholds)):
+            raise ValidationError("Grading scale thresholds must be unique.", thresholds=thresholds)
+
         if thresholds != sorted(thresholds, reverse=True):
             raise ValidationError(
                 "Grading scale bands must be ordered from highest to lowest threshold.",
                 thresholds=thresholds,
             )
 
-        if self.bands[-1].min_percentage > 0:
+        if self.bands[-1].min_percentage != 0:
             raise ValidationError(
                 "The lowest band must start at 0, otherwise some scores have no label.",
                 lowest=self.bands[-1].min_percentage,
@@ -98,13 +120,20 @@ class GradingScale:
             ValidationError: If a band is missing a key or has a non-numeric threshold.
         """
         try:
-            bands = tuple(
-                GradeBand(min_percentage=float(b["min_percentage"]), label=str(b["label"]))  # type: ignore[arg-type]
-                for b in data
-            )
+            parsed: list[GradeBand] = []
+            for band in data:
+                label = band["label"]
+                if not isinstance(label, str):
+                    raise TypeError("grading band labels must be text")
+                parsed.append(
+                    GradeBand(
+                        min_percentage=float(band["min_percentage"]),  # type: ignore[arg-type]
+                        label=label,
+                    )
+                )
         except (KeyError, TypeError, ValueError) as exc:
             raise ValidationError(f"Malformed grading scale: {exc}") from exc
-        return cls(bands=bands)
+        return cls(bands=tuple(parsed))
 
 
 DEFAULT_SCALE = GradingScale(

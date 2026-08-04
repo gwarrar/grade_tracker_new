@@ -12,10 +12,22 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from api.config import get_settings
 from api.problems import register_handlers
-from api.routers import admin_ai, ai, auth, directory, grades, localization, profile, reports, users
+from api.routers import (
+    admin_ai,
+    ai,
+    auth,
+    directory,
+    grades,
+    localization,
+    organization,
+    profile,
+    reports,
+    users,
+)
 from notenverwaltung import __version__
 from notenverwaltung.storage import apply_migrations, connect
 from services.ai_admin import AiAdminService
@@ -69,6 +81,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
     """
     settings = get_settings()
     settings.database_file.parent.mkdir(parents=True, exist_ok=True)
+    settings.upload_path.mkdir(parents=True, exist_ok=True)
     conn = connect(settings.database_file)
     try:
         apply_migrations(conn)
@@ -137,6 +150,12 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.mount(
+        "/uploads",
+        StaticFiles(directory=settings.upload_path, check_dir=False),
+        name="uploads",
+    )
+
     # Scoped to this application, not the process -- see api.deps.get_throttle.
     app.state.login_throttle = LoginThrottle(
         settings.login_max_attempts, settings.login_lockout_minutes
@@ -151,6 +170,7 @@ def create_app() -> FastAPI:
     app.include_router(reports.reports_router)
     app.include_router(reports.analytics_router)
     app.include_router(reports.org_router)
+    app.include_router(organization.router)
     app.include_router(localization.router)
     app.include_router(ai.router)
     app.include_router(admin_ai.router)

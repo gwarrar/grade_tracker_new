@@ -47,6 +47,13 @@ class ValidationError(GradeBookError):
     http_status = 422
 
 
+class PayloadTooLargeError(GradeBookError):
+    """Raised when an uploaded payload exceeds its configured ceiling."""
+
+    code = "PAYLOAD_TOO_LARGE"
+    http_status = 413
+
+
 class StudentNotFoundError(GradeBookError):
     """Raised when no student matches the requested identifier."""
 

@@ -51,6 +51,7 @@ interface RequestOptions {
  */
 export async function api<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = "GET", body, query, signal } = options;
+  const multipart = typeof FormData !== "undefined" && body instanceof FormData;
 
   const url = new URL(path, API_BASE);
   for (const [key, value] of Object.entries(query ?? {})) {
@@ -63,8 +64,8 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
     method,
     credentials: "include",
     signal,
-    headers: body ? { "content-type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
+    headers: body !== undefined && !multipart ? { "content-type": "application/json" } : undefined,
+    body: body === undefined ? undefined : multipart ? body : JSON.stringify(body),
   });
 
   if (response.status === 204) return undefined as T;

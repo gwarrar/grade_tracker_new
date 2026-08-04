@@ -108,6 +108,7 @@ def app(db_path: Path, seeded_db: sqlite3.Connection) -> Generator[FastAPI]:
         database_path=str(db_path),
         secret_key="test-secret-key-not-used-in-production",
         cors_origins="http://localhost:3000",
+        upload_dir=str(db_path.parent / "uploads"),
     )
 
     application = create_app()

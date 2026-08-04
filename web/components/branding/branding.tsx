@@ -28,6 +28,7 @@ export interface Branding {
   default_theme: string;
   timezone: string;
   grading_scale: { min_percentage: number; label: string }[];
+  updated_at: string | null;
 }
 
 const FALLBACK: Branding = {
@@ -50,7 +51,13 @@ const FALLBACK: Branding = {
     { min_percentage: 60, label: "D" },
     { min_percentage: 0, label: "F" },
   ],
+  updated_at: null,
 };
+
+/** Resolve an API-served asset for the separately hosted web application. */
+export function assetUrl(path: string): string {
+  return new URL(path, API_BASE).href;
+}
 
 /**
  * Fetch the organisation's public configuration.

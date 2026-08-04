@@ -167,7 +167,8 @@ class Organization:
         try:
             enabled = tuple(json.loads(row["enabled_locales_json"]))
             scale = GradingScale.from_list(json.loads(row["grading_scale_json"]))
-        except (json.JSONDecodeError, TypeError) as exc:
+            theme = Theme(row["default_theme"])
+        except (json.JSONDecodeError, TypeError, ValueError) as exc:
             raise ValidationError(f"Malformed organisation configuration: {exc}") from exc
 
         return cls(
@@ -179,7 +180,7 @@ class Organization:
             accent=BrandColor(row["color_accent_light"], row["color_accent_dark"]),
             default_locale=row["default_locale"],
             enabled_locales=enabled,
-            default_theme=Theme(row["default_theme"]),
+            default_theme=theme,
             timezone=row["timezone"],
             grading_scale=scale,
             updated_at=row["updated_at"],

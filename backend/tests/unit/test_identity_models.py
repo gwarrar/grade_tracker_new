@@ -184,3 +184,12 @@ class TestOrganization:
         assert org.name == "Grade Tracker"
         assert org.grading_scale == DEFAULT_SCALE
         assert org.enabled_locales == ("en", "de", "fr")
+
+    def test_from_row_wraps_an_invalid_theme_as_validation_error(
+        self, sqlite_conn: sqlite3.Connection
+    ) -> None:
+        row = dict(sqlite_conn.execute("SELECT * FROM organization WHERE id = 1").fetchone())
+        row["default_theme"] = "broken"
+
+        with pytest.raises(ValidationError):
+            Organization.from_row(row)

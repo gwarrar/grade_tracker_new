@@ -691,6 +691,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/org/assets/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload an organisation asset
+         * @description Validate and store a logo or favicon under a fixed name.
+         */
+        post: operations["replace_asset_org_assets__kind__post"];
+        /**
+         * Restore the organisation wordmark
+         * @description Clear a logo or favicon and return the updated organisation.
+         */
+        delete: operations["delete_asset_org_assets__kind__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/org/branding": {
         parameters: {
             query?: never;
@@ -708,6 +732,30 @@ export interface paths {
          */
         get: operations["branding_org_branding_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change organisation branding
+         * @description Merge supplied branding fields into the organisation.
+         */
+        patch: operations["update_branding_org_branding_patch"];
+        trace?: never;
+    };
+    "/org/grading-scale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the grading scale
+         * @description Replace all grading bands as one audited decision.
+         */
+        put: operations["replace_grading_scale_org_grading_scale_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1137,6 +1185,49 @@ export interface components {
             } | null;
             /** Id */
             id: number;
+        };
+        /** Body_replace_asset_org_assets__kind__post */
+        Body_replace_asset_org_assets__kind__post: {
+            /**
+             * File
+             * @description PNG, JPEG, WebP or icon image.
+             */
+            file: string;
+        };
+        /**
+         * BrandColors
+         * @description Brand colours for both display modes.
+         */
+        BrandColors: {
+            /** Dark */
+            dark: string;
+            /** Light */
+            light: string;
+        };
+        /**
+         * BrandingPatch
+         * @description Brand, locale and display settings to change.
+         */
+        BrandingPatch: {
+            /** Color Accent Dark */
+            color_accent_dark?: string | null;
+            /** Color Accent Light */
+            color_accent_light?: string | null;
+            /** Color Primary Dark */
+            color_primary_dark?: string | null;
+            /** Color Primary Light */
+            color_primary_light?: string | null;
+            /** Default Locale */
+            default_locale?: string | null;
+            default_theme?: components["schemas"]["Theme"] | null;
+            /** Enabled Locales */
+            enabled_locales?: string[] | null;
+            /** Name */
+            name?: string | null;
+            /** Short Name */
+            short_name?: string | null;
+            /** Timezone */
+            timezone?: string | null;
         };
         /**
          * CommandRequest
@@ -1574,6 +1665,26 @@ export interface components {
          */
         Feature: "ask" | "insight" | "command" | "import";
         /**
+         * GradeBandRequest
+         * @description One replacement grading band.
+         */
+        GradeBandRequest: {
+            /** Label */
+            label: string;
+            /** Min Percentage */
+            min_percentage: number;
+        };
+        /**
+         * GradeBandResponse
+         * @description One configured grading band.
+         */
+        GradeBandResponse: {
+            /** Label */
+            label: string;
+            /** Min Percentage */
+            min_percentage: number;
+        };
+        /**
          * GradeCreateRequest
          * @description A new grade.
          */
@@ -1867,6 +1978,40 @@ export interface components {
              * @description Affected rows, where relevant.
              */
             count?: number | null;
+        };
+        /**
+         * OrganizationColors
+         * @description Primary and accent colour pairs.
+         */
+        OrganizationColors: {
+            accent: components["schemas"]["BrandColors"];
+            primary: components["schemas"]["BrandColors"];
+        };
+        /**
+         * OrganizationResponse
+         * @description The public organisation configuration after a write.
+         */
+        OrganizationResponse: {
+            colors: components["schemas"]["OrganizationColors"];
+            /** Default Locale */
+            default_locale: string;
+            default_theme: components["schemas"]["Theme"];
+            /** Enabled Locales */
+            enabled_locales: string[];
+            /** Favicon Path */
+            favicon_path: string | null;
+            /** Grading Scale */
+            grading_scale: components["schemas"]["GradeBandResponse"][];
+            /** Logo Path */
+            logo_path: string | null;
+            /** Name */
+            name: string;
+            /** Short Name */
+            short_name: string;
+            /** Timezone */
+            timezone: string;
+            /** Updated At */
+            updated_at: string | null;
         };
         /**
          * OverrideRequest
@@ -2529,6 +2674,15 @@ export interface components {
             /** Ok */
             ok: boolean;
         };
+        /**
+         * Theme
+         * @description A user's colour-scheme preference.
+         *
+         *     ``SYSTEM`` follows the operating system and is the default: it is the only value
+         *     that is correct both at midday and at midnight without the user intervening.
+         * @enum {string}
+         */
+        Theme: "light" | "dark" | "system";
         /**
          * ToolRecordResponse
          * @description One tool call the assistant made.
@@ -4013,6 +4167,93 @@ export interface operations {
             };
         };
     };
+    replace_asset_org_assets__kind__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Asset to replace or clear. */
+                kind: "logo" | "favicon";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_replace_asset_org_assets__kind__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — superadmins only. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `PAYLOAD_TOO_LARGE` — above the configured limit. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `VALIDATION_ERROR` — unsupported image type. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_asset_org_assets__kind__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Asset to replace or clear. */
+                kind: "logo" | "favicon";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — superadmins only. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     branding_org_branding_get: {
         parameters: {
             query?: never;
@@ -4032,6 +4273,82 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+        };
+    };
+    update_branding_org_branding_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandingPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — superadmins only. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `VALIDATION_ERROR` — invalid branding configuration. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    replace_grading_scale_org_grading_scale_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GradeBandRequest"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — superadmins only. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `VALIDATION_ERROR` — invalid grading scale. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
