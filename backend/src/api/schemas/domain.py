@@ -321,6 +321,17 @@ class AuditEntryResponse(BaseModel):
     after: dict[str, Any] | None = Field(default=None, description="State after the change.")
 
 
+class AuditFeedEntryResponse(AuditEntryResponse):
+    """One entry in the institution-wide activity feed.
+
+    Adds the entity reference, which the per-entity history omits because the caller
+    already named the entity.
+    """
+
+    entity: str = Field(description="What kind of thing changed, e.g. `grade`.")
+    entity_id: str = Field(description="Which one.")
+
+
 # ── Analytics ────────────────────────────────────────────────────────────────
 class DashboardResponse(BaseModel):
     """Headline numbers, scoped to the caller.

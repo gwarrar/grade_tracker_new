@@ -150,6 +150,94 @@
         "title": "AuditEntryResponse",
         "type": "object"
       },
+      "AuditFeedEntryResponse": {
+        "description": "One entry in the institution-wide activity feed.\n\nAdds the entity reference, which the per-entity history omits because the caller\nalready named the entity.",
+        "properties": {
+          "action": {
+            "description": "`create`, `update` or `delete`.",
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Their name, or null if the account was deleted. The entry survives it.",
+            "title": "Actor Name"
+          },
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who made the change.",
+            "title": "Actor User Id"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "State after the change.",
+            "title": "After"
+          },
+          "at": {
+            "description": "ISO-8601 UTC.",
+            "title": "At",
+            "type": "string"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "State before the change.",
+            "title": "Before"
+          },
+          "entity": {
+            "description": "What kind of thing changed, e.g. `grade`.",
+            "title": "Entity",
+            "type": "string"
+          },
+          "entity_id": {
+            "description": "Which one.",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "at",
+          "entity",
+          "entity_id"
+        ],
+        "title": "AuditFeedEntryResponse",
+        "type": "object"
+      },
       "Body_replace_asset_org_assets__kind__post": {
         "properties": {
           "file": {
@@ -2101,6 +2189,47 @@
           "value"
         ],
         "title": "OverrideResponse",
+        "type": "object"
+      },
+      "PageResponse_AuditFeedEntryResponse_": {
+        "properties": {
+          "items": {
+            "description": "The rows on this page.",
+            "items": {
+              "$ref": "#/components/schemas/AuditFeedEntryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "description": "The 1-based page number returned.",
+            "title": "Page",
+            "type": "integer"
+          },
+          "pages": {
+            "description": "Total number of pages.",
+            "title": "Pages",
+            "type": "integer"
+          },
+          "size": {
+            "description": "Rows per page.",
+            "title": "Size",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Rows matching the query overall, ignoring paging.",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages"
+        ],
+        "title": "PageResponse[AuditFeedEntryResponse]",
         "type": "object"
       },
       "PageResponse_CourseResponse_": {
@@ -4443,6 +4572,215 @@
         "summary": "Highest-averaging students",
         "tags": [
           "Analytics"
+        ]
+      }
+    },
+    "/audit": {
+      "get": {
+        "description": "Every recorded change across the institution, most recent first, filtered and paginated. The trail is append-only: entries can neither be altered nor removed, so this feed is a record of what happened, not of what someone remembers.",
+        "operationId": "audit_feed_audit_get",
+        "parameters": [
+          {
+            "description": "Only changes made by this account.",
+            "in": "query",
+            "name": "actor_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only changes made by this account.",
+              "title": "Actor User Id"
+            }
+          },
+          {
+            "description": "Only this kind of thing, e.g. `grade`.",
+            "in": "query",
+            "name": "entity",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this kind of thing, e.g. `grade`.",
+              "title": "Entity"
+            }
+          },
+          {
+            "description": "`create`, `update` or `delete`.",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`create`, `update` or `delete`.",
+              "title": "Action"
+            }
+          },
+          {
+            "description": "Earliest day, ISO `YYYY-MM-DD`, inclusive.",
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Earliest day, ISO `YYYY-MM-DD`, inclusive.",
+              "title": "Date From"
+            }
+          },
+          {
+            "description": "Latest day, ISO `YYYY-MM-DD`, inclusive.",
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Latest day, ISO `YYYY-MM-DD`, inclusive.",
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponse_AuditFeedEntryResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — administrators and above only."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Activity feed",
+        "tags": [
+          "Audit"
+        ]
+      }
+    },
+    "/audit/{entity}/{entity_id}": {
+      "get": {
+        "description": "The full trail for one entity, most recent first. Unlike the grade-scoped history endpoint, this one is admin-only and answers for any entity kind.",
+        "operationId": "entity_history_audit__entity___entity_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entity",
+            "required": true,
+            "schema": {
+              "title": "Entity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entity_id",
+            "required": true,
+            "schema": {
+              "title": "Entity Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEntryResponse"
+                  },
+                  "title": "Response Entity History Audit  Entity   Entity Id  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — administrators and above only."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "One entity's change history",
+        "tags": [
+          "Audit"
         ]
       }
     },
@@ -7000,6 +7338,10 @@
     {
       "description": "Recording, amending and retiring marks.",
       "name": "Grades"
+    },
+    {
+      "description": "Reading the append-only trail of recorded changes. Writing is done by the use cases themselves, never through this API.",
+      "name": "Audit"
     },
     {
       "description": "Scoped remarks on student records and courses. There is deliberately no edit: a wrong note is deleted and reposted.",

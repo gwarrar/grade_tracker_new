@@ -435,6 +435,10 @@
       "copied": "Copié",
       "copy": "Copier",
       "linkedStudent": "Fiche étudiant"
+    },
+    "audit": {
+      "title": "Activité",
+      "intro": "Chaque modification d’un enregistrement, et son auteur. Ce journal est en ajout seul."
     }
   },
   "assistant": {
@@ -482,5 +486,10 @@
     "graded": "Étudiants évalués",
     "threshold": "Seuil de difficulté",
     "hint": "Les chiffres viennent de l’API ; la formulation est produite ici, pour qu’un rapport se lise dans votre langue sans que le serveur conserve un lexique."
+  },
+  "audit": {
+    "actionLabel": "Action",
+    "entityLabel": "Enregistrement",
+    "system": "Système"
   }
 }

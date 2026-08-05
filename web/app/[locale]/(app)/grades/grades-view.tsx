@@ -20,6 +20,7 @@ import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { AssistantPanel } from "@/components/app/assistant";
+import { AuditEntryLine } from "@/components/app/audit";
 import { Field, FormError, Input, PanelHeader, Select, Textarea } from "@/components/app/detail-fields";
 import { MasterDetail } from "@/components/app/master-detail";
 import { Pager } from "@/components/app/pager";
@@ -36,6 +37,7 @@ type Grade = Response<"/grades/{grade_id}", "get">;
 type Page = Response<"/grades", "get">;
 type Courses = Response<"/courses", "get">;
 type Register = Response<"/courses/{course_id}/enrollments", "get">;
+type History = Response<"/grades/{grade_id}/history", "get">;
 type GradeCreate = paths["/grades"]["post"]["requestBody"]["content"]["application/json"];
 
 const PAGE_SIZE = 50;
@@ -141,6 +143,7 @@ export function GradesView({
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ["grades"] }),
       queryClient.invalidateQueries({ queryKey: ["grade"] }),
+      queryClient.invalidateQueries({ queryKey: ["grade-history"] }),
       queryClient.invalidateQueries({ queryKey: ["reports"] }),
       queryClient.invalidateQueries({ queryKey: ["report"] }),
       queryClient.invalidateQueries({ queryKey: ["students"] }),
@@ -743,6 +746,14 @@ function GradeDetail({
     },
   });
 
+  // The trail for this grade. Read-only by construction: an append-only log gets
+  // no write controls, only the record of what happened to this mark.
+  const history = useQuery({
+    queryKey: ["grade-history", gradeId],
+    queryFn: () => api<History>(`/grades/${gradeId}/history`),
+    enabled: Boolean(grade),
+  });
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -834,6 +845,28 @@ function GradeDetail({
               </button>
             </div>
           )}
+
+          <details className="mt-6 rounded-lg border border-line bg-bg px-4 py-2">
+            <summary className="cursor-pointer py-1 text-sm font-medium text-text outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
+              {t("audit.history")}
+            </summary>
+            {history.isPending && <p className="pb-2 text-sm text-subtle">{t("stats.loading")}</p>}
+            {history.error instanceof ApiError && (
+              <p role="alert" className="pb-2 text-sm text-fail">
+                {t(`error.${history.error.code}` as "error.unknown")}
+              </p>
+            )}
+            {history.isSuccess && history.data.length === 0 && (
+              <p className="pb-2 text-sm text-subtle">{t("audit.empty")}</p>
+            )}
+            {history.isSuccess && history.data.length > 0 && (
+              <ul className="pb-2">
+                {history.data.map((entry) => (
+                  <AuditEntryLine key={entry.id} entry={entry} locale={locale} />
+                ))}
+              </ul>
+            )}
+          </details>
         </>
       )}
 

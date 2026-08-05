@@ -428,6 +428,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Activity feed
+         * @description Every recorded change across the institution, most recent first, filtered and paginated. The trail is append-only: entries can neither be altered nor removed, so this feed is a record of what happened, not of what someone remembers.
+         */
+        get: operations["audit_feed_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/{entity}/{entity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One entity's change history
+         * @description The full trail for one entity, most recent first. Unlike the grade-scoped history endpoint, this one is admin-only and answers for any entity kind.
+         */
+        get: operations["entity_history_audit__entity___entity_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -1255,6 +1295,61 @@ export interface components {
             before?: {
                 [key: string]: unknown;
             } | null;
+            /** Id */
+            id: number;
+        };
+        /**
+         * AuditFeedEntryResponse
+         * @description One entry in the institution-wide activity feed.
+         *
+         *     Adds the entity reference, which the per-entity history omits because the caller
+         *     already named the entity.
+         */
+        AuditFeedEntryResponse: {
+            /**
+             * Action
+             * @description `create`, `update` or `delete`.
+             */
+            action: string;
+            /**
+             * Actor Name
+             * @description Their name, or null if the account was deleted. The entry survives it.
+             */
+            actor_name?: string | null;
+            /**
+             * Actor User Id
+             * @description Who made the change.
+             */
+            actor_user_id?: number | null;
+            /**
+             * After
+             * @description State after the change.
+             */
+            after?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * At
+             * @description ISO-8601 UTC.
+             */
+            at: string;
+            /**
+             * Before
+             * @description State before the change.
+             */
+            before?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Entity
+             * @description What kind of thing changed, e.g. `grade`.
+             */
+            entity: string;
+            /**
+             * Entity Id
+             * @description Which one.
+             */
+            entity_id: string;
             /** Id */
             id: number;
         };
@@ -2176,6 +2271,34 @@ export interface components {
             locale: string;
             /** Value */
             value: string;
+        };
+        /** PageResponse[AuditFeedEntryResponse] */
+        PageResponse_AuditFeedEntryResponse_: {
+            /**
+             * Items
+             * @description The rows on this page.
+             */
+            items: components["schemas"]["AuditFeedEntryResponse"][];
+            /**
+             * Page
+             * @description The 1-based page number returned.
+             */
+            page: number;
+            /**
+             * Pages
+             * @description Total number of pages.
+             */
+            pages: number;
+            /**
+             * Size
+             * @description Rows per page.
+             */
+            size: number;
+            /**
+             * Total
+             * @description Rows matching the query overall, ignoring paging.
+             */
+            total: number;
         };
         /** PageResponse[CourseResponse] */
         PageResponse_CourseResponse_: {
@@ -3559,6 +3682,94 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RankedStudentResponse"][];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    audit_feed_audit_get: {
+        parameters: {
+            query?: {
+                /** @description Only changes made by this account. */
+                actor_user_id?: number | null;
+                /** @description Only this kind of thing, e.g. `grade`. */
+                entity?: string | null;
+                /** @description `create`, `update` or `delete`. */
+                action?: string | null;
+                /** @description Earliest day, ISO `YYYY-MM-DD`, inclusive. */
+                date_from?: string | null;
+                /** @description Latest day, ISO `YYYY-MM-DD`, inclusive. */
+                date_to?: string | null;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageResponse_AuditFeedEntryResponse_"];
+                };
+            };
+            /** @description `FORBIDDEN` — administrators and above only. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    entity_history_audit__entity___entity_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity: string;
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEntryResponse"][];
+                };
+            };
+            /** @description `FORBIDDEN` — administrators and above only. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -435,6 +435,10 @@
       "copied": "Copied",
       "copy": "Copy",
       "linkedStudent": "Student record"
+    },
+    "audit": {
+      "title": "Activity",
+      "intro": "Every change to a record, and who made it. This log is append-only."
     }
   },
   "assistant": {
@@ -482,5 +486,10 @@
     "graded": "Graded students",
     "threshold": "At-risk threshold",
     "hint": "Figures come from the API; the wording is rendered here, so a report reads in your language without the server holding a phrasebook."
+  },
+  "audit": {
+    "actionLabel": "Action",
+    "entityLabel": "Record",
+    "system": "System"
   }
 }

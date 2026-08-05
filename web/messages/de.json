@@ -435,6 +435,10 @@
       "copied": "Kopiert",
       "copy": "Kopieren",
       "linkedStudent": "Studierendensatz"
+    },
+    "audit": {
+      "title": "Aktivität",
+      "intro": "Jede Änderung an einem Datensatz und wer sie vorgenommen hat. Dieses Protokoll kann nur ergänzt werden."
     }
   },
   "assistant": {
@@ -482,5 +486,10 @@
     "graded": "Bewertete Studierende",
     "threshold": "Schwelle für Gefährdung",
     "hint": "Die Zahlen liefert die Schnittstelle; die Formulierung entsteht hier, damit ein Bericht in Ihrer Sprache lesbar ist, ohne dass der Server einen Sprachführer vorhält."
+  },
+  "audit": {
+    "actionLabel": "Aktion",
+    "entityLabel": "Datensatz",
+    "system": "System"
   }
 }

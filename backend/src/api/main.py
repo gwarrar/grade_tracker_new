@@ -19,6 +19,7 @@ from api.problems import register_handlers
 from api.routers import (
     admin_ai,
     ai,
+    audit,
     auth,
     directory,
     grades,
@@ -122,6 +123,13 @@ def create_app() -> FastAPI:
             },
             {"name": "Grades", "description": "Recording, amending and retiring marks."},
             {
+                "name": "Audit",
+                "description": (
+                    "Reading the append-only trail of recorded changes. Writing is "
+                    "done by the use cases themselves, never through this API."
+                ),
+            },
+            {
                 "name": "Notes",
                 "description": (
                     "Scoped remarks on student records and courses. There is "
@@ -175,6 +183,7 @@ def create_app() -> FastAPI:
     app.include_router(directory.students_router)
     app.include_router(directory.courses_router)
     app.include_router(grades.router)
+    app.include_router(audit.router)
     app.include_router(notes.router)
     app.include_router(reports.reports_router)
     app.include_router(reports.analytics_router)
