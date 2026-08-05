@@ -20,10 +20,14 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Generator
 from contextlib import contextmanager
+from itertools import count
 from pathlib import Path
 
 MIGRATIONS_DIR = Path(__file__).resolve().parents[3] / "migrations"
 """Repository-level ``backend/migrations`` directory."""
+
+_SAVEPOINTS = count(1)
+"""Monotonically increasing savepoint names, so nesting never reuses a name."""
 
 
 def connect(database: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
@@ -59,23 +63,45 @@ def transaction(conn: sqlite3.Connection) -> Generator[sqlite3.Connection]:
     driver magic. Services wrap each use case in this, which is what makes a write
     and its audit-log entry commit or roll back together.
 
+    The helper is **re-entrant**: when a transaction is already open on ``conn`` —
+    which happens when one use case calls another — the inner block runs inside a
+    SQLite savepoint. The savepoint gives the inner block the same all-or-nothing
+    guarantee at its own level while leaving the outer unit of work intact: rolling
+    it back undoes only the inner writes, and releasing it folds them into the
+    outer transaction.
+
     Args:
         conn: The connection to run against.
 
     Yields:
-        The same connection, inside an open transaction.
+        The same connection, inside an open transaction or savepoint.
 
     Raises:
         Exception: Re-raises anything the block raises, after rolling back.
     """
-    conn.execute("BEGIN")
+    if not conn.in_transaction:
+        conn.execute("BEGIN")
+        try:
+            yield conn
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+        else:
+            conn.execute("COMMIT")
+        return
+
+    name = f"savepoint_{next(_SAVEPOINTS)}"
+    conn.execute(f"SAVEPOINT {name}")
     try:
         yield conn
     except Exception:
-        conn.execute("ROLLBACK")
+        # ROLLBACK TO undoes the inner writes; the savepoint survives it, so a
+        # matching RELEASE follows to close the nesting level.
+        conn.execute(f"ROLLBACK TO SAVEPOINT {name}")
+        conn.execute(f"RELEASE SAVEPOINT {name}")
         raise
     else:
-        conn.execute("COMMIT")
+        conn.execute(f"RELEASE SAVEPOINT {name}")
 
 
 def apply_migrations(conn: sqlite3.Connection, directory: Path | None = None) -> list[str]:

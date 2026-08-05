@@ -54,6 +54,18 @@ class PayloadTooLargeError(GradeBookError):
     http_status = 413
 
 
+class ImportTooManyRowsError(GradeBookError):
+    """Raised when a single import would exceed the row cap.
+
+    The cap exists because SQLite is a single writer: a bulk import large enough to
+    matter would hold the write lock for every other request, and the preview double-
+    reads each row. The path to lifting it is a background job over a staging table.
+    """
+
+    code = "IMPORT_TOO_MANY_ROWS"
+    http_status = 413
+
+
 class StudentNotFoundError(GradeBookError):
     """Raised when no student matches the requested identifier."""
 

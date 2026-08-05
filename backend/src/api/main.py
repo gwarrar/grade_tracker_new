@@ -23,6 +23,7 @@ from api.routers import (
     auth,
     directory,
     grades,
+    importing,
     localization,
     notes,
     organization,
@@ -123,6 +124,14 @@ def create_app() -> FastAPI:
             },
             {"name": "Grades", "description": "Recording, amending and retiring marks."},
             {
+                "name": "Import",
+                "description": (
+                    "Bulk import of students, courses and grades. A preview runs the "
+                    "whole import inside a rolled-back transaction, so the dry run "
+                    "shows per-row error codes without writing anything."
+                ),
+            },
+            {
                 "name": "Audit",
                 "description": (
                     "Reading the append-only trail of recorded changes. Writing is "
@@ -183,6 +192,7 @@ def create_app() -> FastAPI:
     app.include_router(directory.students_router)
     app.include_router(directory.courses_router)
     app.include_router(grades.router)
+    app.include_router(importing.router)
     app.include_router(audit.router)
     app.include_router(notes.router)
     app.include_router(reports.reports_router)

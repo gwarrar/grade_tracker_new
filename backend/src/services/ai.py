@@ -337,7 +337,12 @@ class AiService:
 
         provider = self._registry.resolve(Feature.IMPORT_MAP)
         prompt = (
-            "Gradebook fields: student_id, course_id, title, score, date, notes.\n"
+            "Gradebook fields:\n"
+            "- students: student_id, first_name, last_name, email, is_active, phone,"
+            " date_of_birth, cohort\n"
+            "- courses: course_id, name, max_grade, passing_grade, max_students, term,"
+            " credits, description, room, schedule, department, start_date, end_date\n"
+            "- grades: student_id, course_id, title, score, date, weight, notes\n"
             f"Header row: {json.dumps(headers)}\n"
             # Capped: twenty rows is plenty to disambiguate a column, and a whole
             # file would be both expensive and a needless disclosure.

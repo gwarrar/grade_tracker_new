@@ -238,6 +238,60 @@
         "title": "AuditFeedEntryResponse",
         "type": "object"
       },
+      "Body_import_file_import__kind__post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "description": "CSV, TSV or .xlsx file.",
+            "title": "File",
+            "type": "string"
+          },
+          "mapping": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The column mapping as JSON: gradebook field name to source column name, e.g. `{\"student_id\": \"Matrikelnummer\"}`. Omit to have every row reported as unmapped — the preview also serves as the file inspection step for .xlsx uploads.",
+            "title": "Mapping"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_import_file_import__kind__post",
+        "type": "object"
+      },
+      "Body_preview_import_import__kind__preview_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "description": "CSV, TSV or .xlsx file.",
+            "title": "File",
+            "type": "string"
+          },
+          "mapping": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The column mapping as JSON: gradebook field name to source column name, e.g. `{\"student_id\": \"Matrikelnummer\"}`. Omit to have every row reported as unmapped — the preview also serves as the file inspection step for .xlsx uploads.",
+            "title": "Mapping"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_preview_import_import__kind__preview_post",
+        "type": "object"
+      },
       "Body_replace_asset_org_assets__kind__post": {
         "properties": {
           "file": {
@@ -1826,6 +1880,98 @@
           "confidence"
         ],
         "title": "ImportMapResponse",
+        "type": "object"
+      },
+      "ImportPreviewModel": {
+        "description": "What a preview reveals about the file and its dry run.",
+        "properties": {
+          "headers": {
+            "description": "The file's header row.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Headers",
+            "type": "array"
+          },
+          "kind": {
+            "description": "The import kind requested.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ImportReportModel",
+            "description": "The report the real import would have produced."
+          },
+          "sample_rows": {
+            "description": "A few data rows, for the mapping step before the AI call.",
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Sample Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "headers",
+          "sample_rows",
+          "report"
+        ],
+        "title": "ImportPreviewModel",
+        "type": "object"
+      },
+      "ImportReportModel": {
+        "description": "Outcome of an import, previewed or committed.",
+        "properties": {
+          "errors": {
+            "description": "One entry per rejected row.",
+            "items": {
+              "$ref": "#/components/schemas/ImportRowError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "imported": {
+            "description": "Rows written successfully.",
+            "title": "Imported",
+            "type": "integer"
+          },
+          "skipped": {
+            "description": "Rows rejected.",
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "imported",
+          "skipped",
+          "errors"
+        ],
+        "title": "ImportReportModel",
+        "type": "object"
+      },
+      "ImportRowError": {
+        "description": "One rejected row in an import report.",
+        "properties": {
+          "code": {
+            "description": "Stable error code, e.g. `DUPLICATE_ENTRY`.",
+            "title": "Code",
+            "type": "string"
+          },
+          "line": {
+            "description": "Data row number, the header counting as line 1.",
+            "title": "Line",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "line",
+          "code"
+        ],
+        "title": "ImportRowError",
         "type": "object"
       },
       "InsightResponse": {
@@ -6019,6 +6165,120 @@
         ]
       }
     },
+    "/import/{kind}": {
+      "post": {
+        "description": "Parse the file and write every valid row. The whole batch and its audit entries commit together, so an import that fails halfway leaves nothing behind. Rows that would not survive the same checks a form applies are rejected individually and reported with their line number and error code — one bad row does not cost the rest of the file.\n\nEach successfully imported row produces its own audit entry. Students and courses require the administrator role; grades require a teacher.",
+        "operationId": "import_file_import__kind__post",
+        "parameters": [
+          {
+            "description": "`students`, `courses` or `grades`.",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "description": "`students`, `courses` or `grades`.",
+              "examples": [
+                "grades"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_file_import__kind__post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReportModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — below the kind's minimum role."
+          },
+          "413": {
+            "description": "`PAYLOAD_TOO_LARGE` or `IMPORT_TOO_MANY_ROWS`."
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — unreadable file, unknown kind, or bad mapping."
+          }
+        },
+        "summary": "Import a file",
+        "tags": [
+          "Import"
+        ]
+      }
+    },
+    "/import/{kind}/preview": {
+      "post": {
+        "description": "Parse the file and run the entire import inside a transaction that is then rolled back. The response shows the headers, a few sample rows, and the report a commit would produce — how many rows would land, how many would be rejected, and the line number plus error code of each rejected row. Nothing is written.\n\nSend the file without a mapping to use this as the inspection step for .xlsx uploads: the headers and sample rows come back, and every data row is reported as unmapped.\n\nStudents and courses require the administrator role; grades require a teacher.",
+        "operationId": "preview_import_import__kind__preview_post",
+        "parameters": [
+          {
+            "description": "`students`, `courses` or `grades`.",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "description": "`students`, `courses` or `grades`.",
+              "examples": [
+                "grades"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_preview_import_import__kind__preview_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — below the kind's minimum role."
+          },
+          "413": {
+            "description": "`PAYLOAD_TOO_LARGE` or `IMPORT_TOO_MANY_ROWS`."
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — unreadable file, unknown kind, bad mapping, or a row that would be rejected."
+          }
+        },
+        "summary": "Dry-run an import",
+        "tags": [
+          "Import"
+        ]
+      }
+    },
     "/notes/{note_id}": {
       "delete": {
         "description": "The author, or any administrator. The full note is written to the audit log as the tombstone — there is deliberately no edit, and no soft delete.",
@@ -7338,6 +7598,10 @@
     {
       "description": "Recording, amending and retiring marks.",
       "name": "Grades"
+    },
+    {
+      "description": "Bulk import of students, courses and grades. A preview runs the whole import inside a rolled-back transaction, so the dry run shows per-row error codes without writing anything.",
+      "name": "Import"
     },
     {
       "description": "Reading the append-only trail of recorded changes. Writing is done by the use cases themselves, never through this API.",

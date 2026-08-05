@@ -47,6 +47,9 @@ class Settings(BaseSettings):
         login_lockout_minutes: How long that lockout lasts.
         upload_dir: Where logos and avatars are written.
         max_upload_bytes: Ceiling on an uploaded file.
+        max_import_rows: Hard cap on rows in one import. SQLite is a single writer;
+            a bulk import that long would starve every other request. The path to
+            lifting it is a background job with a staging table, not a bigger number.
     """
 
     model_config = SettingsConfigDict(
@@ -63,6 +66,7 @@ class Settings(BaseSettings):
     login_lockout_minutes: int = 15
     upload_dir: str = "uploads"
     max_upload_bytes: int = 2 * 1024 * 1024
+    max_import_rows: int = 5000
 
     @field_validator("cors_origins")
     @classmethod

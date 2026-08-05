@@ -72,6 +72,55 @@ class TestTransaction:
                 " VALUES ('ghost', 'ghost', 50, '2026-01-01')"
             )
 
+    def test_nested_transaction_commits_into_the_outer_one(
+        self, sqlite_conn: sqlite3.Connection
+    ) -> None:
+        """A service that calls another service must not need to know — a nested
+        transaction() opens a savepoint and releases it into the outer unit of work."""
+        with transaction(sqlite_conn):
+            sqlite_conn.execute(
+                "INSERT INTO students (student_id, first_name, last_name, email)"
+                " VALUES ('S1', 'A', 'B', 'a@b.co')"
+            )
+            with transaction(sqlite_conn):
+                sqlite_conn.execute("INSERT INTO courses (course_id, name) VALUES ('C1', 'Course')")
+
+        assert sqlite_conn.execute("SELECT COUNT(*) FROM students").fetchone()[0] == 1
+        assert sqlite_conn.execute("SELECT COUNT(*) FROM courses").fetchone()[0] == 1
+
+    def test_inner_rollback_keeps_the_outer_writes(self, sqlite_conn: sqlite3.Connection) -> None:
+        """Rolling back a nested savepoint undoes only the inner writes; the outer
+        transaction carries on and still commits the rest."""
+        with transaction(sqlite_conn):
+            sqlite_conn.execute(
+                "INSERT INTO students (student_id, first_name, last_name, email)"
+                " VALUES ('S1', 'A', 'B', 'a@b.co')"
+            )
+            with pytest.raises(RuntimeError), transaction(sqlite_conn):
+                sqlite_conn.execute("INSERT INTO courses (course_id, name) VALUES ('C1', 'Course')")
+                raise RuntimeError("inner use case failed")
+            sqlite_conn.execute("INSERT INTO courses (course_id, name) VALUES ('C2', 'Other')")
+
+        assert sqlite_conn.execute("SELECT COUNT(*) FROM students").fetchone()[0] == 1
+        assert sqlite_conn.execute("SELECT COUNT(*) FROM courses").fetchone()[0] == 1
+
+    def test_inner_failure_aborts_the_whole_outer_unit(
+        self, sqlite_conn: sqlite3.Connection
+    ) -> None:
+        """An unhandled failure inside the outer block rolls back everything,
+        including writes that predated the inner savepoint."""
+        with pytest.raises(RuntimeError), transaction(sqlite_conn):
+            sqlite_conn.execute(
+                "INSERT INTO students (student_id, first_name, last_name, email)"
+                " VALUES ('S1', 'A', 'B', 'a@b.co')"
+            )
+            with transaction(sqlite_conn):
+                sqlite_conn.execute("INSERT INTO courses (course_id, name) VALUES ('C1', 'Course')")
+            raise RuntimeError("outer use case failed")
+
+        assert sqlite_conn.execute("SELECT COUNT(*) FROM students").fetchone()[0] == 0
+        assert sqlite_conn.execute("SELECT COUNT(*) FROM courses").fetchone()[0] == 0
+
 
 class TestMigrations:
     def test_applies_every_file_once(self) -> None:
