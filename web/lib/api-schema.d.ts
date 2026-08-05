@@ -757,6 +757,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/import/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import a file
+         * @description Parse the file and write every valid row. The whole batch and its audit entries commit together, so an import that fails halfway leaves nothing behind. Rows that would not survive the same checks a form applies are rejected individually and reported with their line number and error code — one bad row does not cost the rest of the file.
+         *
+         *     Each successfully imported row produces its own audit entry. Students and courses require the administrator role; grades require a teacher.
+         */
+        post: operations["import_file_import__kind__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/import/{kind}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dry-run an import
+         * @description Parse the file and run the entire import inside a transaction that is then rolled back. The response shows the headers, a few sample rows, and the report a commit would produce — how many rows would land, how many would be rejected, and the line number plus error code of each rejected row. Nothing is written.
+         *
+         *     Send the file without a mapping to use this as the inspection step for .xlsx uploads: the headers and sample rows come back, and every data row is reported as unmapped.
+         *
+         *     Students and courses require the administrator role; grades require a teacher.
+         */
+        post: operations["preview_import_import__kind__preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/notes/{note_id}": {
         parameters: {
             query?: never;
@@ -1352,6 +1398,32 @@ export interface components {
             entity_id: string;
             /** Id */
             id: number;
+        };
+        /** Body_import_file_import__kind__post */
+        Body_import_file_import__kind__post: {
+            /**
+             * File
+             * @description CSV, TSV or .xlsx file.
+             */
+            file: string;
+            /**
+             * Mapping
+             * @description The column mapping as JSON: gradebook field name to source column name, e.g. `{"student_id": "Matrikelnummer"}`. Omit to have every row reported as unmapped — the preview also serves as the file inspection step for .xlsx uploads.
+             */
+            mapping?: string | null;
+        };
+        /** Body_preview_import_import__kind__preview_post */
+        Body_preview_import_import__kind__preview_post: {
+            /**
+             * File
+             * @description CSV, TSV or .xlsx file.
+             */
+            file: string;
+            /**
+             * Mapping
+             * @description The column mapping as JSON: gradebook field name to source column name, e.g. `{"student_id": "Matrikelnummer"}`. Omit to have every row reported as unmapped — the preview also serves as the file inspection step for .xlsx uploads.
+             */
+            mapping?: string | null;
         };
         /** Body_replace_asset_org_assets__kind__post */
         Body_replace_asset_org_assets__kind__post: {
@@ -2079,6 +2151,66 @@ export interface components {
             confidence: string;
             /** Issues */
             issues: string[];
+        };
+        /**
+         * ImportPreviewModel
+         * @description What a preview reveals about the file and its dry run.
+         */
+        ImportPreviewModel: {
+            /**
+             * Headers
+             * @description The file's header row.
+             */
+            headers: string[];
+            /**
+             * Kind
+             * @description The import kind requested.
+             */
+            kind: string;
+            /** @description The report the real import would have produced. */
+            report: components["schemas"]["ImportReportModel"];
+            /**
+             * Sample Rows
+             * @description A few data rows, for the mapping step before the AI call.
+             */
+            sample_rows: string[][];
+        };
+        /**
+         * ImportReportModel
+         * @description Outcome of an import, previewed or committed.
+         */
+        ImportReportModel: {
+            /**
+             * Errors
+             * @description One entry per rejected row.
+             */
+            errors: components["schemas"]["ImportRowError"][];
+            /**
+             * Imported
+             * @description Rows written successfully.
+             */
+            imported: number;
+            /**
+             * Skipped
+             * @description Rows rejected.
+             */
+            skipped: number;
+        };
+        /**
+         * ImportRowError
+         * @description One rejected row in an import report.
+         */
+        ImportRowError: {
+            /**
+             * Code
+             * @description Stable error code, e.g. `DUPLICATE_ENTRY`.
+             */
+            code: string;
+            /**
+             * Line
+             * @description Data row number, the header counting as line 1.
+             */
+            line: number;
         };
         /**
          * InsightResponse
@@ -4591,6 +4723,102 @@ export interface operations {
                         [key: string]: string;
                     };
                 };
+            };
+        };
+    };
+    import_file_import__kind__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `students`, `courses` or `grades`. */
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_file_import__kind__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReportModel"];
+                };
+            };
+            /** @description `FORBIDDEN` — below the kind's minimum role. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `PAYLOAD_TOO_LARGE` or `IMPORT_TOO_MANY_ROWS`. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `VALIDATION_ERROR` — unreadable file, unknown kind, or bad mapping. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    preview_import_import__kind__preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `students`, `courses` or `grades`. */
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_preview_import_import__kind__preview_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreviewModel"];
+                };
+            };
+            /** @description `FORBIDDEN` — below the kind's minimum role. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `PAYLOAD_TOO_LARGE` or `IMPORT_TOO_MANY_ROWS`. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `VALIDATION_ERROR` — unreadable file, unknown kind, bad mapping, or a row that would be rejected. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

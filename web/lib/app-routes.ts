@@ -12,6 +12,7 @@ export const APP_ROUTES = [
   { href: "/profile", key: "profile", min: "student", nav: false },
   { href: "/admin/users", key: "admin", min: "admin", nav: true },
   { href: "/admin/audit", key: "audit", min: "admin", nav: true },
+  { href: "/admin/import", key: "import", min: "admin", nav: true },
   { href: "/admin/branding", key: "branding", min: "superadmin", nav: true },
   { href: "/admin/ai", key: "aiSettings", min: "superadmin", nav: false },
 ] as const satisfies readonly {
