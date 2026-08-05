@@ -75,6 +75,13 @@ class GradeNotFoundError(GradeBookError):
     http_status = 404
 
 
+class NoteNotFoundError(GradeBookError):
+    """Raised when no note matches the requested identifier."""
+
+    code = "NOTE_NOT_FOUND"
+    http_status = 404
+
+
 class DuplicateEntryError(GradeBookError):
     """Raised when creating an entity whose identifier is already taken."""
 

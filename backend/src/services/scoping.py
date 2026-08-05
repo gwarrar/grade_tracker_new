@@ -203,6 +203,41 @@ def user_scope(principal: Principal, column: str = "id") -> Scope:
     return Scope(f"{_column(column)} = ?", (principal.user_id,))
 
 
+def note_scope(principal: Principal, column: str = "visibility") -> Scope:
+    """Restrict a query to the notes a principal may see.
+
+    Covers the **visibility** dimension only. Whether the note's entity is visible is
+    proven beforehand by the caller fetching the student or course — the pattern
+    :meth:`services.directory.DirectoryService.list_enrollments` already uses.
+
+    Args:
+        principal: The authenticated caller.
+        column: The column holding the visibility, qualified if the query joins.
+
+    Returns:
+        Administrators get every note; a teacher gets ``staff``, ``shared`` and
+        ``course`` notes plus their own; a student gets ``shared`` and ``course``
+        notes plus their own. The ``author_id`` clause is load-bearing: without it a
+        student could not see a note they had just written.
+    """
+    if principal.is_admin:
+        return ALLOW_ALL
+
+    if principal.role is Role.TEACHER:
+        return Scope(
+            f"{_column(column)} IN ('staff', 'shared', 'course') OR author_id = ?",
+            (principal.user_id,),
+        )
+
+    if principal.role is Role.STUDENT:
+        return Scope(
+            f"{_column(column)} IN ('shared', 'course') OR author_id = ?",
+            (principal.user_id,),
+        )
+
+    return DENY_ALL
+
+
 def can_write_course(principal: Principal, teacher_id: int | None) -> bool:
     """Whether a principal may modify a course.
 

@@ -212,6 +212,41 @@ class StudentCourseResponse(BaseModel):
     enrolled_at: str | None = None
 
 
+# ── Notes ────────────────────────────────────────────────────────────────────
+NoteVisibility = Literal["private", "staff", "shared", "course"]
+
+
+class NoteResponse(BaseModel):
+    """A note attached to a student record or a course.
+
+    There is deliberately no edit endpoint: a wrong note is deleted and reposted,
+    and the audit entry the delete writes is the tombstone.
+    """
+
+    id: int = Field(description="Database identifier.")
+    entity: Literal["student", "course"] = Field(description="What the note is attached to.")
+    entity_id: str = Field(description="The student or course id.")
+    body: str = Field(description="The note text.")
+    visibility: NoteVisibility = Field(description="Who may read the note.")
+    author_id: int | None = Field(
+        default=None, description="Who wrote it, or null once the account is deleted."
+    )
+    author_name: str = Field(
+        description="The author's name, copied at write time so it survives the account."
+    )
+    created_at: str = Field(description="ISO-8601 UTC.")
+
+
+class NoteCreateRequest(BaseModel):
+    """A new note."""
+
+    body: str = Field(min_length=1, max_length=2000)
+    visibility: NoteVisibility | None = Field(
+        default=None,
+        description="Defaults to `staff` on a student record and `course` on a course.",
+    )
+
+
 # ── Grades ───────────────────────────────────────────────────────────────────
 class GradeResponse(BaseModel):
     """A recorded grade.

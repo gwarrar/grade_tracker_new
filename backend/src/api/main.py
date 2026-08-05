@@ -23,6 +23,7 @@ from api.routers import (
     directory,
     grades,
     localization,
+    notes,
     organization,
     profile,
     reports,
@@ -121,6 +122,13 @@ def create_app() -> FastAPI:
             },
             {"name": "Grades", "description": "Recording, amending and retiring marks."},
             {
+                "name": "Notes",
+                "description": (
+                    "Scoped remarks on student records and courses. There is "
+                    "deliberately no edit: a wrong note is deleted and reposted."
+                ),
+            },
+            {
                 "name": "Reports",
                 "description": (
                     "Structured report payloads. The client renders the wording, which "
@@ -167,6 +175,7 @@ def create_app() -> FastAPI:
     app.include_router(directory.students_router)
     app.include_router(directory.courses_router)
     app.include_router(grades.router)
+    app.include_router(notes.router)
     app.include_router(reports.reports_router)
     app.include_router(reports.analytics_router)
     app.include_router(reports.org_router)

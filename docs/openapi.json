@@ -1842,6 +1842,113 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "NoteCreateRequest": {
+        "description": "A new note.",
+        "properties": {
+          "body": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "visibility": {
+            "anyOf": [
+              {
+                "enum": [
+                  "private",
+                  "staff",
+                  "shared",
+                  "course"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Defaults to `staff` on a student record and `course` on a course.",
+            "title": "Visibility"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "NoteCreateRequest",
+        "type": "object"
+      },
+      "NoteResponse": {
+        "description": "A note attached to a student record or a course.\n\nThere is deliberately no edit endpoint: a wrong note is deleted and reposted,\nand the audit entry the delete writes is the tombstone.",
+        "properties": {
+          "author_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who wrote it, or null once the account is deleted.",
+            "title": "Author Id"
+          },
+          "author_name": {
+            "description": "The author's name, copied at write time so it survives the account.",
+            "title": "Author Name",
+            "type": "string"
+          },
+          "body": {
+            "description": "The note text.",
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "description": "ISO-8601 UTC.",
+            "title": "Created At",
+            "type": "string"
+          },
+          "entity": {
+            "description": "What the note is attached to.",
+            "enum": [
+              "student",
+              "course"
+            ],
+            "title": "Entity",
+            "type": "string"
+          },
+          "entity_id": {
+            "description": "The student or course id.",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "id": {
+            "description": "Database identifier.",
+            "title": "Id",
+            "type": "integer"
+          },
+          "visibility": {
+            "description": "Who may read the note.",
+            "enum": [
+              "private",
+              "staff",
+              "shared",
+              "course"
+            ],
+            "title": "Visibility",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "entity",
+          "entity_id",
+          "body",
+          "visibility",
+          "author_name",
+          "created_at"
+        ],
+        "title": "NoteResponse",
+        "type": "object"
+      },
       "OrganizationColors": {
         "description": "Primary and accent colour pairs.",
         "properties": {
@@ -4940,6 +5047,112 @@
         ]
       }
     },
+    "/courses/{course_id}/notes": {
+      "get": {
+        "description": "Students included — a course thread that excluded the class would not be a thread.\n\nVisibility decides who reads each note: administrators see all of them, a teacher sees `staff`, `shared` and `course` notes plus their own, a student sees `shared` and `course` notes plus their own.",
+        "operationId": "list_course_notes_courses__course_id__notes_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NoteResponse"
+                  },
+                  "title": "Response List Course Notes Courses  Course Id  Notes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`COURSE_NOT_FOUND` — unknown, or outside your scope."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List a course's notes",
+        "tags": [
+          "Notes",
+          "Courses"
+        ]
+      },
+      "post": {
+        "description": "Students included — a course thread that excluded the class would not be a thread. Defaults to `course` visibility, since `staff` would hide a student's note from their classmates. There is deliberately no edit: delete and repost.",
+        "operationId": "create_course_note_courses__course_id__notes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`COURSE_NOT_FOUND` — unknown, or outside your scope."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add a note to a course",
+        "tags": [
+          "Notes",
+          "Courses"
+        ]
+      }
+    },
     "/grades": {
       "get": {
         "description": "Paginated, sortable and searchable, filtered to what your role permits.\n\nA grade is visible only when **both** its student and its course are. That is why a teacher cannot read a shared student's marks from a colleague's course, even though the student is otherwise in their scope.",
@@ -5465,6 +5678,48 @@
         "summary": "Liveness check",
         "tags": [
           "System"
+        ]
+      }
+    },
+    "/notes/{note_id}": {
+      "delete": {
+        "description": "The author, or any administrator. The full note is written to the audit log as the tombstone — there is deliberately no edit, and no soft delete.",
+        "operationId": "delete_note_notes__note_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "title": "Note Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — only the author or an administrator."
+          },
+          "404": {
+            "description": "`NOTE_NOT_FOUND` — unknown, or outside your scope."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a note",
+        "tags": [
+          "Notes"
         ]
       }
     },
@@ -6614,6 +6869,115 @@
           "Students"
         ]
       }
+    },
+    "/students/{student_id}/notes": {
+      "get": {
+        "description": "A note on a student record is staff-written.\n\nVisibility decides who reads each note: administrators see all of them, a teacher sees `staff`, `shared` and `course` notes plus their own, a student sees `shared` and `course` notes plus their own.",
+        "operationId": "list_student_notes_students__student_id__notes_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NoteResponse"
+                  },
+                  "title": "Response List Student Notes Students  Student Id  Notes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "`STUDENT_NOT_FOUND` — unknown, or outside your scope."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List a student's notes",
+        "tags": [
+          "Notes",
+          "Students"
+        ]
+      },
+      "post": {
+        "description": "A note on a student record is staff-written, and defaults to `staff` visibility. There is deliberately no edit: delete and repost.",
+        "operationId": "create_student_note_students__student_id__notes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — staff only."
+          },
+          "404": {
+            "description": "`STUDENT_NOT_FOUND` — unknown, or outside your scope."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add a note to a student",
+        "tags": [
+          "Notes",
+          "Students"
+        ]
+      }
     }
   },
   "tags": [
@@ -6636,6 +7000,10 @@
     {
       "description": "Recording, amending and retiring marks.",
       "name": "Grades"
+    },
+    {
+      "description": "Scoped remarks on student records and courses. There is deliberately no edit: a wrong note is deleted and reposted.",
+      "name": "Notes"
     },
     {
       "description": "Structured report payloads. The client renders the wording, which is why the API ships no message catalogue.",
