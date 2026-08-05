@@ -162,7 +162,7 @@ class TestSeed:
         return seed(sqlite_conn, student_count=12)
 
     def test_creates_every_entity(self, seeded: dict[str, int]) -> None:
-        assert seeded["users"] == 5
+        assert seeded["users"] == 6  # five staff, one student
         assert seeded["courses"] == 6
         assert seeded["students"] == 12
         assert seeded["enrollments"] > 0
@@ -191,6 +191,33 @@ class TestSeed:
             "  AND g.course_id = e.course_id AND g.deleted_at IS NULL)"
         ).fetchone()[0]
         assert ungraded > 0
+
+    def test_links_one_student_to_a_login(
+        self, sqlite_conn: sqlite3.Connection, seeded: dict[str, int]
+    ) -> None:
+        """Every scoping rule for Role.STUDENT falls through to DENY_ALL unless a
+        students row points at the account, so an unlinked student account would make
+        the role unreachable in a running app while still passing every other test."""
+        row = sqlite_conn.execute(
+            "SELECT s.student_id, s.email, u.role FROM students s JOIN users u ON u.id = s.user_id"
+        ).fetchone()
+        assert row is not None
+        assert row["role"] == "student"
+        assert (
+            row["email"]
+            == sqlite_conn.execute("SELECT email FROM users WHERE role = 'student'").fetchone()[0]
+        )
+
+    def test_the_linked_student_has_grades_to_look_at(
+        self, sqlite_conn: sqlite3.Connection, seeded: dict[str, int]
+    ) -> None:
+        """A student who signs in to an empty transcript cannot tell a working scope
+        from a broken one."""
+        count = sqlite_conn.execute(
+            "SELECT COUNT(*) FROM grades g JOIN students s ON s.student_id = g.student_id"
+            " WHERE s.user_id IS NOT NULL AND g.deleted_at IS NULL"
+        ).fetchone()[0]
+        assert count > 0
 
     def test_passing_marks_align_with_the_grading_scale(
         self, sqlite_conn: sqlite3.Connection, seeded: dict[str, int]

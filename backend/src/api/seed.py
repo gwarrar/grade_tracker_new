@@ -106,8 +106,33 @@ _COURSES = [
 _ASSESSMENTS = [("Midterm", 1.0), ("Coursework", 1.5), ("Final", 2.5)]
 
 
+def _insert_user(conn: sqlite3.Connection, user: User) -> int:
+    """Insert one account with the shared demo password.
+
+    Args:
+        conn: An open connection.
+        user: The account to write. Validated by the model before it reaches SQL.
+
+    Returns:
+        The new user id.
+    """
+    digest, salt = hash_password(_DEMO_PASSWORD)
+    cursor = conn.execute(
+        "INSERT INTO users (email, password_hash, password_salt, role, full_name)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (user.email, digest, salt, str(user.role), user.full_name),
+    )
+    row_id = cursor.lastrowid
+    if row_id is None:  # pragma: no cover - an INSERT always assigns a rowid
+        raise RuntimeError(f"insert of {user.email} returned no row id")
+    return row_id
+
+
 def _make_users(conn: sqlite3.Connection, rng: random.Random) -> dict[str, int]:
-    """Insert the demo accounts.
+    """Insert the staff accounts.
+
+    The student account is not here: it has to be linked to a student record, which
+    does not exist yet at this point. See :func:`_link_student_login`.
 
     Args:
         conn: An open connection.
@@ -125,20 +150,37 @@ def _make_users(conn: sqlite3.Connection, rng: random.Random) -> dict[str, int]:
         ("k.novak@gradetracker.test", "Karel Novak", Role.TEACHER),
     ]
 
-    ids: dict[str, int] = {}
-    for email, name, role in accounts:
-        digest, salt = hash_password(_DEMO_PASSWORD)
-        user = User(email=email, full_name=name, role=role)
-        cursor = conn.execute(
-            "INSERT INTO users (email, password_hash, password_salt, role, full_name)"
-            " VALUES (?, ?, ?, ?, ?)",
-            (user.email, digest, salt, str(user.role), user.full_name),
-        )
-        row_id = cursor.lastrowid
-        if row_id is None:  # pragma: no cover - an INSERT always assigns a rowid
-            raise RuntimeError(f"insert of {email} returned no row id")
-        ids[email] = row_id
-    return ids
+    return {
+        email: _insert_user(conn, User(email=email, full_name=name, role=role))
+        for email, name, role in accounts
+    }
+
+
+def _link_student_login(conn: sqlite3.Connection, student: Student) -> int:
+    """Give one student a sign-in account and link it to their record.
+
+    ``Role.STUDENT`` is scoped throughout ``services/scoping.py``, but a student
+    principal falls through to ``DENY_ALL`` unless a ``students`` row points at their
+    account. Without this the role is unreachable in a running app, and the
+    "only your own rows" path can only ever be exercised by a test fixture.
+
+    The account uses the student's own address rather than a second invented one, so
+    there is exactly one email per person.
+
+    Args:
+        conn: An open connection.
+        student: The already-inserted student record to attach the account to.
+
+    Returns:
+        The new user id.
+    """
+    user_id = _insert_user(
+        conn, User(email=student.email, full_name=student.full_name, role=Role.STUDENT)
+    )
+    conn.execute(
+        "UPDATE students SET user_id = ? WHERE student_id = ?", (user_id, student.student_id)
+    )
+    return user_id
 
 
 def seed(conn: sqlite3.Connection, *, student_count: int = 40) -> dict[str, int]:
@@ -187,6 +229,8 @@ def seed(conn: sqlite3.Connection, *, student_count: int = 40) -> dict[str, int]
         )
         store.add_student(student)
         students.append(student)
+
+    user_ids[students[0].email] = _link_student_login(conn, students[0])
 
     # Each student enrols on 2-4 courses and is graded on most of them. Some
     # enrolments are deliberately left ungraded: a student enrolled but not yet
@@ -277,6 +321,11 @@ def main(argv: list[str] | None = None) -> int:
 
         with transaction(conn):
             counts = seed(conn, student_count=args.students)
+        # Read back rather than re-derive: the student login is whichever record
+        # _link_student_login attached the account to, and the database knows.
+        student_login = conn.execute(
+            "SELECT email FROM users WHERE role = 'student' ORDER BY id LIMIT 1"
+        ).fetchone()[0]
     except Exception as exc:  # a CLI reports failures, it does not re-raise them at the user
         print(f"seed failed: {exc}", file=sys.stderr)
         return 1
@@ -285,7 +334,11 @@ def main(argv: list[str] | None = None) -> int:
 
     for entity, count in counts.items():
         print(f"{count:>5}  {entity}")
-    print(f"\nsign in as admin@gradetracker.test / {_DEMO_PASSWORD}")
+    print(f"\nevery demo account shares the password {_DEMO_PASSWORD}")
+    print("  admin@gradetracker.test       superadmin")
+    print("  registrar@gradetracker.test   admin")
+    print("  t.weber@gradetracker.test     teacher")
+    print(f"  {student_login:<28}  student")
     return 0
 
 
