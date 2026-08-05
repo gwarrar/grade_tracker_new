@@ -137,6 +137,21 @@
       "completed": "Terminé"
     }
   },
+  "notes": {
+    "title": "Remarques",
+    "body": "Remarque",
+    "visibility": "Visibilité",
+    "add": "Ajouter une remarque",
+    "deleteTitle": "Supprimer la remarque ?",
+    "deleteDescription": "Supprimer définitivement cette remarque ? Cette action est irréversible.",
+    "visibilityValue": {
+      "default": "Par défaut",
+      "private": "Privée",
+      "staff": "Enseignants",
+      "shared": "Partagée",
+      "course": "Cours"
+    }
+  },
   "filter": {
     "label": "Filtres",
     "all": "Tous",

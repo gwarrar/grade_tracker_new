@@ -137,6 +137,21 @@
       "completed": "Completed"
     }
   },
+  "notes": {
+    "title": "Notes",
+    "body": "Note",
+    "visibility": "Visibility",
+    "add": "Add note",
+    "deleteTitle": "Delete note?",
+    "deleteDescription": "Permanently delete this note? This cannot be undone.",
+    "visibilityValue": {
+      "default": "Default",
+      "private": "Private",
+      "staff": "Staff",
+      "shared": "Shared",
+      "course": "Course"
+    }
+  },
   "filter": {
     "label": "Filters",
     "all": "All",

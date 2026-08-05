@@ -137,6 +137,21 @@
       "completed": "Abgeschlossen"
     }
   },
+  "notes": {
+    "title": "Anmerkungen",
+    "body": "Anmerkung",
+    "visibility": "Sichtbarkeit",
+    "add": "Anmerkung hinzufügen",
+    "deleteTitle": "Anmerkung löschen?",
+    "deleteDescription": "Diese Anmerkung dauerhaft löschen? Das kann nicht rückgängig gemacht werden.",
+    "visibilityValue": {
+      "default": "Standard",
+      "private": "Privat",
+      "staff": "Lehrende",
+      "shared": "Geteilt",
+      "course": "Kurs"
+    }
+  },
   "filter": {
     "label": "Filter",
     "all": "Alle",

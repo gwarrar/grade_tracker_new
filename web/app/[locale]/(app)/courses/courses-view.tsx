@@ -14,6 +14,7 @@ import {
 } from "@/components/app/detail-fields";
 import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
+import { NotesBlock } from "@/components/app/notes";
 import { Pager } from "@/components/app/pager";
 import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
@@ -677,6 +678,7 @@ function CourseDetail({
           )}
 
           <InsightBlock entityType="course" entityId={courseId} />
+          <NotesBlock entityType="course" entityId={courseId} me={me} locale={locale} />
         </>
       )}
 

@@ -592,6 +592,32 @@ export interface paths {
         patch: operations["set_enrollment_status_courses__course_id__enrollments__student_id__patch"];
         trace?: never;
     };
+    "/courses/{course_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a course's notes
+         * @description Students included — a course thread that excluded the class would not be a thread.
+         *
+         *     Visibility decides who reads each note: administrators see all of them, a teacher sees `staff`, `shared` and `course` notes plus their own, a student sees `shared` and `course` notes plus their own.
+         */
+        get: operations["list_course_notes_courses__course_id__notes_get"];
+        put?: never;
+        /**
+         * Add a note to a course
+         * @description Students included — a course thread that excluded the class would not be a thread. Defaults to `course` visibility, since `staff` would hide a student's note from their classmates. There is deliberately no edit: delete and repost.
+         */
+        post: operations["create_course_note_courses__course_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/grades": {
         parameters: {
             query?: never;
@@ -686,6 +712,26 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notes/{note_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a note
+         * @description The author, or any administrator. The full note is written to the audit log as the tombstone — there is deliberately no edit, and no soft delete.
+         */
+        delete: operations["delete_note_notes__note_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1089,6 +1135,32 @@ export interface paths {
         get: operations["student_courses_students__student_id__courses_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{student_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a student's notes
+         * @description A note on a student record is staff-written.
+         *
+         *     Visibility decides who reads each note: administrators see all of them, a teacher sees `staff`, `shared` and `course` notes plus their own, a student sees `shared` and `course` notes plus their own.
+         */
+        get: operations["list_student_notes_students__student_id__notes_get"];
+        put?: never;
+        /**
+         * Add a note to a student
+         * @description A note on a student record is staff-written, and defaults to `staff` visibility. There is deliberately no edit: delete and repost.
+         */
+        post: operations["create_student_note_students__student_id__notes_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1978,6 +2050,70 @@ export interface components {
              * @description Affected rows, where relevant.
              */
             count?: number | null;
+        };
+        /**
+         * NoteCreateRequest
+         * @description A new note.
+         */
+        NoteCreateRequest: {
+            /** Body */
+            body: string;
+            /**
+             * Visibility
+             * @description Defaults to `staff` on a student record and `course` on a course.
+             */
+            visibility?: ("private" | "staff" | "shared" | "course") | null;
+        };
+        /**
+         * NoteResponse
+         * @description A note attached to a student record or a course.
+         *
+         *     There is deliberately no edit endpoint: a wrong note is deleted and reposted,
+         *     and the audit entry the delete writes is the tombstone.
+         */
+        NoteResponse: {
+            /**
+             * Author Id
+             * @description Who wrote it, or null once the account is deleted.
+             */
+            author_id?: number | null;
+            /**
+             * Author Name
+             * @description The author's name, copied at write time so it survives the account.
+             */
+            author_name: string;
+            /**
+             * Body
+             * @description The note text.
+             */
+            body: string;
+            /**
+             * Created At
+             * @description ISO-8601 UTC.
+             */
+            created_at: string;
+            /**
+             * Entity
+             * @description What the note is attached to.
+             * @enum {string}
+             */
+            entity: "student" | "course";
+            /**
+             * Entity Id
+             * @description The student or course id.
+             */
+            entity_id: string;
+            /**
+             * Id
+             * @description Database identifier.
+             */
+            id: number;
+            /**
+             * Visibility
+             * @description Who may read the note.
+             * @enum {string}
+             */
+            visibility: "private" | "staff" | "shared" | "course";
         };
         /**
          * OrganizationColors
@@ -3883,6 +4019,86 @@ export interface operations {
             };
         };
     };
+    list_course_notes_courses__course_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteResponse"][];
+                };
+            };
+            /** @description `COURSE_NOT_FOUND` — unknown, or outside your scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_course_note_courses__course_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteResponse"];
+                };
+            };
+            /** @description `COURSE_NOT_FOUND` — unknown, or outside your scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_grades_grades_get: {
         parameters: {
             query?: {
@@ -4163,6 +4379,49 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    delete_note_notes__note_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `FORBIDDEN` — only the author or an administrator. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `NOTE_NOT_FOUND` — unknown, or outside your scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5032,6 +5291,93 @@ export interface operations {
                 };
             };
             /** @description `STUDENT_NOT_FOUND`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_student_notes_students__student_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteResponse"][];
+                };
+            };
+            /** @description `STUDENT_NOT_FOUND` — unknown, or outside your scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_student_note_students__student_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — staff only. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `STUDENT_NOT_FOUND` — unknown, or outside your scope. */
             404: {
                 headers: {
                     [name: string]: unknown;

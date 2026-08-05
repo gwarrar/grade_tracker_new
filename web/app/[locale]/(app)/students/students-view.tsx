@@ -13,6 +13,7 @@ import {
 } from "@/components/app/detail-fields";
 import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
+import { NotesBlock } from "@/components/app/notes";
 import { Pager } from "@/components/app/pager";
 import { StudentRecord } from "@/components/app/student-record";
 import { Confirm } from "@/components/ui/confirm";
@@ -604,7 +605,10 @@ function StudentDetail({
             </section>
           )}
 
-          <div className="mt-6"><InsightBlock entityType="student" entityId={student.student_id} /></div>
+          <div className="mt-6">
+            <InsightBlock entityType="student" entityId={student.student_id} />
+            <NotesBlock entityType="student" entityId={student.student_id} me={me} locale={locale} />
+          </div>
         </>
       )}
 
