@@ -74,6 +74,59 @@
         "title": "AskResponse",
         "type": "object"
       },
+      "AssessmentRow": {
+        "description": "One assessment title within a course.",
+        "properties": {
+          "average_percentage": {
+            "title": "Average Percentage",
+            "type": "number"
+          },
+          "average_score": {
+            "title": "Average Score",
+            "type": "number"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "distribution": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Band label to count for this assessment, including zeros.",
+            "title": "Distribution",
+            "type": "object"
+          },
+          "max_score": {
+            "title": "Max Score",
+            "type": "number"
+          },
+          "min_score": {
+            "title": "Min Score",
+            "type": "number"
+          },
+          "pass_rate": {
+            "title": "Pass Rate",
+            "type": "number"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "count",
+          "average_score",
+          "average_percentage",
+          "min_score",
+          "max_score",
+          "pass_rate",
+          "distribution"
+        ],
+        "title": "AssessmentRow",
+        "type": "object"
+      },
       "AuditEntryResponse": {
         "description": "One entry from an entity's change history.",
         "properties": {
@@ -497,6 +550,43 @@
           "message"
         ],
         "title": "CommandResponse",
+        "type": "object"
+      },
+      "CourseAssessmentsResponse": {
+        "description": "A course's grades grouped by assessment title.",
+        "properties": {
+          "assessments": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentRow"
+            },
+            "title": "Assessments",
+            "type": "array"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "max_grade": {
+            "title": "Max Grade",
+            "type": "number"
+          },
+          "passing_grade": {
+            "title": "Passing Grade",
+            "type": "number"
+          }
+        },
+        "required": [
+          "course_id",
+          "course_name",
+          "max_grade",
+          "passing_grade",
+          "assessments"
+        ],
+        "title": "CourseAssessmentsResponse",
         "type": "object"
       },
       "CourseCreateRequest": {
@@ -968,6 +1058,68 @@
         "title": "CourseResponse",
         "type": "object"
       },
+      "CourseRollup": {
+        "description": "One course in a teacher's or a term's breakdown.",
+        "properties": {
+          "average_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Percentage"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "grade_count": {
+            "title": "Grade Count",
+            "type": "integer"
+          },
+          "pass_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Rate"
+          },
+          "student_count": {
+            "title": "Student Count",
+            "type": "integer"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          }
+        },
+        "required": [
+          "course_id",
+          "course_name",
+          "student_count",
+          "grade_count"
+        ],
+        "title": "CourseRollup",
+        "type": "object"
+      },
       "CourseUpdateRequest": {
         "description": "Changes to a course. Omitted fields are left alone.",
         "properties": {
@@ -1260,6 +1412,55 @@
         "title": "DashboardResponse",
         "type": "object"
       },
+      "DistributionBucket": {
+        "description": "The band distribution within one time bucket.",
+        "properties": {
+          "bucket": {
+            "description": "`YYYY-MM` for `month`, the course term for `term`.",
+            "title": "Bucket",
+            "type": "string"
+          },
+          "distribution": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Distribution",
+            "type": "object"
+          }
+        },
+        "required": [
+          "bucket",
+          "distribution"
+        ],
+        "title": "DistributionBucket",
+        "type": "object"
+      },
+      "DistributionReportResponse": {
+        "description": "The grade distribution over time, one bucket per row.",
+        "properties": {
+          "bucket": {
+            "enum": [
+              "month",
+              "term"
+            ],
+            "title": "Bucket",
+            "type": "string"
+          },
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/DistributionBucket"
+            },
+            "title": "Buckets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "bucket",
+          "buckets"
+        ],
+        "title": "DistributionReportResponse",
+        "type": "object"
+      },
       "EnrollRequest": {
         "description": "A registration.",
         "properties": {
@@ -1276,6 +1477,28 @@
           "student_id"
         ],
         "title": "EnrollRequest",
+        "type": "object"
+      },
+      "EnrollmentReportResponse": {
+        "description": "Capacity, take-up and dropout per course.",
+        "properties": {
+          "course_count": {
+            "title": "Course Count",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/EnrollmentRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "course_count",
+          "rows"
+        ],
+        "title": "EnrollmentReportResponse",
         "type": "object"
       },
       "EnrollmentResponse": {
@@ -1369,6 +1592,51 @@
           "status"
         ],
         "title": "EnrollmentResponse",
+        "type": "object"
+      },
+      "EnrollmentRow": {
+        "description": "One course's enrolment position.",
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "integer"
+          },
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "utilisation": {
+            "description": "Active enrolments as a percentage of capacity.",
+            "title": "Utilisation",
+            "type": "number"
+          },
+          "withdrawn": {
+            "title": "Withdrawn",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "course_id",
+          "course_name",
+          "capacity",
+          "active",
+          "withdrawn",
+          "completed",
+          "utilisation"
+        ],
+        "title": "EnrollmentRow",
         "type": "object"
       },
       "EnrollmentStatusRequest": {
@@ -3570,6 +3838,198 @@
           "at_risk_threshold"
         ],
         "title": "SummaryReportResponse",
+        "type": "object"
+      },
+      "TeacherReportResponse": {
+        "description": "A teacher's courses and their totals.",
+        "properties": {
+          "average_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Percentage"
+          },
+          "course_count": {
+            "title": "Course Count",
+            "type": "integer"
+          },
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/CourseRollup"
+            },
+            "title": "Courses",
+            "type": "array"
+          },
+          "grade_count": {
+            "title": "Grade Count",
+            "type": "integer"
+          },
+          "student_count": {
+            "title": "Student Count",
+            "type": "integer"
+          },
+          "teacher_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Name"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "teacher_name",
+          "course_count",
+          "student_count",
+          "grade_count",
+          "courses"
+        ],
+        "title": "TeacherReportResponse",
+        "type": "object"
+      },
+      "TermCourseRow": {
+        "description": "A course in a term, with its owning teacher for the administrator's view.",
+        "properties": {
+          "average_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Percentage"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "grade_count": {
+            "title": "Grade Count",
+            "type": "integer"
+          },
+          "pass_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Rate"
+          },
+          "student_count": {
+            "title": "Student Count",
+            "type": "integer"
+          },
+          "teacher_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Name"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          }
+        },
+        "required": [
+          "course_id",
+          "course_name",
+          "student_count",
+          "grade_count"
+        ],
+        "title": "TermCourseRow",
+        "type": "object"
+      },
+      "TermReportResponse": {
+        "description": "The courses running in one academic term.",
+        "properties": {
+          "average_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Percentage"
+          },
+          "course_count": {
+            "title": "Course Count",
+            "type": "integer"
+          },
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/TermCourseRow"
+            },
+            "title": "Courses",
+            "type": "array"
+          },
+          "grade_count": {
+            "title": "Grade Count",
+            "type": "integer"
+          },
+          "pass_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Rate"
+          },
+          "student_count": {
+            "title": "Student Count",
+            "type": "integer"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          }
+        },
+        "required": [
+          "term",
+          "course_count",
+          "student_count",
+          "grade_count",
+          "courses"
+        ],
+        "title": "TermReportResponse",
         "type": "object"
       },
       "TestResponse": {
@@ -6949,6 +7409,133 @@
         ]
       }
     },
+    "/reports/course/{course_id}/assessments": {
+      "get": {
+        "description": "Grades grouped by assessment title, each with its own average, spread, pass rate and band distribution. Answers \"was the midterm too hard\" — the one question a teacher opens a gradebook to find out. Class statistics span every student, so a student is refused.",
+        "operationId": "course_assessments_reports_course__course_id__assessments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseAssessmentsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — a student, or the course is outside your scope."
+          },
+          "404": {
+            "description": "`COURSE_NOT_FOUND`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "A course's assessments",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/distribution": {
+      "get": {
+        "description": "Grades bucketed by ISO month of the award date (`bucket=month`) or by the course's term (`bucket=term`), each bucket carrying the band distribution. One payload drives a stacked area chart and the at-risk-trend question. Students are refused — the report spans every student.",
+        "operationId": "distribution_report_reports_distribution_get",
+        "parameters": [
+          {
+            "description": "How to group the distribution: by ISO month or by course term.",
+            "in": "query",
+            "name": "bucket",
+            "required": false,
+            "schema": {
+              "default": "month",
+              "description": "How to group the distribution: by ISO month or by course term.",
+              "enum": [
+                "month",
+                "term"
+              ],
+              "title": "Bucket",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistributionReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — below staff."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Grade distribution over time",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/enrollment": {
+      "get": {
+        "description": "Per course: capacity, active, withdrawn and completed enrolments, and utilisation as a percentage of capacity. Finds both over-subscribed and dead courses. Students are refused — the report spans every student.",
+        "operationId": "enrollment_report_reports_enrollment_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — below staff."
+          }
+        },
+        "summary": "Enrolment capacity and utilisation",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
     "/reports/student/{student_id}": {
       "get": {
         "description": "Numbers and identifiers only — no sentences. The client renders the wording.\n\nA student's own report is complete. A teacher's copy contains only the grades from courses they own, so the report cannot expose marks a scoped list endpoint would have hidden.",
@@ -7043,9 +7630,104 @@
         ]
       }
     },
+    "/reports/teacher/{user_id}": {
+      "get": {
+        "description": "The teacher themselves, or any administrator. A teacher asking for a colleague's rollup is refused with `FORBIDDEN`. Courses outside the caller's scope never appear, so an administrator's view is the only one that spans the institution.",
+        "operationId": "teacher_report_reports_teacher__user_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — below staff, or another teacher's rollup."
+          },
+          "404": {
+            "description": "`USER_NOT_FOUND` — no account carries that id."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "A teacher's rollup",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/term/{term}": {
+      "get": {
+        "description": "Scopeable where the institution-wide summary is not: a teacher gets their own courses in that term, an administrator the whole institution's. Students are refused, because any one student's copy would still contain their classmates' averages.",
+        "operationId": "term_report_reports_term__term__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "term",
+            "required": true,
+            "schema": {
+              "title": "Term",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — below staff."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "A term's courses",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
     "/reports/{kind}/{entity_id}/export.csv": {
       "get": {
-        "description": "The one endpoint that returns translated prose, because a downloaded file has no frontend to render it. `?locale=de` or `fr` also switches the delimiter to `;`, which is what Excel expects in those locales — a comma-separated file opens there as a single column.\n\nUse `summary` as both `kind` and `entity_id` for the institution-wide report.",
+        "description": "The one endpoint that returns translated prose, because a downloaded file has no frontend to render it. `?locale=de` or `fr` also switches the delimiter to `;`, which is what Excel expects in those locales — a comma-separated file opens there as a single column.\n\nUse `summary` as both `kind` and `entity_id` for the institution-wide report, and the same convention for `enrollment` and `distribution`. Assessments export with the course id as the entity, e.g. `/reports/assessments/CS101/export.csv`.",
         "operationId": "export_csv_reports__kind___entity_id__export_csv_get",
         "parameters": [
           {
@@ -7078,6 +7760,22 @@
                 "de"
               ],
               "title": "Locale",
+              "type": "string"
+            }
+          },
+          {
+            "description": "How to group the distribution: by ISO month or by course term.",
+            "in": "query",
+            "name": "bucket",
+            "required": false,
+            "schema": {
+              "default": "month",
+              "description": "How to group the distribution: by ISO month or by course term.",
+              "enum": [
+                "month",
+                "term"
+              ],
+              "title": "Bucket",
               "type": "string"
             }
           }

@@ -7,7 +7,7 @@ file has no frontend, so its column headers are translated here from `?locale=`.
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import PlainTextResponse
@@ -52,6 +52,22 @@ CSV_HEADERS: dict[str, dict[str, str]] = {
         "value": "Wert",
         "rank": "Rang",
         "average": "Durchschnitt",
+        "term": "Semester",
+        "teacher_name": "Lehrkraft",
+        "student_count": "Studierende",
+        "grade_count": "Noten",
+        "pass_rate": "Bestehensquote",
+        "count": "Anzahl",
+        "average_score": "Ø Punkte",
+        "average_percentage": "Ø Prozent",
+        "min_score": "Minimum",
+        "max_score": "Maximum",
+        "capacity": "Kapazität",
+        "active": "Aktiv",
+        "withdrawn": "Abgemeldet",
+        "completed": "Abgeschlossen",
+        "utilisation": "Auslastung",
+        "bucket": "Zeitraum",
     },
     "fr": {
         "student_id": "N° étudiant",
@@ -71,6 +87,22 @@ CSV_HEADERS: dict[str, dict[str, str]] = {
         "value": "Valeur",
         "rank": "Rang",
         "average": "Moyenne",
+        "term": "Semestre",
+        "teacher_name": "Enseignant",
+        "student_count": "Étudiants",
+        "grade_count": "Notes",
+        "pass_rate": "Taux de réussite",
+        "count": "Nombre",
+        "average_score": "Note moyenne",
+        "average_percentage": "Moyenne %",
+        "min_score": "Min",
+        "max_score": "Max",
+        "capacity": "Capacité",
+        "active": "Actifs",
+        "withdrawn": "Retirés",
+        "completed": "Terminés",
+        "utilisation": "Utilisation",
+        "bucket": "Période",
     },
 }
 
@@ -174,6 +206,106 @@ class SummaryReportResponse(BaseModel):
     at_risk_threshold: float
 
 
+class CourseRollup(BaseModel):
+    """One course in a teacher's or a term's breakdown."""
+
+    course_id: str
+    course_name: str
+    term: str | None = None
+    student_count: int
+    grade_count: int
+    average_percentage: float | None = None
+    pass_rate: float | None = None
+
+
+class TeacherReportResponse(BaseModel):
+    """A teacher's courses and their totals."""
+
+    user_id: int
+    teacher_name: str | None
+    course_count: int
+    student_count: int
+    grade_count: int
+    average_percentage: float | None = None
+    courses: list[CourseRollup]
+
+
+class TermCourseRow(CourseRollup):
+    """A course in a term, with its owning teacher for the administrator's view."""
+
+    teacher_name: str | None = None
+
+
+class TermReportResponse(BaseModel):
+    """The courses running in one academic term."""
+
+    term: str
+    course_count: int
+    student_count: int
+    grade_count: int
+    average_percentage: float | None = None
+    pass_rate: float | None = None
+    courses: list[TermCourseRow]
+
+
+class AssessmentRow(BaseModel):
+    """One assessment title within a course."""
+
+    title: str
+    count: int
+    average_score: float
+    average_percentage: float
+    min_score: float
+    max_score: float
+    pass_rate: float
+    distribution: dict[str, int] = Field(
+        description="Band label to count for this assessment, including zeros."
+    )
+
+
+class CourseAssessmentsResponse(BaseModel):
+    """A course's grades grouped by assessment title."""
+
+    course_id: str
+    course_name: str
+    max_grade: float
+    passing_grade: float
+    assessments: list[AssessmentRow]
+
+
+class EnrollmentRow(BaseModel):
+    """One course's enrolment position."""
+
+    course_id: str
+    course_name: str
+    capacity: int
+    active: int
+    withdrawn: int
+    completed: int
+    utilisation: float = Field(description="Active enrolments as a percentage of capacity.")
+
+
+class EnrollmentReportResponse(BaseModel):
+    """Capacity, take-up and dropout per course."""
+
+    course_count: int
+    rows: list[EnrollmentRow]
+
+
+class DistributionBucket(BaseModel):
+    """The band distribution within one time bucket."""
+
+    bucket: str = Field(description="`YYYY-MM` for `month`, the course term for `term`.")
+    distribution: dict[str, int]
+
+
+class DistributionReportResponse(BaseModel):
+    """The grade distribution over time, one bucket per row."""
+
+    bucket: Literal["month", "term"]
+    buckets: list[DistributionBucket]
+
+
 def _ranked(triples: list[tuple[str, str, float]]) -> list[RankedLine]:
     """Convert the domain's ``(id, name, average)`` triples into named fields."""
     return [
@@ -265,6 +397,151 @@ def summary_report(
     )
 
 
+BucketQuery = Annotated[
+    Literal["month", "term"],
+    Query(description="How to group the distribution: by ISO month or by course term."),
+]
+
+
+@reports_router.get(
+    "/teacher/{user_id}",
+    response_model=TeacherReportResponse,
+    summary="A teacher's rollup",
+    description=(
+        "The teacher themselves, or any administrator. A teacher asking for a "
+        "colleague's rollup is refused with `FORBIDDEN`. Courses outside the "
+        "caller's scope never appear, so an administrator's view is the only one "
+        "that spans the institution."
+    ),
+    responses={
+        403: {"description": "`FORBIDDEN` — below staff, or another teacher's rollup."},
+        404: {"description": "`USER_NOT_FOUND` — no account carries that id."},
+    },
+)
+def teacher_report(user_id: int, _: TeacherUser, service: Reporting) -> TeacherReportResponse:
+    """Build a teacher's rollup.
+
+    Args:
+        user_id: Whose rollup.
+        _: Enforces the teacher role.
+        service: The reporting service.
+
+    Returns:
+        The teacher's totals and course breakdown.
+    """
+    return TeacherReportResponse(**service.teacher_report(user_id))
+
+
+@reports_router.get(
+    "/term/{term}",
+    response_model=TermReportResponse,
+    summary="A term's courses",
+    description=(
+        "Scopeable where the institution-wide summary is not: a teacher gets their "
+        "own courses in that term, an administrator the whole institution's. "
+        "Students are refused, because any one student's copy would still contain "
+        "their classmates' averages."
+    ),
+    responses={403: {"description": "`FORBIDDEN` — below staff."}},
+)
+def term_report(term: str, _: TeacherUser, service: Reporting) -> TermReportResponse:
+    """Build a course breakdown for one term.
+
+    Args:
+        term: The academic term label.
+        _: Enforces the teacher role.
+        service: The reporting service.
+
+    Returns:
+        The term's courses and totals.
+    """
+    return TermReportResponse(**service.term_report(term))
+
+
+@reports_router.get(
+    "/course/{course_id}/assessments",
+    response_model=CourseAssessmentsResponse,
+    summary="A course's assessments",
+    description=(
+        "Grades grouped by assessment title, each with its own average, spread, "
+        'pass rate and band distribution. Answers "was the midterm too hard" — '
+        "the one question a teacher opens a gradebook to find out. Class statistics "
+        "span every student, so a student is refused."
+    ),
+    responses={
+        403: {"description": "`FORBIDDEN` — a student, or the course is outside your scope."},
+        404: {"description": "`COURSE_NOT_FOUND`."},
+    },
+)
+def course_assessments(
+    course_id: str, _: TeacherUser, service: Reporting
+) -> CourseAssessmentsResponse:
+    """Build the assessment analysis for one course.
+
+    Args:
+        course_id: Which course.
+        _: Enforces the teacher role.
+        service: The reporting service.
+
+    Returns:
+        One row per assessment title.
+    """
+    return CourseAssessmentsResponse(**service.course_assessments_report(course_id))
+
+
+@reports_router.get(
+    "/enrollment",
+    response_model=EnrollmentReportResponse,
+    summary="Enrolment capacity and utilisation",
+    description=(
+        "Per course: capacity, active, withdrawn and completed enrolments, and "
+        "utilisation as a percentage of capacity. Finds both over-subscribed and "
+        "dead courses. Students are refused — the report spans every student."
+    ),
+    responses={403: {"description": "`FORBIDDEN` — below staff."}},
+)
+def enrollment_report(service: Reporting, _: TeacherUser) -> EnrollmentReportResponse:
+    """Build the enrolment report.
+
+    Args:
+        service: The reporting service.
+        _: Enforces the teacher role.
+
+    Returns:
+        One row per visible course.
+    """
+    return EnrollmentReportResponse(**service.enrollment_report())
+
+
+@reports_router.get(
+    "/distribution",
+    response_model=DistributionReportResponse,
+    summary="Grade distribution over time",
+    description=(
+        "Grades bucketed by ISO month of the award date (`bucket=month`) or by "
+        "the course's term (`bucket=term`), each bucket carrying the band "
+        "distribution. One payload drives a stacked area chart and the "
+        "at-risk-trend question. Students are refused — the report spans every "
+        "student."
+    ),
+    responses={403: {"description": "`FORBIDDEN` — below staff."}},
+)
+def distribution_report(
+    service: Reporting, _: TeacherUser, bucket: BucketQuery = "month"
+) -> DistributionReportResponse:
+    """Build the time distribution.
+
+    Args:
+        service: The reporting service.
+        _: Enforces the teacher role.
+        bucket: How to group the buckets.
+
+    Returns:
+        The ordered buckets and their distributions.
+    """
+    return DistributionReportResponse(**service.distribution_report(bucket))
+
+
 @reports_router.get(
     "/{kind}/{entity_id}/export.csv",
     response_class=PlainTextResponse,
@@ -274,7 +551,10 @@ def summary_report(
         "has no frontend to render it. `?locale=de` or `fr` also switches the "
         "delimiter to `;`, which is what Excel expects in those locales — a "
         "comma-separated file opens there as a single column.\n\n"
-        "Use `summary` as both `kind` and `entity_id` for the institution-wide report."
+        "Use `summary` as both `kind` and `entity_id` for the institution-wide "
+        "report, and the same convention for `enrollment` and `distribution`. "
+        "Assessments export with the course id as the entity, e.g. "
+        "`/reports/assessments/CS101/export.csv`."
     ),
     responses={
         200: {"content": {"text/csv": {}}, "description": "The CSV file."},
@@ -282,12 +562,16 @@ def summary_report(
     },
 )
 def export_csv(
-    kind: str, entity_id: str, service: Reporting, locale: LocaleQuery = "en"
+    kind: str,
+    entity_id: str,
+    service: Reporting,
+    locale: LocaleQuery = "en",
+    bucket: BucketQuery = "month",
 ) -> PlainTextResponse:
     """Render a report as a downloadable CSV file."""
     key = locale if locale in SUPPORTED_LOCALES else "en"
     body = service.export_csv(
-        kind, entity_id, CSV_HEADERS[key], CSV_DELIMITERS[key], CSV_LABELS[key]
+        kind, entity_id, CSV_HEADERS[key], CSV_DELIMITERS[key], CSV_LABELS[key], bucket
     )
     filename = f"{kind}-{entity_id}.csv"
     return PlainTextResponse(
