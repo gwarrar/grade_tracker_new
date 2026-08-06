@@ -24,11 +24,13 @@ from notenverwaltung.exceptions import (
     ValidationError,
 )
 from notenverwaltung.models import Course, Enrollment, EnrollmentStatus, Student
+from notenverwaltung.models.user import Role
 from notenverwaltung.storage import SqliteGradeStore, transaction
 from notenverwaltung.storage.queries import Page, SortSpec, exists, paginate
 from notenverwaltung.storage.scope import Scope
 from services import audit
 from services.scoping import Principal, can_write_course, course_scope, student_scope
+from services.users import UserService
 
 STUDENT_SORTABLE = {
     "id": "s.student_id",
@@ -168,21 +170,33 @@ class DirectoryService:
         phone: str | None = None,
         date_of_birth: date | None = None,
         cohort: str | None = None,
-    ) -> dict[str, Any]:
-        """Add a student.
+        create_account: bool = True,
+    ) -> tuple[dict[str, Any], str | None]:
+        """Add a student, and by default the account they sign in with.
+
+        Provisioning lives here rather than in the router because the importer
+        creates students through this same method: put it a layer up and a
+        cohort of four hundred lands with no way in, and somebody has to make
+        four hundred accounts by hand.
 
         Args:
             student_id: Institution-assigned identifier.
             first_name: Given name.
             last_name: Family name.
-            email: Contact address.
+            email: Contact address, and the address of the account.
             is_active: Whether the student may be enrolled.
             phone: Contact telephone number.
             date_of_birth: Calendar date of birth.
             cohort: Institution-defined cohort label.
+            create_account: Whether to mint a sign-in account. Off for records
+                that exist for their history rather than their holder — an
+                archive of past cohorts should not become four hundred live
+                credentials.
 
         Returns:
-            The stored student.
+            The stored student, and the account's one-time password when one was
+            created. That password is never stored in readable form and cannot be
+            retrieved afterwards; a lost one is replaced by a reset, not recovered.
 
         Raises:
             DuplicateEntryError: If the id or email is taken.
@@ -195,8 +209,18 @@ class DirectoryService:
             "date_of_birth": _date_text(date_of_birth),
             "cohort": cohort,
         }
+        password: str | None = None
         with transaction(self._conn):
             self._store.add_student(student)
+            if create_account:
+                # After add_student, so a rejected record never leaves a stray
+                # account behind; inside the transaction, so neither can the
+                # reverse happen. UserService links the two by address.
+                _, password = UserService(self._conn, self._principal).create(
+                    email=student.email,
+                    full_name=f"{student.first_name} {student.last_name}",
+                    role=Role.STUDENT,
+                )
             self._conn.execute(
                 "UPDATE students SET is_active = ?, phone = ?, date_of_birth = ?, cohort = ?"
                 " WHERE student_id = ?",
@@ -216,7 +240,7 @@ class DirectoryService:
                 action="create",
                 after={**student.to_dict(), **metadata},
             )
-        return self.get_student(student.student_id)
+        return self.get_student(student.student_id), password
 
     def update_student(self, student_id: str, changes: dict[str, Any]) -> dict[str, Any]:
         """Change a student's details.

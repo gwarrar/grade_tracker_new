@@ -65,6 +65,30 @@ class StudentCreateRequest(BaseModel):
     phone: str | None = Field(default=None, max_length=100)
     date_of_birth: date | None = Field(default=None)
     cohort: str | None = Field(default=None, max_length=100)
+    create_account: bool = Field(
+        default=True,
+        description=(
+            "Create the sign-in account too, at this address, and link it to the "
+            "record. On by default: a student record with no account is a student "
+            "who cannot see their own grades, and creating the two separately is "
+            "how the link came to be missed. Turn it off for a record kept for its "
+            "history rather than its holder."
+        ),
+    )
+
+
+class CreatedStudentResponse(StudentResponse):
+    """A new student, and the one-time password of the account created with them."""
+
+    initial_password: str | None = Field(
+        default=None,
+        description=(
+            "**Shown once and never retrievable.** Hand it over; the account is "
+            "flagged to require a change at first sign-in. Null when no account "
+            "was created. A lost password is replaced through `POST "
+            "/admin/users/{user_id}/reset-password`, not recovered."
+        ),
+    )
 
 
 class StudentUpdateRequest(BaseModel):

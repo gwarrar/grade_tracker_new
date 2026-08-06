@@ -15,6 +15,7 @@ from api.schemas.domain import (
     CourseCreateRequest,
     CourseResponse,
     CourseUpdateRequest,
+    CreatedStudentResponse,
     EnrollmentResponse,
     EnrollmentStatusRequest,
     EnrollRequest,
@@ -93,13 +94,15 @@ def list_students(
 
 @students_router.post(
     "",
-    response_model=StudentResponse,
+    response_model=CreatedStudentResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Add a student",
     description=(
         "Administrators only. A student record belongs to the institution's register, "
         "not to a course — and a teacher creating one could not read it back, since "
         "their scope is defined by enrolment. Teachers enrol existing students instead."
+        "\n\nThe record comes with a sign-in account unless `create_account` is false. "
+        "Its one-time password is in `initial_password` and is available nowhere else."
     ),
     responses={
         403: {"description": "`FORBIDDEN` — administrators only."},
@@ -108,9 +111,10 @@ def list_students(
 )
 def create_student(
     payload: StudentCreateRequest, service: Directory, _: AdminUser
-) -> StudentResponse:
-    """Add a student."""
-    return StudentResponse(**service.create_student(**payload.model_dump()))
+) -> CreatedStudentResponse:
+    """Add a student, and by default the account they sign in with."""
+    student, password = service.create_student(**payload.model_dump())
+    return CreatedStudentResponse(**student, initial_password=password)
 
 
 @students_router.get(

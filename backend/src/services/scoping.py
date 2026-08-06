@@ -67,6 +67,8 @@ class Principal:
             student users, and the basis of their entire visibility.
         locale: Resolved language, after falling back through the organisation default.
         theme: Resolved colour scheme.
+        must_change_password: Whether the password still is the generated one an
+            administrator handed over, and so is known to two people.
     """
 
     user_id: int
@@ -76,6 +78,7 @@ class Principal:
     student_id: str | None = None
     locale: str = "en"
     theme: Theme = Theme.SYSTEM
+    must_change_password: bool = False
 
     @property
     def is_admin(self) -> bool:

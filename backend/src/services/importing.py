@@ -117,6 +117,12 @@ class ImportService:
         self._max_rows = max_import_rows
         self._directory = DirectoryService(conn, principal)
         self._grading = GradingService(conn, principal)
+        self._create_accounts = True
+        #: One-time passwords minted by the run in progress, in row order. Held on
+        #: the service rather than in the report because ``ImportReport`` is a
+        #: domain type shared with the offline importer, which has nobody to show
+        #: a password to.
+        self._credentials: list[dict[str, str]] = []
 
     def preview(
         self,
@@ -125,6 +131,7 @@ class ImportService:
         filename: str,
         content: bytes,
         column_mapping: dict[str, str],
+        create_accounts: bool = True,
     ) -> dict[str, Any]:
         """Dry-run an import without changing the database.
 
@@ -133,6 +140,10 @@ class ImportService:
             filename: The upload's name, used to pick the parser.
             content: The raw bytes.
             column_mapping: Field name to source column name.
+            create_accounts: Whether student rows would also mint sign-in accounts.
+                Honoured here so a preview counts the same duplicate-address
+                failures the commit would; the passwords themselves are rolled
+                back with everything else and never returned.
 
         Returns:
             The headers, a few sample rows, and the report the real import would
@@ -144,6 +155,7 @@ class ImportService:
         """
         table = self._read_table(filename, content)
         self._check_row_cap(len(table.rows))
+        self._create_accounts = create_accounts
         try:
             with transaction(self._conn):
                 dry_run = _DryRunRollbackError(self._run(kind, table.rows, column_mapping))
@@ -164,6 +176,7 @@ class ImportService:
         filename: str,
         content: bytes,
         column_mapping: dict[str, str],
+        create_accounts: bool = True,
     ) -> dict[str, Any]:
         """Import the file for real.
 
@@ -175,9 +188,15 @@ class ImportService:
             filename: The upload's name, used to pick the parser.
             content: The raw bytes.
             column_mapping: Field name to source column name.
+            create_accounts: Whether each imported student also gets a sign-in
+                account. Off for an archive of past cohorts, which should not
+                become four hundred live credentials.
 
         Returns:
-            The import report.
+            The import report, plus ``credentials``: one entry per account
+            created, carrying the password. This is the only time those values
+            exist in readable form — they are not stored and cannot be fetched
+            again, so a lost one is replaced by a reset rather than recovered.
 
         Raises:
             ValidationError: If the file cannot be parsed.
@@ -185,9 +204,11 @@ class ImportService:
         """
         table = self._read_table(filename, content)
         self._check_row_cap(len(table.rows))
+        self._create_accounts = create_accounts
+        self._credentials = []
         with transaction(self._conn):
             report = self._run(kind, table.rows, column_mapping)
-        return report.to_dict()
+        return {**report.to_dict(), "credentials": self._credentials}
 
     # ── Parsing ──────────────────────────────────────────────────────────────
 
@@ -339,7 +360,7 @@ class ImportService:
 
     def _import_student(self, row: dict[str, str], column_mapping: dict[str, str]) -> None:
         """Import one student row through the directory service."""
-        self._directory.create_student(
+        student, password = self._directory.create_student(
             student_id=self._required(row, column_mapping, "student_id"),
             first_name=self._required(row, column_mapping, "first_name"),
             last_name=self._required(row, column_mapping, "last_name"),
@@ -348,7 +369,17 @@ class ImportService:
             phone=self._optional(row, column_mapping, "phone") or None,
             date_of_birth=self._iso_date(row, column_mapping, "date_of_birth"),
             cohort=self._optional(row, column_mapping, "cohort") or None,
+            create_account=self._create_accounts,
         )
+        if password is not None:
+            self._credentials.append(
+                {
+                    "student_id": str(student["student_id"]),
+                    "full_name": f"{student['first_name']} {student['last_name']}",
+                    "email": str(student["email"]),
+                    "initial_password": password,
+                }
+            )
 
     def _import_course(self, row: dict[str, str], column_mapping: dict[str, str]) -> None:
         """Import one course row through the directory service."""

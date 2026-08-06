@@ -80,6 +80,7 @@ class UserRecord:
     updated_at: str | None
     student_id: str | None
     session_count: int
+    must_change_password: bool
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> UserRecord:
@@ -102,6 +103,7 @@ class UserRecord:
             updated_at=row["updated_at"],
             student_id=row["student_id"],
             session_count=row["session_count"],
+            must_change_password=bool(row["must_change_password"]),
         )
 
 
@@ -109,7 +111,7 @@ class UserRecord:
 # secret column added later is published by default.
 _SELECT = (
     "SELECT u.id, u.email, u.full_name, u.role, u.is_active, u.locale,"
-    "       u.created_at, u.updated_at,"
+    "       u.created_at, u.updated_at, u.must_change_password,"
     "       (SELECT s.student_id FROM students s WHERE s.user_id = u.id) AS student_id,"
     "       (SELECT COUNT(*) FROM sessions ss"
     "         WHERE ss.user_id = u.id AND ss.expires_at > ?) AS session_count"
@@ -133,7 +135,9 @@ class UserService:
 
     # ── Reading ──────────────────────────────────────────────────────────────
 
-    def list(self, *, query: str = "", include_inactive: bool = True) -> list[UserRecord]:
+    def list(
+        self, *, query: str = "", include_inactive: bool = True, role: Role | None = None
+    ) -> list[UserRecord]:
         """List accounts.
 
         Args:
@@ -142,6 +146,9 @@ class UserService:
                 default — hiding them makes a deactivated account look deleted,
                 and someone then tries to recreate it and hits a unique
                 constraint they cannot explain.
+            role: Restrict to one role. A cohort import mints hundreds of student
+                accounts, which would otherwise bury the handful of staff accounts
+                an administrator actually came here to manage.
 
         Returns:
             Accounts, ordered by name.
@@ -155,6 +162,9 @@ class UserService:
             params.extend([pattern, pattern])
         if not include_inactive:
             where.append("u.is_active = 1")
+        if role is not None:
+            where.append("u.role = ?")
+            params.append(role.value)
 
         clause = f" WHERE {' AND '.join(where)}" if where else ""
         rows = self._conn.execute(
@@ -200,7 +210,8 @@ class UserService:
 
         Returns:
             The account and its initial password, the only time that value is
-            ever available.
+            ever available. The account is flagged to require a change, because
+            until the person replaces it the password has two owners.
 
         Raises:
             ForbiddenError: If the actor may not grant this role.
@@ -223,16 +234,40 @@ class UserService:
         digest, salt = hash_password(initial)
         try:
             cursor = self._conn.execute(
-                "INSERT INTO users (email, password_hash, password_salt, role, full_name)"
-                " VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO users"
+                " (email, password_hash, password_salt, role, full_name, must_change_password)"
+                " VALUES (?, ?, ?, ?, ?, 1)",
                 (address, digest, salt, role.value, full_name.strip()),
             )
         except sqlite3.IntegrityError as error:
             raise DuplicateEntryError(f"{address} already has an account") from error
 
         user_id = int(cursor.lastrowid or 0)
+        if role is Role.STUDENT:
+            self._link_student_record(user_id, address)
         self._record(user_id, "create", after={"email": address, "role": role.value})
         return self.get(user_id), initial
+
+    def _link_student_record(self, user_id: int, address: str) -> None:
+        """Attach a new student account to the record that shares its address.
+
+        Creating the account and attaching it were two acts, and nothing performed
+        the second. The account signed in and then saw nothing at all: with no
+        ``student_id`` on the principal, ``student_scope`` matches zero rows, so
+        the application is empty rather than broken-looking.
+
+        Only unlinked records are claimed, so this cannot move an existing link,
+        and only an exact address match, so it cannot guess.
+
+        Args:
+            user_id: The freshly created account.
+            address: Its sign-in address, already normalised.
+        """
+        self._conn.execute(
+            "UPDATE students SET user_id = ?, updated_at = ?"
+            " WHERE user_id IS NULL AND lower(email) = ?",
+            (user_id, utc_now(), address),
+        )
 
     def set_role(self, user_id: int, role: Role) -> UserRecord:
         """Change what an account may do.
@@ -332,7 +367,8 @@ class UserService:
         temporary = secrets.token_urlsafe(_TEMPORARY_PASSWORD_BYTES)
         digest, salt = hash_password(temporary)
         self._conn.execute(
-            "UPDATE users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?",
+            "UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = 1,"
+            " updated_at = ? WHERE id = ?",
             (digest, salt, utc_now(), user_id),
         )
         self._conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))

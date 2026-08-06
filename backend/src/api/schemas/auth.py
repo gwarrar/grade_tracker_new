@@ -47,6 +47,14 @@ class PrincipalResponse(BaseModel):
     )
     locale: str = Field(description="Resolved language, after the organisation fallback.")
     theme: str = Field(description="Resolved colour scheme: light, dark or system.")
+    must_change_password: bool = Field(
+        default=False,
+        description=(
+            "The password is still the generated one an administrator handed over, "
+            "so two people know it. The application should route the user to the "
+            "password form and keep them there until it clears."
+        ),
+    )
 
 
 class PasswordChangeRequest(BaseModel):

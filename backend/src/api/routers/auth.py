@@ -26,6 +26,7 @@ def to_response(principal: Principal) -> PrincipalResponse:
         student_id=principal.student_id,
         locale=principal.locale,
         theme=str(principal.theme),
+        must_change_password=principal.must_change_password,
     )
 
 

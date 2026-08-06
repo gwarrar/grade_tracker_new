@@ -54,6 +54,18 @@ MappingForm = Annotated[
     ),
 ]
 
+AccountsForm = Annotated[
+    bool,
+    Form(
+        description=(
+            "Whether each imported student also gets a sign-in account, returned "
+            "with a one-time password. Ignored for courses and grades. Turn it "
+            "off for an archive of past cohorts, which should not become several "
+            "hundred live credentials."
+        )
+    ),
+]
+
 
 class ImportRowError(BaseModel):
     """One rejected row in an import report."""
@@ -68,6 +80,30 @@ class ImportReportModel(BaseModel):
     imported: int = Field(description="Rows written successfully.")
     skipped: int = Field(description="Rows rejected.")
     errors: list[ImportRowError] = Field(description="One entry per rejected row.")
+
+
+class ImportedCredential(BaseModel):
+    """A sign-in account minted by an import, and its one-time password."""
+
+    student_id: str
+    full_name: str
+    email: str
+    initial_password: str
+
+
+class ImportCommitModel(ImportReportModel):
+    """A committed import: the report, plus any accounts it created."""
+
+    credentials: list[ImportedCredential] = Field(
+        default_factory=list,
+        description=(
+            "One entry per sign-in account created, in row order. **This is the "
+            "only time these passwords exist in readable form** — they are stored "
+            "hashed and cannot be fetched again. Hand them out, then use the "
+            "reset endpoint for anyone who loses theirs. Every account is flagged "
+            "to require a change at first sign-in."
+        ),
+    )
 
 
 class ImportPreviewModel(BaseModel):
@@ -188,6 +224,7 @@ async def preview_import(
     service: Importing,
     settings: SettingsDep,
     mapping: MappingForm = None,
+    create_accounts: AccountsForm = True,
 ) -> ImportPreviewModel:
     """Preview an import without changing the database.
 
@@ -197,6 +234,8 @@ async def preview_import(
         service: The import service.
         settings: Application settings, for the upload ceiling.
         mapping: The column mapping as JSON, if the caller has one.
+        create_accounts: Whether student rows would also mint accounts, so the
+            dry run counts the same address collisions a commit would.
 
     Returns:
         Headers, sample rows and the dry-run report.
@@ -215,13 +254,14 @@ async def preview_import(
             filename=file.filename or "",
             content=content,
             column_mapping=_mapping(mapping),
+            create_accounts=create_accounts,
         )
     )
 
 
 @router.post(
     "/{kind}",
-    response_model=ImportReportModel,
+    response_model=ImportCommitModel,
     status_code=status.HTTP_200_OK,
     summary="Import a file",
     description=(
@@ -231,7 +271,10 @@ async def preview_import(
         "rejected individually and reported with their line number and error "
         "code — one bad row does not cost the rest of the file.\n\n"
         "Each successfully imported row produces its own audit entry. Students and "
-        "courses require the administrator role; grades require a teacher."
+        "courses require the administrator role; grades require a teacher.\n\n"
+        "Student rows also mint a sign-in account unless `create_accounts` is "
+        "false. Their one-time passwords come back in `credentials` and are "
+        "available nowhere else."
     ),
     responses={
         403: {"description": "`FORBIDDEN` — below the kind's minimum role."},
@@ -245,7 +288,8 @@ async def import_file(
     service: Importing,
     settings: SettingsDep,
     mapping: MappingForm = None,
-) -> ImportReportModel:
+    create_accounts: AccountsForm = True,
+) -> ImportCommitModel:
     """Import a file for real.
 
     Args:
@@ -254,9 +298,10 @@ async def import_file(
         service: The import service.
         settings: Application settings, for the upload ceiling.
         mapping: The column mapping as JSON, if the caller has one.
+        create_accounts: Whether each imported student also gets an account.
 
     Returns:
-        The import report.
+        The import report, and the credentials of any accounts created.
 
     Raises:
         PayloadTooLargeError: If the file exceeds the configured ceiling.
@@ -266,11 +311,12 @@ async def import_file(
         raise PayloadTooLargeError(
             "Import exceeds the configured size limit.", limit=settings.max_upload_bytes
         )
-    return ImportReportModel(
+    return ImportCommitModel(
         **service.commit(
             kind=kind,
             filename=file.filename or "",
             content=content,
             column_mapping=_mapping(mapping),
+            create_accounts=create_accounts,
         )
     )

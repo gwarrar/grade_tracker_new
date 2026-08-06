@@ -38,6 +38,12 @@ class UserResponse(BaseModel):
     updated_at: str | None
     student_id: str | None = Field(description="The student record linked to this account, if any.")
     session_count: int = Field(description="How many unexpired sessions this account has.")
+    must_change_password: bool = Field(
+        description=(
+            "Whether the password is still the generated one that was handed over, "
+            "and so is known to two people. Cleared when the holder changes it."
+        )
+    )
 
 
 class CreateUserRequest(BaseModel):
@@ -105,6 +111,15 @@ def list_users(
     include_inactive: Annotated[
         bool, Query(description="Include deactivated accounts. On by default.")
     ] = True,
+    role: Annotated[
+        Role | None,
+        Query(
+            description=(
+                "Restrict to one role. A cohort import mints hundreds of student "
+                "accounts, which would otherwise bury the staff accounts."
+            )
+        ),
+    ] = None,
 ) -> list[UserResponse]:
     """List accounts.
 
@@ -113,6 +128,7 @@ def list_users(
         users: The service.
         q: Search term.
         include_inactive: Whether deactivated accounts appear.
+        role: Restrict to one role, or every role when omitted.
 
     Returns:
         Matching accounts, ordered by name.
@@ -120,7 +136,7 @@ def list_users(
     # asdict rather than vars: UserRecord is a slots dataclass and has no __dict__.
     return [
         UserResponse(**asdict(record))
-        for record in users.list(query=q, include_inactive=include_inactive)
+        for record in users.list(query=q, include_inactive=include_inactive, role=role)
     ]
 
 

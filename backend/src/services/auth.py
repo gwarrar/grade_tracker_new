@@ -162,7 +162,8 @@ class AuthService:
 
         row = self._conn.execute(
             "SELECT id, email, password_hash, password_salt, role, full_name, is_active,"
-            " locale, theme_preference FROM users WHERE lower(email) = lower(?)",
+            " locale, theme_preference, must_change_password"
+            " FROM users WHERE lower(email) = lower(?)",
             (email.strip(),),
         ).fetchone()
 
@@ -232,7 +233,7 @@ class AuthService:
         """
         row = self._conn.execute(
             "SELECT u.id, u.email, u.role, u.full_name, u.is_active, u.locale,"
-            "       u.theme_preference"
+            "       u.theme_preference, u.must_change_password"
             "  FROM sessions s JOIN users u ON u.id = s.user_id"
             " WHERE s.token_sha256 = ? AND s.expires_at > ?",
             (hash_token(raw_token), utc_now()),
@@ -318,8 +319,11 @@ class AuthService:
             )
 
         digest, salt = hash_password(replacement)
+        # Clearing the flag here rather than anywhere else: this is the only path
+        # by which a password becomes known to one person again.
         self._conn.execute(
-            "UPDATE users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?",
+            "UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = 0,"
+            " updated_at = ? WHERE id = ?",
             (digest, salt, utc_now(), user_id),
         )
         # A password change is how someone responds to a suspected compromise. Leaving
@@ -371,8 +375,8 @@ class AuthService:
             NotAuthenticatedError: If the account has since disappeared.
         """
         row = self._conn.execute(
-            "SELECT id, email, role, full_name, is_active, locale, theme_preference"
-            " FROM users WHERE id = ?",
+            "SELECT id, email, role, full_name, is_active, locale, theme_preference,"
+            "       must_change_password FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
         if row is None:
@@ -419,4 +423,5 @@ class AuthService:
             student_id=student_id,
             locale=row["locale"] or (org["default_locale"] if org else "en"),
             theme=Theme(row["theme_preference"] or (org["default_theme"] if org else "system")),
+            must_change_password=bool(row["must_change_password"]),
         )

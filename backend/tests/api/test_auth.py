@@ -76,7 +76,23 @@ class TestLogin:
         response = client.post(
             "/auth/login", json={"email": "admin@test.local", "password": PASSWORD}
         )
-        assert "password" not in response.text.lower()
+        # Names the secrets rather than banning the word: the principal legitimately
+        # carries `must_change_password`, and a substring check would have made that
+        # field impossible to add for a reason unrelated to what it guards.
+        body = response.text.lower()
+        assert PASSWORD.lower() not in body
+        assert "password_hash" not in body
+        assert "password_salt" not in body
+        assert set(response.json()) == {
+            "user_id",
+            "email",
+            "full_name",
+            "role",
+            "student_id",
+            "locale",
+            "theme",
+            "must_change_password",
+        }
 
 
 class TestSession:

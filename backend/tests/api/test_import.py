@@ -37,6 +37,9 @@ _IMPORT_TABLES = (
     "grades",
     "notes",
     "students",
+    # A student import also mints sign-in accounts, so a preview that failed to roll
+    # back would leave live credentials behind — the most costly thing it could leak.
+    "users",
 )
 """Tables an import could write, restricted to those.
 
@@ -143,7 +146,11 @@ class TestPreview:
         )
         assert preview.status_code == 200
         assert committed.status_code == 200
-        assert preview.json()["report"] == committed.json()
+        # Field by field rather than whole-body: a commit also reports the accounts
+        # it created, which a rolled-back preview has none of and must not invent.
+        report = preview.json()["report"]
+        assert {key: committed.json()[key] for key in report} == report
+        assert committed.json()["credentials"] == []
 
     def test_preview_without_mapping_returns_headers_and_samples_for_xlsx(
         self, as_teacher: Any
