@@ -24,6 +24,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState, type DragEvent, type FormEvent } from "react";
 
+import { CredentialsCard } from "@/components/app/credentials";
+
 import { Select } from "@/components/app/detail-fields";
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
@@ -84,6 +86,7 @@ export function ImportView({ locale }: { locale: string }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [inspecting, setInspecting] = useState(false);
+  const [createAccounts, setCreateAccounts] = useState(true);
 
   const propose = useQuery({
     queryKey: ["import", "map", kind, headers],
@@ -100,6 +103,7 @@ export function ImportView({ locale }: { locale: string }) {
       const form = new FormData();
       form.set("file", file as File);
       form.set("mapping", JSON.stringify(request));
+      form.set("create_accounts", String(createAccounts));
       return api<Preview>(`/import/${kind}/preview`, { method: "POST", body: form });
     },
     onSuccess: (result) => {
@@ -114,6 +118,7 @@ export function ImportView({ locale }: { locale: string }) {
       const form = new FormData();
       form.set("file", file as File);
       form.set("mapping", JSON.stringify(mapping ?? {}));
+      form.set("create_accounts", String(createAccounts));
       return api<Report>(`/import/${kind}`, { method: "POST", body: form });
     },
     onSuccess: (result) => {
@@ -234,6 +239,24 @@ export function ImportView({ locale }: { locale: string }) {
               ))}
             </select>
           </label>
+
+          {/* Students only — the other two kinds have nobody to sign in. On by
+              default: a cohort imported without accounts is a cohort that cannot
+              see its own grades. */}
+          {kind === "students" && (
+            <label className="flex max-w-lg items-start gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                checked={createAccounts}
+                onChange={(event) => setCreateAccounts(event.target.checked)}
+                className="mt-0.5 accent-[var(--brand-primary)]"
+              />
+              <span>
+                {t("createAccounts")}
+                <span className="block text-xs text-subtle">{t("createAccountsHint")}</span>
+              </span>
+            </label>
+          )}
 
           <div
             onDragOver={onDragOver}
@@ -468,6 +491,17 @@ export function ImportView({ locale }: { locale: string }) {
               })}
             </p>
           </div>
+          {/* Before the restart button, not after: restarting is what somebody
+              does the instant they read "imported", and these are gone for good. */}
+          <CredentialsCard
+            title={t("accountsCreated", { count: (committed.credentials ?? []).length })}
+            rows={(committed.credentials ?? []).map((row) => ({
+              email: row.email,
+              password: row.initial_password,
+              name: `${row.full_name} · ${row.student_id}`,
+            }))}
+            onDismiss={() => setCommitted({ ...committed, credentials: [] })}
+          />
           <button type="button" className="btn" onClick={restart}>
             {t("restart")}
           </button>

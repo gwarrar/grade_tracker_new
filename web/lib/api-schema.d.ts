@@ -223,6 +223,7 @@ export interface paths {
          *         users: The service.
          *         q: Search term.
          *         include_inactive: Whether deactivated accounts appear.
+         *         role: Restrict to one role, or every role when omitted.
          *
          *     Returns:
          *         Matching accounts, ordered by name.
@@ -793,6 +794,8 @@ export interface paths {
          * @description Parse the file and write every valid row. The whole batch and its audit entries commit together, so an import that fails halfway leaves nothing behind. Rows that would not survive the same checks a form applies are rejected individually and reported with their line number and error code — one bad row does not cost the rest of the file.
          *
          *     Each successfully imported row produces its own audit entry. Students and courses require the administrator role; grades require a teacher.
+         *
+         *     Student rows also mint a sign-in account unless `create_accounts` is false. Their one-time passwords come back in `credentials` and are available nowhere else.
          */
         post: operations["import_file_import__kind__post"];
         delete?: never;
@@ -1293,6 +1296,8 @@ export interface paths {
         /**
          * Add a student
          * @description Administrators only. A student record belongs to the institution's register, not to a course — and a teacher creating one could not read it back, since their scope is defined by enrolment. Teachers enrol existing students instead.
+         *
+         *     The record comes with a sign-in account unless `create_account` is false. Its one-time password is in `initial_password` and is available nowhere else.
          */
         post: operations["create_student_students_post"];
         delete?: never;
@@ -1551,6 +1556,12 @@ export interface components {
         /** Body_import_file_import__kind__post */
         Body_import_file_import__kind__post: {
             /**
+             * Create Accounts
+             * @description Whether each imported student also gets a sign-in account, returned with a one-time password. Ignored for courses and grades. Turn it off for an archive of past cohorts, which should not become several hundred live credentials.
+             * @default true
+             */
+            create_accounts: boolean;
+            /**
              * File
              * @description CSV, TSV or .xlsx file.
              */
@@ -1563,6 +1574,12 @@ export interface components {
         };
         /** Body_preview_import_import__kind__preview_post */
         Body_preview_import_import__kind__preview_post: {
+            /**
+             * Create Accounts
+             * @description Whether each imported student also gets a sign-in account, returned with a one-time password. Ignored for courses and grades. Turn it off for an archive of past cohorts, which should not become several hundred live credentials.
+             * @default true
+             */
+            create_accounts: boolean;
             /**
              * File
              * @description CSV, TSV or .xlsx file.
@@ -1958,6 +1975,89 @@ export interface components {
             full_name: string;
             /** @example teacher */
             role: components["schemas"]["Role"];
+        };
+        /**
+         * CreatedStudentResponse
+         * @description A new student, and the one-time password of the account created with them.
+         */
+        CreatedStudentResponse: {
+            /**
+             * Cohort
+             * @description Institution-defined cohort label.
+             */
+            cohort?: string | null;
+            /**
+             * Created At
+             * @description ISO-8601 UTC.
+             */
+            created_at?: string | null;
+            /**
+             * Date Of Birth
+             * @description ISO calendar date.
+             */
+            date_of_birth?: string | null;
+            /**
+             * Email
+             * @description Contact address.
+             * @example anna@example.com
+             */
+            email: string;
+            /**
+             * Enrolled Count
+             * @description Active enrolments.
+             * @default 0
+             */
+            enrolled_count: number;
+            /**
+             * First Name
+             * @description Given name.
+             * @example Anna
+             */
+            first_name: string;
+            /**
+             * Grade Count
+             * @description Grades recorded.
+             * @default 0
+             */
+            grade_count: number;
+            /**
+             * Initial Password
+             * @description **Shown once and never retrievable.** Hand it over; the account is flagged to require a change at first sign-in. Null when no account was created. A lost password is replaced through `POST /admin/users/{user_id}/reset-password`, not recovered.
+             */
+            initial_password?: string | null;
+            /**
+             * Is Active
+             * @description Whether the student may be enrolled.
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Last Name
+             * @description Family name.
+             * @example Schmidt
+             */
+            last_name: string;
+            /**
+             * Phone
+             * @description Contact telephone number.
+             */
+            phone?: string | null;
+            /**
+             * Student Id
+             * @description Institution-assigned identifier.
+             * @example S001
+             */
+            student_id: string;
+            /**
+             * Updated At
+             * @description ISO-8601 UTC.
+             */
+            updated_at?: string | null;
+            /**
+             * User Id
+             * @description Linked login account, or null. Not every student signs in.
+             */
+            user_id?: number | null;
         };
         /**
          * CreatedUserResponse
@@ -2368,6 +2468,32 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * ImportCommitModel
+         * @description A committed import: the report, plus any accounts it created.
+         */
+        ImportCommitModel: {
+            /**
+             * Credentials
+             * @description One entry per sign-in account created, in row order. **This is the only time these passwords exist in readable form** — they are stored hashed and cannot be fetched again. Hand them out, then use the reset endpoint for anyone who loses theirs. Every account is flagged to require a change at first sign-in.
+             */
+            credentials?: components["schemas"]["ImportedCredential"][];
+            /**
+             * Errors
+             * @description One entry per rejected row.
+             */
+            errors: components["schemas"]["ImportRowError"][];
+            /**
+             * Imported
+             * @description Rows written successfully.
+             */
+            imported: number;
+            /**
+             * Skipped
+             * @description Rows rejected.
+             */
+            skipped: number;
+        };
+        /**
          * ImportMapRequest
          * @description A spreadsheet's header row and a few sample rows.
          */
@@ -2457,6 +2583,20 @@ export interface components {
              * @description Data row number, the header counting as line 1.
              */
             line: number;
+        };
+        /**
+         * ImportedCredential
+         * @description A sign-in account minted by an import, and its one-time password.
+         */
+        ImportedCredential: {
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /** Initial Password */
+            initial_password: string;
+            /** Student Id */
+            student_id: string;
         };
         /**
          * InsightResponse
@@ -2840,6 +2980,12 @@ export interface components {
              */
             locale: string;
             /**
+             * Must Change Password
+             * @description The password is still the generated one an administrator handed over, so two people know it. The application should route the user to the password form and keep them there until it clears.
+             * @default false
+             */
+            must_change_password: boolean;
+            /**
              * Role
              * @description One of: student, teacher, admin, superadmin.
              */
@@ -3114,6 +3260,12 @@ export interface components {
         StudentCreateRequest: {
             /** Cohort */
             cohort?: string | null;
+            /**
+             * Create Account
+             * @description Create the sign-in account too, at this address, and link it to the record. On by default: a student record with no account is a student who cannot see their own grades, and creating the two separately is how the link came to be missed. Turn it off for a record kept for its history rather than its holder.
+             * @default true
+             */
+            create_account: boolean;
             /** Date Of Birth */
             date_of_birth?: string | null;
             /**
@@ -3451,6 +3603,11 @@ export interface components {
             is_active: boolean;
             /** Locale */
             locale: string | null;
+            /**
+             * Must Change Password
+             * @description Whether the password is still the generated one that was handed over, and so is known to two people. Cleared when the holder changes it.
+             */
+            must_change_password: boolean;
             /** Role */
             role: string;
             /**
@@ -3762,6 +3919,8 @@ export interface operations {
                 q?: string;
                 /** @description Include deactivated accounts. On by default. */
                 include_inactive?: boolean;
+                /** @description Restrict to one role. A cohort import mints hundreds of student accounts, which would otherwise bury the staff accounts. */
+                role?: components["schemas"]["Role"] | null;
             };
             header?: never;
             path?: never;
@@ -5093,7 +5252,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ImportReportModel"];
+                    "application/json": components["schemas"]["ImportCommitModel"];
                 };
             };
             /** @description `FORBIDDEN` — below the kind's minimum role. */
@@ -6092,7 +6251,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["StudentResponse"];
+                    "application/json": components["schemas"]["CreatedStudentResponse"];
                 };
             };
             /** @description `FORBIDDEN` — administrators only. */

@@ -15,6 +15,7 @@ import type { ReactNode } from "react";
 import { AppNav } from "@/components/app/app-nav";
 import { getBranding } from "@/components/branding/branding";
 import { CommandPalette } from "@/components/app/command-palette";
+import { PasswordGate } from "@/components/app/password-gate";
 import { QueryProvider } from "@/app/query-provider";
 import { getServerSession } from "@/lib/server-session";
 
@@ -50,6 +51,9 @@ export default async function AppLayout({
           {t("skip")}
         </a>
         <AppNav me={me} branding={branding} />
+        {/* Here rather than on each page: an account still using the password it
+            was handed should not be able to reach any of them. */}
+        <PasswordGate me={me} />
         <main id="content" className="mx-auto max-w-7xl px-6 py-8">
           {children}
         </main>

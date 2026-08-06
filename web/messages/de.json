@@ -51,7 +51,10 @@
     "deleteTitle": "Studierende:n löschen?",
     "deleteDescription": "Studierendendaten, Noten und Anmeldungen werden dauerhaft gelöscht. Das Auditprotokoll bleibt erhalten.",
     "account": "Anmeldekonto",
-    "noAccount": "Kein Konto verknüpft"
+    "noAccount": "Kein Konto verknüpft",
+    "createAccount": "Anmeldekonto anlegen",
+    "createAccountHint": "Unter dieser Adresse, mit dem Datensatz verknüpft. Ohne Konto sieht die Person die eigenen Noten nicht.",
+    "accountCreated": "Anmeldedaten"
   },
   "course": {
     "add": "Kurs hinzufügen",
@@ -334,7 +337,8 @@
     "revoke": "Abmelden",
     "revokeOthers": "Alle anderen Geräte abmelden",
     "role": "Rolle",
-    "name": "Name"
+    "name": "Name",
+    "mustChangePassword": "Ihr Passwort wurde von der Verwaltung vergeben, es kennen also zwei Personen. Wählen Sie ein eigenes, um fortzufahren."
   },
   "role": {
     "superadmin": "Hauptadministrator",
@@ -449,10 +453,9 @@
       "activate": "Wieder aktivieren",
       "resetPassword": "Passwort zurücksetzen",
       "created": "Konto angelegt",
-      "passwordOnce": "Geben Sie dieses Passwort jetzt weiter. Es wird nicht erneut angezeigt.",
-      "copied": "Kopiert",
-      "copy": "Kopieren",
-      "linkedStudent": "Studierendensatz"
+      "linkedStudent": "Studierendensatz",
+      "mustChange": "Passwort noch nicht geändert",
+      "allRoles": "Alle Rollen"
     },
     "audit": {
       "title": "Aktivität",
@@ -531,7 +534,10 @@
       "commitDescription": "{count, plural, one {Es wird # Zeile ins Notenbuch geschrieben. Abgelehnte Zeilen bleiben unverändert.} other {Es werden # Zeilen ins Notenbuch geschrieben. Abgelehnte Zeilen bleiben unverändert.}}",
       "committed": "Import abgeschlossen.",
       "committedReport": "{imported} geschrieben · {skipped} abgelehnt",
-      "restart": "Weitere Datei importieren"
+      "restart": "Weitere Datei importieren",
+      "createAccounts": "Für jede:n Studierende:n ein Anmeldekonto anlegen",
+      "createAccountsHint": "Die Passwörter werden nach dem Import einmalig angezeigt. Für ein Archiv früherer Jahrgänge deaktivieren.",
+      "accountsCreated": "{count, plural, one {# Anmeldekonto angelegt} other {# Anmeldekonten angelegt}}"
     }
   },
   "assistant": {
@@ -619,5 +625,15 @@
       "delete": "Gelöscht",
       "update": "Geändert"
     }
+  },
+  "credentials": {
+    "once": "Geben Sie diese jetzt weiter. Sie werden nicht erneut angezeigt — ein verlorenes wird ersetzt, nicht wiederhergestellt.",
+    "mustChange": "Jedes Konto muss bei der ersten Anmeldung ein eigenes Passwort setzen.",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "download": "Als CSV herunterladen",
+    "name": "Name",
+    "email": "E-Mail",
+    "password": "Passwort"
   }
 }

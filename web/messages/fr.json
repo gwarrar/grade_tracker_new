@@ -51,7 +51,10 @@
     "deleteTitle": "Supprimer l’étudiant ?",
     "deleteDescription": "L’étudiant, ses notes et ses inscriptions seront définitivement supprimés. L’historique d’audit sera conservé.",
     "account": "Compte de connexion",
-    "noAccount": "Aucun compte lié"
+    "noAccount": "Aucun compte lié",
+    "createAccount": "Créer un compte de connexion",
+    "createAccountHint": "À cette adresse, liée à la fiche. Sans compte, l’étudiant ne voit pas ses propres notes.",
+    "accountCreated": "Identifiants de connexion"
   },
   "course": {
     "add": "Ajouter un cours",
@@ -334,7 +337,8 @@
     "revoke": "Déconnecter",
     "revokeOthers": "Déconnecter tous les autres appareils",
     "role": "Rôle",
-    "name": "Nom"
+    "name": "Nom",
+    "mustChangePassword": "Votre mot de passe a été défini par l’administration, deux personnes le connaissent donc. Choisissez le vôtre pour continuer."
   },
   "role": {
     "superadmin": "Super-administrateur",
@@ -449,10 +453,9 @@
       "activate": "Réactiver",
       "resetPassword": "Réinitialiser le mot de passe",
       "created": "Compte créé",
-      "passwordOnce": "Transmettez ce mot de passe maintenant. Il ne sera plus affiché.",
-      "copied": "Copié",
-      "copy": "Copier",
-      "linkedStudent": "Fiche étudiant"
+      "linkedStudent": "Fiche étudiant",
+      "mustChange": "Mot de passe non modifié",
+      "allRoles": "Tous les rôles"
     },
     "audit": {
       "title": "Activité",
@@ -531,7 +534,10 @@
       "commitDescription": "{count, plural, one {Cette action écrit # ligne dans le carnet de notes. Les lignes rejetées restent intactes.} other {Cette action écrit # lignes dans le carnet de notes. Les lignes rejetées restent intactes.}}",
       "committed": "Import terminé.",
       "committedReport": "{imported} écrites · {skipped} rejetées",
-      "restart": "Importer un autre fichier"
+      "restart": "Importer un autre fichier",
+      "createAccounts": "Créer un compte de connexion pour chaque étudiant",
+      "createAccountsHint": "Leurs mots de passe s’affichent une seule fois à la fin de l’importation. Désactivez pour archiver d’anciennes promotions.",
+      "accountsCreated": "{count, plural, one {# compte de connexion créé} other {# comptes de connexion créés}}"
     }
   },
   "assistant": {
@@ -619,5 +625,15 @@
       "delete": "Supprimé",
       "update": "Modifié"
     }
+  },
+  "credentials": {
+    "once": "Transmettez-les maintenant. Ils ne seront plus affichés — un mot de passe perdu est remplacé, pas récupéré.",
+    "mustChange": "Chaque compte doit définir son propre mot de passe à la première connexion.",
+    "copy": "Copier",
+    "copied": "Copié",
+    "download": "Télécharger en CSV",
+    "name": "Nom",
+    "email": "Courriel",
+    "password": "Mot de passe"
   }
 }

@@ -11,6 +11,7 @@ import {
   PanelHeader,
   Select,
 } from "@/components/app/detail-fields";
+import { CredentialsCard, type Credential } from "@/components/app/credentials";
 import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
 import { NotesBlock } from "@/components/app/notes";
@@ -27,6 +28,7 @@ import type { Me } from "@/lib/session";
 import { useDebounced, useSelection, useUrlParam } from "@/lib/use-selection";
 
 type Student = Response<"/students/{student_id}", "get">;
+type Created = Response<"/students", "post">;
 type StudentPage = Response<"/students", "get">;
 type StudentReport = Response<"/reports/student/{student_id}", "get">;
 type StudentCourses = Response<"/students/{student_id}/courses", "get">;
@@ -46,6 +48,7 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
   const [creating, setCreating] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [secret, setSecret] = useState<Credential | null>(null);
   const query = useDebounced(search.trim());
   const [pageParam, setPage] = useUrlParam("page", "1");
   const page = Math.max(1, Number(pageParam) || 1);
@@ -85,11 +88,21 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
     ]);
 
   const create = useMutation({
-    mutationFn: (body: StudentCreate) => api<Student>("/students", { method: "POST", body }),
+    mutationFn: (body: StudentCreate) => api<Created>("/students", { method: "POST", body }),
     onSuccess: (student) => {
       setCreating(false);
       setCode(null);
       setNotice(t("student.created"));
+      // The only appearance of this password anywhere. Held until dismissed by
+      // hand rather than shown as a notice, which would fade while the
+      // administrator was still reading the name.
+      if (student.initial_password) {
+        setSecret({
+          email: student.email,
+          password: student.initial_password,
+          name: `${student.first_name} ${student.last_name}`,
+        });
+      }
       select(student.student_id);
       void refresh();
     },
@@ -110,6 +123,7 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
       phone: String(data.get("phone") ?? "").trim() || null,
       cohort: String(data.get("cohort") ?? "").trim() || null,
       is_active: data.get("is_active") === "true",
+      create_account: data.get("create_account") === "on",
     });
   }
 
@@ -157,6 +171,16 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
         </p>
       )}
 
+      {secret && (
+        <div className="mb-4">
+          <CredentialsCard
+            title={t("student.accountCreated")}
+            rows={[secret]}
+            onDismiss={() => setSecret(null)}
+          />
+        </div>
+      )}
+
       {creating && (
         <Modal
           open
@@ -170,6 +194,23 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
         >
           <form onSubmit={createStudent} className="space-y-4">
             <StudentFields includeId includeActive />
+            {/* On by default. A student record with no account is a student who
+                cannot see their own grades, and creating the two separately is
+                how the link came to be missed in the first place. */}
+            <label className="flex items-start gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                name="create_account"
+                defaultChecked
+                className="mt-0.5 accent-[var(--brand-primary)]"
+              />
+              <span>
+                {t("student.createAccount")}
+                <span className="block text-xs text-subtle">
+                  {t("student.createAccountHint")}
+                </span>
+              </span>
+            </label>
             {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
             <div className="flex justify-end gap-2 pt-2">
               <button

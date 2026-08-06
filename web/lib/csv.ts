@@ -86,6 +86,22 @@ export function parseCsv(text: string): ParsedCsv {
 }
 
 /**
+ * Serialise rows to RFC-4180 CSV.
+ *
+ * Every field is quoted rather than only the ones that need it. Deciding per field
+ * means a rule to get wrong, and a name containing a comma is exactly the case
+ * nobody tests — the file opens, and one column of one row is silently split.
+ *
+ * @param rows - The header row first, then the data rows.
+ * @returns CSV text with CRLF line endings, which Excel expects.
+ */
+export function toCsv(rows: string[][]): string {
+  return rows
+    .map((row) => row.map((field) => `"${field.replaceAll('"', '""')}"`).join(","))
+    .join("\r\n");
+}
+
+/**
  * Pick the delimiter from the first line.
  *
  * Delimiters inside quotes are ignored, so a header like `"a,b";c` is not taken

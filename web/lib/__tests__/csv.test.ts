@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { parseCsv } from "../csv";
+import { parseCsv, toCsv } from "../csv";
 
 describe("parseCsv", () => {
   it("returns headers and data rows", () => {
@@ -73,5 +73,34 @@ describe("parseCsv", () => {
 
   it("returns empty headers for an empty file", () => {
     expect(parseCsv("")).toEqual({ headers: [], rows: [] });
+  });
+});
+
+describe("toCsv", () => {
+  it("round-trips through the parser", () => {
+    // The strongest statement available: whatever this writes, the front gate of
+    // the import reads back unchanged.
+    const rows = [
+      ["name", "email", "password"],
+      ["Nadia Haddad", "nadia@school.test", "aB3-xY9_pQ"],
+    ];
+    const parsed = parseCsv(toCsv(rows));
+    expect([parsed.headers, ...parsed.rows]).toEqual(rows);
+  });
+
+  it("survives a name containing the delimiter", () => {
+    // The case nobody tests: the file opens, and one column of one row is
+    // silently split in two.
+    const parsed = parseCsv(toCsv([["name"], ["Haddad, Nadia"]]));
+    expect(parsed.rows[0]).toEqual(["Haddad, Nadia"]);
+  });
+
+  it("survives a field containing a quote", () => {
+    const parsed = parseCsv(toCsv([["name"], ['Nadia "Nay" Haddad']]));
+    expect(parsed.rows[0]).toEqual(['Nadia "Nay" Haddad']);
+  });
+
+  it("ends lines the way spreadsheets expect", () => {
+    expect(toCsv([["a"], ["b"]])).toBe(`"a"\r\n"b"`);
   });
 });

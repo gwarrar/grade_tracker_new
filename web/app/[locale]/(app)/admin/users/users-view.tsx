@@ -16,6 +16,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
+import { CredentialsCard, type Credential } from "@/components/app/credentials";
 import { api, ApiError, type Response } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
 import { atLeast, type Me, type Role } from "@/lib/session";
@@ -41,14 +42,21 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
   const [includeInactive, setIncludeInactive] = useState(true);
   const [adding, setAdding] = useState(false);
   const [code, setCode] = useState<string | null>(null);
-  const [secret, setSecret] = useState<{ email: string; password: string } | null>(null);
+  const [secret, setSecret] = useState<Credential | null>(null);
+  const [roleFilter, setRoleFilter] = useState<Role | "">("");
   const query = useDebounced(search.trim());
 
   const users = useQuery({
-    queryKey: ["admin", "users", { q: query, includeInactive }],
+    queryKey: ["admin", "users", { q: query, includeInactive, roleFilter }],
     queryFn: () =>
       api<User[]>("/admin/users", {
-        query: { q: query, include_inactive: includeInactive },
+        query: {
+          q: query,
+          include_inactive: includeInactive,
+          // Omitted rather than sent empty: the API treats an absent role as
+          // "every role", and an empty string would match none of them.
+          ...(roleFilter ? { role: roleFilter } : {}),
+        },
       }),
     placeholderData: (previous) => previous,
   });
@@ -138,9 +146,9 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
       </div>
 
       {secret && (
-        <OneTimePassword
-          email={secret.email}
-          password={secret.password}
+        <CredentialsCard
+          title={t("created")}
+          rows={[secret]}
           onDismiss={() => setSecret(null)}
         />
       )}
@@ -209,6 +217,23 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
           aria-label={t("search")}
           className="w-64 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand"
         />
+        {/* A cohort import mints one account per student, so without this the four
+            staff accounts an administrator came here for sit under four hundred. */}
+        <label className="flex items-center gap-2 text-sm text-muted">
+          <span>{t("role")}</span>
+          <select
+            value={roleFilter}
+            onChange={(event) => setRoleFilter(event.target.value as Role | "")}
+            className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-text outline-none focus-visible:border-brand"
+          >
+            <option value="">{t("allRoles")}</option>
+            {ROLES.map((role) => (
+              <option key={role} value={role}>
+                {tRole(role)}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex items-center gap-2 text-sm text-muted">
           <input
             type="checkbox"
@@ -259,6 +284,13 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
                     {user.student_id && (
                       <span className="numeric ms-2 rounded bg-bg-subtle px-1.5 py-0.5 text-xs text-subtle">
                         {user.student_id}
+                      </span>
+                    )}
+                    {/* Which is also the answer to "has this person ever signed
+                        in?" — the flag clears only when they set their own. */}
+                    {user.must_change_password && (
+                      <span className="ms-2 rounded bg-warn-bg px-1.5 py-0.5 text-xs text-warn">
+                        {t("mustChange")}
                       </span>
                     )}
                   </td>
@@ -333,62 +365,6 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
             {tStats("noData")}
           </p>
         )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * A password shown exactly once.
- *
- * Deliberately loud and deliberately manual to dismiss: it cannot be recovered,
- * and a toast that fades after four seconds would lose it while the administrator
- * was still reading the name.
- */
-function OneTimePassword({
-  email,
-  password,
-  onDismiss,
-}: {
-  email: string;
-  password: string;
-  onDismiss: () => void;
-}) {
-  const t = useTranslations("admin.users");
-  const tAction = useTranslations("action");
-  const [copied, setCopied] = useState(false);
-
-  return (
-    <div
-      role="status"
-      className="rounded-xl border border-warn/40 bg-warn-bg p-5"
-    >
-      <p className="text-sm font-medium text-warn">{t("created")}</p>
-      <p className="mt-1 text-xs text-warn">{t("passwordOnce")}</p>
-
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <code className="numeric rounded bg-surface px-3 py-1.5 text-sm text-text">
-          {password}
-        </code>
-        <span className="numeric text-xs text-warn">{email}</span>
-
-        <button
-          type="button"
-          onClick={() => {
-            void navigator.clipboard.writeText(password);
-            setCopied(true);
-          }}
-          className="rounded-lg border border-warn/40 px-2.5 py-1 text-xs text-warn transition-opacity hover:opacity-80"
-        >
-          {copied ? t("copied") : t("copy")}
-        </button>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="rounded-lg px-2.5 py-1 text-xs text-warn transition-opacity hover:opacity-80"
-        >
-          {tAction("close")}
-        </button>
       </div>
     </div>
   );

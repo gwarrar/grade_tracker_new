@@ -51,7 +51,10 @@
     "deleteTitle": "Delete student?",
     "deleteDescription": "This permanently deletes the student and their grades and enrolments. Audit history remains.",
     "account": "Sign-in account",
-    "noAccount": "No account linked"
+    "noAccount": "No account linked",
+    "createAccount": "Create a sign-in account",
+    "createAccountHint": "At this address, linked to the record. Without one, the student cannot see their own grades.",
+    "accountCreated": "Sign-in details"
   },
   "course": {
     "add": "Add course",
@@ -334,7 +337,8 @@
     "revoke": "Sign out",
     "revokeOthers": "Sign out all other devices",
     "role": "Role",
-    "name": "Name"
+    "name": "Name",
+    "mustChangePassword": "Your password was set by an administrator, so two people know it. Choose your own to continue."
   },
   "role": {
     "superadmin": "Superadmin",
@@ -449,10 +453,9 @@
       "activate": "Reactivate",
       "resetPassword": "Reset password",
       "created": "Account created",
-      "passwordOnce": "Give this password to the person now. It is not shown again.",
-      "copied": "Copied",
-      "copy": "Copy",
-      "linkedStudent": "Student record"
+      "linkedStudent": "Student record",
+      "mustChange": "Password not yet changed",
+      "allRoles": "All roles"
     },
     "audit": {
       "title": "Activity",
@@ -531,7 +534,10 @@
       "commitDescription": "{count, plural, one {This writes # row into the gradebook. Rejected rows are left untouched.} other {This writes # rows into the gradebook. Rejected rows are left untouched.}}",
       "committed": "Import complete.",
       "committedReport": "{imported} written · {skipped} rejected",
-      "restart": "Import another file"
+      "restart": "Import another file",
+      "createAccounts": "Create a sign-in account for each student",
+      "createAccountsHint": "Their passwords are shown once when the import finishes. Turn this off for an archive of past cohorts.",
+      "accountsCreated": "{count, plural, one {# sign-in account created} other {# sign-in accounts created}}"
     }
   },
   "assistant": {
@@ -619,5 +625,15 @@
       "delete": "Deleted",
       "update": "Updated"
     }
+  },
+  "credentials": {
+    "once": "Give these out now. They are not shown again — a lost one is replaced, not recovered.",
+    "mustChange": "Each account must set its own password at first sign-in.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download as CSV",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password"
   }
 }

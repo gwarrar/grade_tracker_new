@@ -14,6 +14,7 @@ import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { Field } from "@/components/app/detail-fields";
+import { useRouter } from "@/i18n/navigation";
 import { api, ApiError, type Response } from "@/lib/api";
 import type { Me } from "@/lib/session";
 import { formatDate } from "@/lib/format";
@@ -25,6 +26,14 @@ export function ProfileView({ me, locale }: { me: Me; locale: string }) {
 
   return (
     <div className="mx-auto max-w-2xl space-y-10">
+      {/* Why the rest of the application is unreachable. Without this the
+          redirect looks like a bug rather than a requirement. */}
+      {me.must_change_password && (
+        <p role="alert" className="rounded-lg border border-warn/40 bg-warn-bg px-4 py-3 text-sm text-warn">
+          {t("profile.mustChangePassword")}
+        </p>
+      )}
+
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-text">
           {t("profile.title")}
@@ -47,6 +56,8 @@ export function ProfileView({ me, locale }: { me: Me; locale: string }) {
 
 function PasswordSection() {
   const t = useTranslations();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [code, setCode] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
@@ -56,6 +67,13 @@ function PasswordSection() {
     onSuccess: () => {
       setDone(true);
       setCode(null);
+      // The change closes every session, including this one, so staying here
+      // meant a page whose next request was a 401. Signing in again is not an
+      // inconvenience added by this redirect — it is what already happened,
+      // shown honestly.
+      queryClient.clear();
+      router.replace("/login");
+      router.refresh();
     },
     onError: (err) => {
       setDone(false);
