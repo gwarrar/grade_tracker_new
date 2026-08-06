@@ -17,7 +17,8 @@
     "branding": "Identité visuelle",
     "primary": "Principal",
     "skip": "Aller au contenu",
-    "audit": "Activité"
+    "audit": "Activité",
+    "users": "Comptes"
   },
   "auth": {
     "signIn": "Se connecter",

@@ -17,7 +17,8 @@
     "branding": "Branding",
     "primary": "Main",
     "skip": "Skip to content",
-    "audit": "Activity"
+    "audit": "Activity",
+    "users": "Accounts"
   },
   "auth": {
     "signIn": "Sign in",

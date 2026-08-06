@@ -17,7 +17,8 @@
     "branding": "Erscheinungsbild",
     "primary": "Hauptbereich",
     "skip": "Zum Inhalt springen",
-    "audit": "Aktivität"
+    "audit": "Aktivität",
+    "users": "Konten"
   },
   "auth": {
     "signIn": "Anmelden",

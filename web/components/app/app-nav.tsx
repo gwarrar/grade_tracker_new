@@ -51,10 +51,10 @@ export function AppNav({ me, branding }: { me: Me; branding: Branding }) {
           className="flex items-center gap-2 text-sm font-medium tracking-tight text-text"
         >
           {branding.logo_path ? (
-            // eslint-disable-next-line @next/next/no-img-element -- an uploaded asset
-            // of unknown dimensions, served from the API rather than the app's own
-            // origin; next/image would need a loader and a remote-pattern allowlist
-            // to render one small mark.
+            // An uploaded asset of unknown dimensions, served from the API rather
+            // than the app's own origin; next/image would need a loader and a
+            // remote-pattern allowlist to render one small mark.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={assetUrl(branding.logo_path)}
               alt={branding.name}
