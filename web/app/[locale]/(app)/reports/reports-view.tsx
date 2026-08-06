@@ -20,9 +20,11 @@ import { useState } from "react";
 
 import { Distribution } from "@/components/app/distribution";
 import { StatTile } from "@/components/app/stat-tile";
+import { StudentRecord } from "@/components/app/student-record";
+import { Link } from "@/i18n/navigation";
 import { API_BASE, api, type Response } from "@/lib/api";
 import { formatNumber, formatPercent } from "@/lib/format";
-import { useUrlParam } from "@/lib/use-selection";
+import { useDebounced, useUrlParam } from "@/lib/use-selection";
 
 type Summary = Response<"/reports/summary", "get">;
 type CourseReport = Response<"/reports/course/{course_id}", "get">;
@@ -32,9 +34,13 @@ type TermReport = Response<"/reports/term/{term}", "get">;
 type Assessments = Response<"/reports/course/{course_id}/assessments", "get">;
 type Enrollment = Response<"/reports/enrollment", "get">;
 type DistributionReport = Response<"/reports/distribution", "get">;
+type StudentReport = Response<"/reports/student/{student_id}", "get">;
+type StudentCourses = Response<"/students/{student_id}/courses", "get">;
+type StudentPage = Response<"/students", "get">;
 
 const KINDS = [
   "summary",
+  "student",
   "course",
   "teacher",
   "term",
@@ -48,6 +54,7 @@ type Kind = (typeof KINDS)[number];
 /** The message key naming each report in the picker. */
 const KIND_LABEL: Record<Kind, string> = {
   summary: "report.summary",
+  student: "student.one",
   course: "course.one",
   teacher: "report.teacherReport",
   term: "report.termReport",
@@ -81,6 +88,9 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
   const [teacherId, setTeacherId] = useState("");
   const [term, setTerm] = useState("");
   const [bucket, setBucket] = useState("month");
+  const [studentId, setStudentId] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
+  const studentQuery = useDebounced(studentSearch.trim());
 
   const courses = useQuery({
     queryKey: ["courses", "all"],
@@ -92,6 +102,27 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
     queryKey: ["reports", "summary"],
     queryFn: () => api<Summary>("/reports/summary"),
     enabled: kind === "summary",
+  });
+
+  // Searched rather than listed: an institution has far more students than courses,
+  // and a picker capped at some round number silently omits the rest.
+  const students = useQuery({
+    queryKey: ["students", "report-picker", studentQuery],
+    queryFn: () => api<StudentPage>("/students", { query: { q: studentQuery, size: 20 } }),
+    enabled: kind === "student",
+    placeholderData: (previous) => previous,
+  });
+
+  const studentReport = useQuery({
+    queryKey: ["reports", "student", studentId],
+    queryFn: () => api<StudentReport>(`/reports/student/${encodeURIComponent(studentId)}`),
+    enabled: kind === "student" && studentId !== "",
+  });
+
+  const studentCourses = useQuery({
+    queryKey: ["student", studentId, "courses"],
+    queryFn: () => api<StudentCourses>(`/students/${encodeURIComponent(studentId)}/courses`),
+    enabled: kind === "student" && studentId !== "",
   });
 
   const course = useQuery({
@@ -136,6 +167,8 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
   // is enabled -- so reading isPending left "Loading…" on screen permanently.
   const pending = [
     summary,
+    studentReport,
+    studentCourses,
     course,
     teacher,
     termReport,
@@ -191,6 +224,19 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
               href={`${API_BASE}/reports/course/${encodeURIComponent(courseId)}/export.csv?locale=${locale}`}
               label={t("action.export")}
             />
+          )}
+          {kind === "student" && studentId && (
+            <>
+              <ExportLink
+                href={`${API_BASE}/reports/student/${encodeURIComponent(studentId)}/export.csv?locale=${locale}`}
+                label={t("action.export")}
+              />
+              {/* The dedicated page carries the print stylesheet, which is how a
+                  transcript becomes a PDF without a server-side renderer. */}
+              <Link href={`/reports/student/${studentId}`} className="btn btn-ghost">
+                {t("report.print")}
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -286,6 +332,52 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
             </section>
           </div>
         </>
+      )}
+
+      {kind === "student" && (
+        <section className="rounded-xl border border-line bg-surface p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-sm font-medium text-text">{t("student.one")}</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="student-search" className="sr-only">
+                {t("enrollment.searchStudents")}
+              </label>
+              <input
+                id="student-search"
+                value={studentSearch}
+                onChange={(event) => setStudentSearch(event.target.value)}
+                placeholder={t("enrollment.searchStudents")}
+                className={SELECT_CLASS}
+              />
+              <label htmlFor="student-pick" className="sr-only">
+                {t("report.pick")}
+              </label>
+              <select
+                id="student-pick"
+                value={studentId}
+                onChange={(event) => setStudentId(event.target.value)}
+                className={SELECT_CLASS}
+              >
+                <option value="">{t("report.pick")}</option>
+                {(students.data?.items ?? []).map((row) => (
+                  <option key={row.student_id} value={row.student_id}>
+                    {row.student_id} — {row.first_name} {row.last_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {studentReport.data && (
+            <div className="mt-6">
+              <StudentRecord
+                report={studentReport.data}
+                courses={studentCourses.data ?? []}
+                locale={locale}
+              />
+            </div>
+          )}
+        </section>
       )}
 
       {kind === "course" && (
