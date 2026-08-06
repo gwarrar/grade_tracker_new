@@ -70,7 +70,13 @@ export function CommandPalette({ me }: { me: Me }) {
     function onKeyDown(event: KeyboardEvent) {
       // metaKey for macOS, ctrlKey elsewhere. Checking only one strands half the
       // users with a shortcut the interface advertises.
-      if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
+      //
+      // `key` is optional on the DOM event even though the TypeScript type says
+      // otherwise: a password manager filling a field, and IME composition, both
+      // dispatch keydown without one. Reading it blind threw on every such event,
+      // which is a crash in a document-level listener -- so it fired on pages that
+      // have nothing to do with the palette.
+      if (event.key?.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         setOpen((current) => !current);
       }
