@@ -598,6 +598,8 @@
   "audit": {
     "actionLabel": "Aktion",
     "entityLabel": "Datensatz",
-    "system": "System"
+    "system": "System",
+    "history": "Änderungsverlauf",
+    "empty": "Noch keine Änderungen aufgezeichnet."
   }
 }

@@ -598,6 +598,8 @@
   "audit": {
     "actionLabel": "Action",
     "entityLabel": "Enregistrement",
-    "system": "Système"
+    "system": "Système",
+    "history": "Historique des modifications",
+    "empty": "Aucune modification enregistrée pour l’instant."
   }
 }
