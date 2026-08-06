@@ -202,6 +202,15 @@ function BrandingForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Refuse the write rather than disabling the button. A disabled Save cannot
+    // explain itself, and because one unreadable colour would block the name, the
+    // logo and the locales too, the whole page looked broken to anyone who nudged
+    // a swatch past the threshold.
+    if (!usable) {
+      setSaved(false);
+      setCode("CONTRAST_TOO_LOW");
+      return;
+    }
     const form = new FormData(event.currentTarget);
     setPending(true);
     setCode(null);
@@ -326,7 +335,7 @@ function BrandingForm({
 
       {code && <FormError>{tError(code as "unknown")}</FormError>}
       {saved && <p role="status" className="text-sm text-pass">{t("saved")}</p>}
-      <button type="submit" className="btn btn-primary" disabled={!usable || pending}>
+      <button type="submit" className="btn btn-primary" disabled={pending}>
         {tAction("save")}
       </button>
     </form>

@@ -3244,6 +3244,12 @@ export interface components {
             last_name?: string | null;
             /** Phone */
             phone?: string | null;
+            /**
+             * User Id
+             * @description The sign-in account to attach to this record. Until one is linked, a student who signs in matches no rows and sees an empty application, because `student_scope` has nothing to scope them to. Send `null` to detach.
+             * @example 7
+             */
+            user_id?: number | null;
         };
         /**
          * SummaryReportResponse

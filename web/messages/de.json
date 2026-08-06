@@ -16,7 +16,8 @@
     "aiSettings": "KI-Anbieter",
     "branding": "Erscheinungsbild",
     "primary": "Hauptbereich",
-    "skip": "Zum Inhalt springen"
+    "skip": "Zum Inhalt springen",
+    "audit": "Aktivität"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -47,7 +48,9 @@
     "deactivateTitle": "Studierende:n deaktivieren?",
     "deactivateDescription": "Alle aktiven Anmeldungen werden abgemeldet. Eine spätere Aktivierung stellt sie nicht wieder her.",
     "deleteTitle": "Studierende:n löschen?",
-    "deleteDescription": "Studierendendaten, Noten und Anmeldungen werden dauerhaft gelöscht. Das Auditprotokoll bleibt erhalten."
+    "deleteDescription": "Studierendendaten, Noten und Anmeldungen werden dauerhaft gelöscht. Das Auditprotokoll bleibt erhalten.",
+    "account": "Anmeldekonto",
+    "noAccount": "Kein Konto verknüpft"
   },
   "course": {
     "add": "Kurs hinzufügen",
@@ -241,7 +244,8 @@
     "AI_ERROR": "Der Aufruf beim Anbieter ist fehlgeschlagen.",
     "USER_NOT_FOUND": "Dieses Konto wurde nicht gefunden.",
     "LAST_SUPERADMIN": "Jemand muss das System verwalten können. Ernennen Sie zuerst eine weitere Person.",
-    "CANNOT_MODIFY_SELF": "Sie können weder Ihre eigene Rolle ändern noch sich selbst deaktivieren."
+    "CANNOT_MODIFY_SELF": "Sie können weder Ihre eigene Rolle ändern noch sich selbst deaktivieren.",
+    "CONTRAST_TOO_LOW": "Diese Markenfarben sind zu blass zum Lesen. Passen Sie sie an, bis beide Paare bestehen, und speichern Sie dann."
   },
   "landing": {
     "nav": {

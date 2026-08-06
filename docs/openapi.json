@@ -3770,6 +3770,21 @@
               }
             ],
             "title": "Phone"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The sign-in account to attach to this record. Until one is linked, a student who signs in matches no rows and sees an empty application, because `student_scope` has nothing to scope them to. Send `null` to detach.",
+            "examples": [
+              7
+            ],
+            "title": "User Id"
           }
         },
         "title": "StudentUpdateRequest",

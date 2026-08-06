@@ -32,6 +32,7 @@ type StudentReport = Response<"/reports/student/{student_id}", "get">;
 type StudentCourses = Response<"/students/{student_id}/courses", "get">;
 type CoursePage = Response<"/courses", "get">;
 type Course = Response<"/courses/{course_id}", "get">;
+type Accounts = Response<"/admin/users", "get">;
 type StudentCreate = paths["/students"]["post"]["requestBody"]["content"]["application/json"];
 type StudentUpdate = paths["/students/{student_id}"]["patch"]["requestBody"]["content"]["application/json"];
 
@@ -373,6 +374,14 @@ function StudentDetail({
     enabled: Boolean(studentId) && !editing,
   });
 
+  // Only while editing, and only for someone who may write: the accounts list is
+  // admin-only, and requesting it for every selected student would 403 for teachers.
+  const accounts = useQuery({
+    queryKey: ["admin", "users"],
+    queryFn: () => api<Accounts>("/admin/users"),
+    enabled: editing && can.manageUsers(me),
+  });
+
   const save = useMutation({
     mutationFn: (body: Omit<StudentUpdate, "is_active">) =>
       api(`/students/${studentId}`, { method: "PATCH", body }),
@@ -449,6 +458,7 @@ function StudentDetail({
       date_of_birth: String(data.get("date_of_birth") ?? "") || null,
       phone: String(data.get("phone") ?? "").trim() || null,
       cohort: String(data.get("cohort") ?? "").trim() || null,
+      user_id: String(data.get("user_id") ?? "") ? Number(data.get("user_id")) : null,
     });
   }
 
@@ -615,6 +625,30 @@ function StudentDetail({
       {student && editing && (
         <form onSubmit={submitEdit} className="mt-6 space-y-4">
           <StudentFields student={student} />
+          {/* Without a linked account a student signs in successfully and then sees
+              an empty application, because student_scope has no id to scope them to.
+              That is indistinguishable from the product being broken, so the link
+              belongs on the record rather than in a separate admin ritual. */}
+          <Select
+            name="user_id"
+            label={t("student.account")}
+            value={student.user_id == null ? "" : String(student.user_id)}
+          >
+            <option value="">{t("student.noAccount")}</option>
+            {(accounts.data ?? [])
+              // Student accounts only, and skip any already attached to a different
+              // record — one account cannot be two students.
+              .filter(
+                (account) =>
+                  account.role === "student" &&
+                  (account.student_id === null || account.student_id === student.student_id),
+              )
+              .map((account) => (
+                <option key={account.id} value={String(account.id)}>
+                  {account.full_name} — {account.email}
+                </option>
+              ))}
+          </Select>
           {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
           <div className="flex gap-2">
             <button type="submit" disabled={save.isPending} className="btn btn-primary">{t("action.save")}</button>

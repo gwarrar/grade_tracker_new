@@ -223,7 +223,9 @@ class DirectoryService:
 
         Args:
             student_id: Which student.
-            changes: Any of ``first_name``, ``last_name``, ``email``.
+            changes: Any of ``first_name``, ``last_name``, ``email``, ``is_active``,
+                ``phone``, ``date_of_birth``, ``cohort``, or ``user_id`` to attach
+                or detach the sign-in account.
 
         Returns:
             The updated student.
@@ -237,12 +239,16 @@ class DirectoryService:
         with transaction(self._conn):
             current = self.get_student(student_id)
             before = Student.from_dict(current)
+            # An unlinked student account matches no rows, so signing in shows an
+            # empty application rather than an error. Linking is therefore part of
+            # editing the record, not a separate administrative act.
+            linked = changes["user_id"] if "user_id" in changes else current["user_id"]
             updated = Student(
                 student_id=student_id,
                 first_name=str(changes.get("first_name", current["first_name"])),
                 last_name=str(changes.get("last_name", current["last_name"])),
                 email=str(changes.get("email", current["email"])),
-                user_id=current["user_id"],
+                user_id=int(linked) if linked is not None else None,
             )
             new_is_active = bool(changes.get("is_active", current["is_active"]))
             metadata = {

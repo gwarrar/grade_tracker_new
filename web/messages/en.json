@@ -16,7 +16,8 @@
     "aiSettings": "AI providers",
     "branding": "Branding",
     "primary": "Main",
-    "skip": "Skip to content"
+    "skip": "Skip to content",
+    "audit": "Activity"
   },
   "auth": {
     "signIn": "Sign in",
@@ -47,7 +48,9 @@
     "deactivateTitle": "Deactivate student?",
     "deactivateDescription": "This withdraws every active enrolment. Reactivating the student will not restore them.",
     "deleteTitle": "Delete student?",
-    "deleteDescription": "This permanently deletes the student and their grades and enrolments. Audit history remains."
+    "deleteDescription": "This permanently deletes the student and their grades and enrolments. Audit history remains.",
+    "account": "Sign-in account",
+    "noAccount": "No account linked"
   },
   "course": {
     "add": "Add course",
@@ -241,7 +244,8 @@
     "AI_ERROR": "The provider call failed.",
     "USER_NOT_FOUND": "That account could not be found.",
     "LAST_SUPERADMIN": "Someone must be able to configure the system. Promote another superadmin first.",
-    "CANNOT_MODIFY_SELF": "You cannot change your own role or deactivate yourself."
+    "CANNOT_MODIFY_SELF": "You cannot change your own role or deactivate yourself.",
+    "CONTRAST_TOO_LOW": "Those brand colours are too faint to read. Adjust them until both pairs pass, then save."
   },
   "landing": {
     "nav": {

@@ -77,6 +77,16 @@ class StudentUpdateRequest(BaseModel):
     phone: str | None = Field(default=None, max_length=100)
     date_of_birth: date | None = Field(default=None)
     cohort: str | None = Field(default=None, max_length=100)
+    user_id: int | None = Field(
+        default=None,
+        description=(
+            "The sign-in account to attach to this record. Until one is linked, a "
+            "student who signs in matches no rows and sees an empty application, "
+            "because `student_scope` has nothing to scope them to. Send `null` to "
+            "detach."
+        ),
+        examples=[7],
+    )
 
 
 # ── Courses ──────────────────────────────────────────────────────────────────

@@ -16,7 +16,8 @@
     "aiSettings": "Fournisseurs d’IA",
     "branding": "Identité visuelle",
     "primary": "Principal",
-    "skip": "Aller au contenu"
+    "skip": "Aller au contenu",
+    "audit": "Activité"
   },
   "auth": {
     "signIn": "Se connecter",
@@ -47,7 +48,9 @@
     "deactivateTitle": "Désactiver l’étudiant ?",
     "deactivateDescription": "Toutes les inscriptions actives seront retirées. Une réactivation ultérieure ne les restaurera pas.",
     "deleteTitle": "Supprimer l’étudiant ?",
-    "deleteDescription": "L’étudiant, ses notes et ses inscriptions seront définitivement supprimés. L’historique d’audit sera conservé."
+    "deleteDescription": "L’étudiant, ses notes et ses inscriptions seront définitivement supprimés. L’historique d’audit sera conservé.",
+    "account": "Compte de connexion",
+    "noAccount": "Aucun compte lié"
   },
   "course": {
     "add": "Ajouter un cours",
@@ -241,7 +244,8 @@
     "AI_ERROR": "L’appel au fournisseur a échoué.",
     "USER_NOT_FOUND": "Ce compte est introuvable.",
     "LAST_SUPERADMIN": "Quelqu’un doit pouvoir administrer le système. Nommez d’abord un autre super-administrateur.",
-    "CANNOT_MODIFY_SELF": "Vous ne pouvez ni changer votre propre rôle ni vous désactiver."
+    "CANNOT_MODIFY_SELF": "Vous ne pouvez ni changer votre propre rôle ni vous désactiver.",
+    "CONTRAST_TOO_LOW": "Ces couleurs de marque sont trop pâles pour être lues. Ajustez-les jusqu’à ce que les deux paires soient conformes, puis enregistrez."
   },
   "landing": {
     "nav": {
