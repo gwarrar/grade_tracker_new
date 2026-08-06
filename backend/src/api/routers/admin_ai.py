@@ -291,6 +291,32 @@ def test_provider(provider_id: int, _: SuperAdminUser, admin: Admin) -> TestResp
     return TestResponse(ok=ok, code=code, detail=detail)
 
 
+@router.get(
+    "/providers/{provider_id}/models",
+    response_model=list[str],
+    summary="Models this provider offers",
+    description=(
+        "Asks the endpoint what it serves, so a model does not have to be typed from "
+        "memory. A local Ollama offers whatever that machine has pulled, which no "
+        "default could know.\n\n"
+        "An empty list means the endpoint could not be reached or does not enumerate "
+        "its models — the field stays typeable, so this is never blocking."
+    ),
+)
+def provider_models(provider_id: int, _: SuperAdminUser, admin: Admin) -> list[str]:
+    """List a provider's available models.
+
+    Args:
+        provider_id: Which provider.
+        _: Enforces the superadmin role.
+        admin: The service.
+
+    Returns:
+        Model identifiers, empty when the endpoint cannot list them.
+    """
+    return admin.available_models(provider_id)
+
+
 @router.get("/routing", response_model=list[RoutingResponse], summary="Per-feature routing")
 def get_routing(_: SuperAdminUser, admin: Admin) -> list[RoutingResponse]:
     """List which provider serves each feature.

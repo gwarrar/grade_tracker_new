@@ -344,6 +344,27 @@ class AiAdminService:
             return False, error.code, str(error)
         return True, "AI_OK", model
 
+    def available_models(self, provider_id: int) -> list[str]:
+        """List the models the endpoint offers, so nobody has to type one from memory.
+
+        A local Ollama serves whatever that machine has pulled, which no default can
+        know, and a hand-typed identifier fails at the first real question rather
+        than at configuration time.
+
+        Args:
+            provider_id: Which provider.
+
+        Returns:
+            Model identifiers, or an empty list if the endpoint cannot enumerate
+            them or is unreachable. Deliberately not an error: the field remains
+            typeable, so an endpoint without a listing is inconvenient, not blocking.
+        """
+        config = self._registry.get(provider_id)
+        try:
+            return build(config).list_models()
+        except LLMError:
+            return []
+
     # ── Routing ──────────────────────────────────────────────────────────────
 
     def routing(self) -> list[Routing]:

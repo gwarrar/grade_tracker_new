@@ -94,6 +94,31 @@ class OpenAICompatibleProvider(LLMProvider):
             effort=effort,
         )
 
+    def list_models(self) -> list[str]:
+        """Enumerate the endpoint's models. See :meth:`~llm.base.LLMProvider.list_models`.
+
+        Every OpenAI-shaped endpoint answers ``GET /models``, which is what makes a
+        local Ollama usable without the administrator first running ``ollama list``
+        in another window and copying names across.
+        """
+        headers = {}
+        if self._api_key:
+            headers["authorization"] = f"Bearer {self._api_key}"
+        try:
+            response = httpx.get(
+                f"{self._base_url}/models", headers=headers, timeout=TIMEOUT_SECONDS
+            )
+            if not response.is_success:
+                return []
+            body = response.json()
+        except (httpx.HTTPError, json.JSONDecodeError):
+            return []
+        entries = body.get("data") if isinstance(body, dict) else None
+        if not isinstance(entries, list):
+            return []
+        names = [str(e["id"]) for e in entries if isinstance(e, dict) and e.get("id")]
+        return sorted(names)
+
     def chat(
         self,
         messages: list[Message],

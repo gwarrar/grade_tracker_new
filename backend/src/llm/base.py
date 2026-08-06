@@ -338,3 +338,18 @@ class LLMProvider(ABC):
             max_tokens=16,
         )
         return result.model or self.model
+
+    def list_models(self) -> list[str]:
+        """Return the models this endpoint offers, best effort.
+
+        Typing a model identifier by hand is how an administrator ends up with a
+        provider that authenticates perfectly and answers nothing, because the name
+        was a guess -- and with a local Ollama the available set is whatever that
+        machine happens to have pulled, which no default could know.
+
+        Returns:
+            Model identifiers, or an empty list when the provider has no way to
+            enumerate them. Never raises: an endpoint that cannot list is a smaller
+            problem than one that cannot answer, and the field stays typeable.
+        """
+        return []

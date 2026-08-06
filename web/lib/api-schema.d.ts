@@ -78,6 +78,28 @@ export interface paths {
         patch: operations["update_provider_admin_ai_providers__provider_id__patch"];
         trace?: never;
     };
+    "/admin/ai/providers/{provider_id}/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Models this provider offers
+         * @description Asks the endpoint what it serves, so a model does not have to be typed from memory. A local Ollama offers whatever that machine has pulled, which no default could know.
+         *
+         *     An empty list means the endpoint could not be reached or does not enumerate its models — the field stays typeable, so this is never blocking.
+         */
+        get: operations["provider_models_admin_ai_providers__provider_id__models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/ai/providers/{provider_id}/test": {
         parameters: {
             query?: never;
@@ -3570,6 +3592,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_models_admin_ai_providers__provider_id__models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
                 };
             };
             /** @description Validation Error */

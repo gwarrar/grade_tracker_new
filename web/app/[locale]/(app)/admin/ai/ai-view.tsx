@@ -15,7 +15,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 
 import { api, ApiError, type Response } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
@@ -425,27 +425,24 @@ function Routing() {
                 </select>
               </label>
 
-              <label className="block">
-                <span className="block text-xs text-subtle">{t("model")}</span>
-                <input
-                  defaultValue={current?.model ?? ""}
-                  placeholder={t("modelDefault")}
-                  disabled={!current}
-                  onBlur={(event) =>
-                    current &&
-                    event.target.value !== current.model &&
-                    save.mutate({
-                      feature,
-                      body: {
-                        provider_id: current.provider_id,
-                        model: event.target.value,
-                        effort: current.effort,
-                      },
-                    })
-                  }
-                  className="numeric mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-sm text-text outline-none focus-visible:border-brand disabled:opacity-50"
-                />
-              </label>
+              <ModelField
+                label={t("model")}
+                placeholder={t("modelDefault")}
+                providerId={current?.provider_id ?? null}
+                value={current?.model ?? ""}
+                onCommit={(model) =>
+                  current &&
+                  model !== current.model &&
+                  save.mutate({
+                    feature,
+                    body: {
+                      provider_id: current.provider_id,
+                      model,
+                      effort: current.effort,
+                    },
+                  })
+                }
+              />
 
               <label className="block">
                 <span className="block text-xs text-subtle">{t("effort")}</span>
@@ -549,6 +546,57 @@ function UsageTable({ locale }: { locale: string }) {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * A model name, with the endpoint's own list offered as suggestions.
+ *
+ * A datalist rather than a select: discovery is best effort, and an endpoint that
+ * cannot enumerate its models must not leave the field unusable. A local Ollama
+ * serves whatever that machine has pulled, which is the case no default could ever
+ * cover — and typing it from memory is how a provider ends up authenticating
+ * perfectly and answering nothing.
+ */
+function ModelField({
+  label,
+  placeholder,
+  providerId,
+  value,
+  onCommit,
+}: {
+  label: string;
+  placeholder: string;
+  providerId: number | null;
+  value: string;
+  onCommit: (model: string) => void;
+}) {
+  const listId = useId();
+  const models = useQuery({
+    queryKey: ["admin", "ai", "models", providerId],
+    queryFn: () => api<string[]>(`/admin/ai/providers/${providerId}/models`),
+    enabled: providerId !== null,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return (
+    <label className="block">
+      <span className="block text-xs text-subtle">{label}</span>
+      <input
+        key={value}
+        defaultValue={value}
+        placeholder={placeholder}
+        disabled={providerId === null}
+        list={listId}
+        onBlur={(event) => onCommit(event.target.value)}
+        className="numeric mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-sm text-text outline-none focus-visible:border-brand disabled:opacity-50"
+      />
+      <datalist id={listId}>
+        {(models.data ?? []).map((model) => (
+          <option key={model} value={model} />
+        ))}
+      </datalist>
+    </label>
   );
 }
 

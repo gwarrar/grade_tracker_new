@@ -4454,6 +4454,53 @@
         ]
       }
     },
+    "/admin/ai/providers/{provider_id}/models": {
+      "get": {
+        "description": "Asks the endpoint what it serves, so a model does not have to be typed from memory. A local Ollama offers whatever that machine has pulled, which no default could know.\n\nAn empty list means the endpoint could not be reached or does not enumerate its models — the field stays typeable, so this is never blocking.",
+        "operationId": "provider_models_admin_ai_providers__provider_id__models_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider_id",
+            "required": true,
+            "schema": {
+              "title": "Provider Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response Provider Models Admin Ai Providers  Provider Id  Models Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Models this provider offers",
+        "tags": [
+          "AI administration"
+        ]
+      }
+    },
     "/admin/ai/providers/{provider_id}/test": {
       "post": {
         "description": "Makes the smallest possible real call. A configuration that only fails when someone asks a real question is one nobody notices is broken until it matters.\n\nAlways 200 — a failed *check* is a successful *test*, and returning 502 would make a working diagnostic look like a broken endpoint.",
