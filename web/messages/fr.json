@@ -384,7 +384,8 @@
         "command": "Palette de commandes",
         "import": "Assistant d’import"
       },
-      "featureLabel": "Fonction"
+      "featureLabel": "Fonction",
+      "baseUrlHint": "La racine compatible OpenAI, à laquelle `/chat/completions` est ajouté. Ollama la sert sous /v1 : utilisez http://127.0.0.1:11434/v1 — son API native sur le port nu parle un autre protocole."
     },
     "branding": {
       "title": "Identité visuelle",

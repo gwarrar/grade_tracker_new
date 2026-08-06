@@ -141,6 +141,7 @@ function Providers() {
             label={t("baseUrl")}
             placeholder="https://openrouter.ai/api/v1"
             required={false}
+            hint={t("baseUrlHint")}
           />
           <div className="sm:col-span-2">
             <Text
