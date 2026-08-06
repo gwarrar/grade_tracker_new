@@ -131,14 +131,18 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
     enabled: kind === "distribution",
   });
 
-  const pending =
-    summary.isPending ||
-    course.isPending ||
-    teacher.isPending ||
-    termReport.isPending ||
-    assessments.isPending ||
-    enrollment.isPending ||
-    distribution.isPending;
+  // isFetching, not isPending: a disabled query never fetches, so it stays pending
+  // forever. Six of these seven are disabled at any moment -- only the chosen report
+  // is enabled -- so reading isPending left "Loading…" on screen permanently.
+  const pending = [
+    summary,
+    course,
+    teacher,
+    termReport,
+    assessments,
+    enrollment,
+    distribution,
+  ].some((query) => query.isFetching);
 
   const courseOptions = (
     <>
