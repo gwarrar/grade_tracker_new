@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AppNav } from "@/components/app/app-nav";
+import { getBranding } from "@/components/branding/branding";
 import { CommandPalette } from "@/components/app/command-palette";
 import { QueryProvider } from "@/app/query-provider";
 import { getServerSession } from "@/lib/server-session";
@@ -25,7 +26,11 @@ export default async function AppLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const [me, t] = await Promise.all([getServerSession(), getTranslations("nav")]);
+  const [me, t, branding] = await Promise.all([
+    getServerSession(),
+    getTranslations("nav"),
+    getBranding(),
+  ]);
 
   // Locale-prefixed by hand: this is `next/navigation`'s redirect, which knows
   // nothing about the routing config, and dropping the prefix would send a German
@@ -44,7 +49,7 @@ export default async function AppLayout({
         >
           {t("skip")}
         </a>
-        <AppNav me={me} />
+        <AppNav me={me} branding={branding} />
         <main id="content" className="mx-auto max-w-7xl px-6 py-8">
           {children}
         </main>

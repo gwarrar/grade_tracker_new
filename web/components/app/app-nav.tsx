@@ -14,11 +14,12 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { LocaleSwitcher } from "@/components/ui/locale-switcher";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { assetUrl, type Branding } from "@/components/branding/branding";
 import { api } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/app-routes";
 import { atLeast, type Me } from "@/lib/session";
 
-export function AppNav({ me }: { me: Me }) {
+export function AppNav({ me, branding }: { me: Me; branding: Branding }) {
   const t = useTranslations();
   const pathname = usePathname();
   const router = useRouter();
@@ -41,8 +42,27 @@ export function AppNav({ me }: { me: Me }) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-3">
-        <Link href="/dashboard" className="text-sm font-medium tracking-tight text-text">
-          {t("app.name")}
+        {/* The institution's mark, not the product's. An uploaded logo replaces the
+            wordmark rather than sitting beside it, and the name falls back to the
+            product only when the organisation has not set one. Without this the
+            branding page saved a logo and a name that appeared nowhere. */}
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 text-sm font-medium tracking-tight text-text"
+        >
+          {branding.logo_path ? (
+            // eslint-disable-next-line @next/next/no-img-element -- an uploaded asset
+            // of unknown dimensions, served from the API rather than the app's own
+            // origin; next/image would need a loader and a remote-pattern allowlist
+            // to render one small mark.
+            <img
+              src={assetUrl(branding.logo_path)}
+              alt={branding.name}
+              className="h-6 w-auto max-w-40 object-contain"
+            />
+          ) : (
+            (branding.short_name || branding.name || t("app.name"))
+          )}
         </Link>
 
         <nav className="flex gap-1 text-sm" aria-label={t("nav.primary")}>
