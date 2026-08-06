@@ -152,17 +152,24 @@ class OpenAICompatibleProvider(LLMProvider):
                 "json_schema": {"name": "result", "schema": schema, "strict": True},
             }
 
-        # NVIDIA consumes effort inside `chat_template_kwargs`. Do not also send a
-        # conflicting derived top-level value when that vendor-specific setting is
-        # explicit. A top-level explicit `reasoning_effort` still overwrites the
-        # derived default through the merge below.
+        # Reasoning effort is opt-in, not derived. The routing column is NOT NULL
+        # DEFAULT 'medium', so there is no "unset" to detect, and sending it
+        # unconditionally made every model without reasoning support reject the
+        # request outright -- Ollama answers 400 `"llama3.2:1b" does not support
+        # thinking`. The asymmetry decides it: a reasoning model answers perfectly
+        # well without the parameter, while a plain one is broken by it. So a
+        # provider asks for effort by naming it in params_json, either top level or
+        # inside NVIDIA's `chat_template_kwargs`, and the routing level fills in the
+        # value.
+        # Three states, no guessing: absent sends nothing, "auto" sends the level the
+        # routing table chose, and any other value is the operator's own and wins.
         template_params = self._params.get("chat_template_kwargs")
-        has_nested_effort = (
-            isinstance(template_params, dict) and "reasoning_effort" in template_params
-        )
-        if not has_nested_effort:
+        nested_effort = isinstance(template_params, dict) and "reasoning_effort" in template_params
+        if self._params.get("reasoning_effort") == "auto" and not nested_effort:
             payload["reasoning_effort"] = self._EFFORT.get(self._effort, "medium")
         payload.update(self._params)
+        if payload.get("reasoning_effort") == "auto":
+            payload["reasoning_effort"] = self._EFFORT.get(self._effort, "medium")
 
         headers = {"content-type": "application/json"}
         if self._api_key:

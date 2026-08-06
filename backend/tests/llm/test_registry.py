@@ -220,7 +220,9 @@ def test_resolve_applies_the_route_effort_and_provider_parameters(
         api_key_env="",
         base_url="https://integrate.api.nvidia.com/v1",
         model="deepseek-ai/deepseek-v4-flash",
-        params_json='{"temperature": 0.6}',
+        # "auto" is how a provider opts in and defers to the routing table for the
+        # level. Absent, no reasoning parameter is sent at all.
+        params_json='{"temperature": 0.6, "reasoning_effort": "auto"}',
     )
     _route(conn, Feature.ASK, provider_id, effort="max")
     captured: dict[str, Any] = {}
@@ -242,6 +244,46 @@ def test_resolve_applies_the_route_effort_and_provider_parameters(
 
     assert captured["reasoning_effort"] == "high"
     assert captured["temperature"] == 0.6
+
+
+def test_a_provider_that_never_asked_for_effort_is_sent_none(
+    conn: sqlite3.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A plain model must not receive a reasoning parameter it cannot accept.
+
+    The routing column is NOT NULL DEFAULT 'medium', so deriving the parameter from
+    it sent one to every provider — and Ollama answers 400 ``"llama3.2:1b" does not
+    support thinking``. A reasoning model is fine without it; a plain one is broken
+    by it, so it is opt-in.
+    """
+    provider_id = _add_provider(
+        conn,
+        name="ollama",
+        kind="openai_compatible",
+        api_key_env="",
+        base_url="http://127.0.0.1:11434/v1",
+        model="llama3.2:1b",
+        params_json="{}",
+    )
+    _route(conn, Feature.ASK, provider_id, effort="high")
+    captured: dict[str, Any] = {}
+
+    def respond(*_: Any, **kwargs: Any) -> httpx.Response:
+        captured.update(kwargs["json"])
+        return httpx.Response(
+            200,
+            json={
+                "model": "llama3.2:1b",
+                "choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}],
+                "usage": {},
+            },
+        )
+
+    monkeypatch.setattr(httpx, "post", respond)
+
+    Registry(conn).resolve(Feature.ASK).chat([Message(role=Role.USER, content="hi")])
+
+    assert "reasoning_effort" not in captured
 
 
 def test_an_unrouted_feature_is_reported(conn: sqlite3.Connection) -> None:

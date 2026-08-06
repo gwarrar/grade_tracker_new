@@ -2921,6 +2921,7 @@
             "anyOf": [
               {
                 "maxLength": 80,
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$|^$",
                 "type": "string"
               },
               {
@@ -3014,6 +3015,7 @@
               "OPENROUTER_API_KEY"
             ],
             "maxLength": 80,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$|^$",
             "title": "Api Key Env",
             "type": "string"
           },

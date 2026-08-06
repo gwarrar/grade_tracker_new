@@ -39,6 +39,11 @@ class ProviderRequest(BaseModel):
     api_key_env: str = Field(
         default="",
         max_length=80,
+        # Enforced, not merely documented. The field invites a paste, and a pasted
+        # key is silently useless -- os.environ has no such name, so the request goes
+        # out unauthenticated -- while also putting a live credential in a table the
+        # design promises never holds one. An identifier cannot express a key.
+        pattern=r"^[A-Za-z_][A-Za-z0-9_]*$|^$",
         description=(
             "The **name** of the environment variable holding the key — never the key. "
             "A leak of this table therefore exposes no credentials. Leave empty for a "
@@ -77,7 +82,10 @@ class ProviderPatch(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=60)
     default_model: str | None = Field(default=None, min_length=1, max_length=120)
     base_url: str | None = None
-    api_key_env: str | None = Field(default=None, max_length=80)
+    # Same guard as on create: a pasted key is both useless and a stored credential.
+    api_key_env: str | None = Field(
+        default=None, max_length=80, pattern=r"^[A-Za-z_][A-Za-z0-9_]*$|^$"
+    )
     is_enabled: bool | None = None
     is_third_party_pool: bool | None = None
     params_json: str | None = Field(default=None, max_length=20_000)
