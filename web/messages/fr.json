@@ -245,7 +245,12 @@
     "USER_NOT_FOUND": "Ce compte est introuvable.",
     "LAST_SUPERADMIN": "Quelqu’un doit pouvoir administrer le système. Nommez d’abord un autre super-administrateur.",
     "CANNOT_MODIFY_SELF": "Vous ne pouvez ni changer votre propre rôle ni vous désactiver.",
-    "CONTRAST_TOO_LOW": "Ces couleurs de marque sont trop pâles pour être lues. Ajustez-les jusqu’à ce que les deux paires soient conformes, puis enregistrez."
+    "CONTRAST_TOO_LOW": "Ces couleurs de marque sont trop pâles pour être lues. Ajustez-les jusqu’à ce que les deux paires soient conformes, puis enregistrez.",
+    "BAD_REQUEST": "La requête n’a pas pu être comprise. Vérifiez les valeurs et réessayez.",
+    "NOT_FOUND": "Introuvable. L’élément a peut-être été supprimé, ou vous n’y avez pas accès.",
+    "METHOD_NOT_ALLOWED": "Cette action n’est pas disponible ici.",
+    "CONFLICT": "Cela entre en conflit avec un enregistrement existant.",
+    "INTERNAL_ERROR": "Une erreur s’est produite sur le serveur. Réessayez ; si le problème persiste, contactez un administrateur."
   },
   "landing": {
     "nav": {

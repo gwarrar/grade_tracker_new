@@ -112,6 +112,12 @@ describe("every API error code has a message", () => {
     "COURSE_FULL", "VALIDATION_ERROR", "NOT_AUTHENTICATED", "FORBIDDEN",
     "INVALID_CREDENTIALS", "ACCOUNT_DISABLED", "TOO_MANY_ATTEMPTS",
     "PAYLOAD_TOO_LARGE", "NO_GRADES_RECORDED", "OVERRIDE_NOT_FOUND",
+    // Every entry of _STATUS_CODES in api/problems.py. These are the codes a
+    // framework failure produces rather than a domain one, and they were all
+    // missing: a 404 from any route reached the user as the literal string
+    // "error.NOT_FOUND", because nothing asserted the generic ones were covered.
+    "BAD_REQUEST", "NOT_FOUND", "METHOD_NOT_ALLOWED", "CONFLICT", "INTERNAL_ERROR",
+    "AI_NOT_CONFIGURED", "AI_PROVIDER_NOT_FOUND", "AI_BAD_OUTPUT",
   ];
 
   for (const [locale, catalogue] of Object.entries(CATALOGUES)) {

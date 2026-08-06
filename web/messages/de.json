@@ -245,7 +245,12 @@
     "USER_NOT_FOUND": "Dieses Konto wurde nicht gefunden.",
     "LAST_SUPERADMIN": "Jemand muss das System verwalten können. Ernennen Sie zuerst eine weitere Person.",
     "CANNOT_MODIFY_SELF": "Sie können weder Ihre eigene Rolle ändern noch sich selbst deaktivieren.",
-    "CONTRAST_TOO_LOW": "Diese Markenfarben sind zu blass zum Lesen. Passen Sie sie an, bis beide Paare bestehen, und speichern Sie dann."
+    "CONTRAST_TOO_LOW": "Diese Markenfarben sind zu blass zum Lesen. Passen Sie sie an, bis beide Paare bestehen, und speichern Sie dann.",
+    "BAD_REQUEST": "Die Anfrage war nicht verständlich. Prüfen Sie die Werte und versuchen Sie es erneut.",
+    "NOT_FOUND": "Nicht gefunden. Der Eintrag wurde möglicherweise entfernt, oder Sie haben keinen Zugriff darauf.",
+    "METHOD_NOT_ALLOWED": "Diese Aktion ist hier nicht verfügbar.",
+    "CONFLICT": "Das steht im Konflikt mit einem vorhandenen Eintrag.",
+    "INTERNAL_ERROR": "Auf dem Server ist ein Fehler aufgetreten. Versuchen Sie es erneut; wenn es bestehen bleibt, wenden Sie sich an eine Administratorin oder einen Administrator."
   },
   "landing": {
     "nav": {

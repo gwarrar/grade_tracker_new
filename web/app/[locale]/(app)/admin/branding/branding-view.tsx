@@ -3,6 +3,9 @@
 import { useTranslations } from "next-intl";
 import { useState, type CSSProperties, type FormEvent } from "react";
 
+import { useRouter } from "next/navigation";
+
+import { refreshBranding } from "./actions";
 import { assetUrl, type Branding } from "@/components/branding/branding";
 import { FormError, Input, Select } from "@/components/app/detail-fields";
 import { Confirm } from "@/components/ui/confirm";
@@ -178,6 +181,7 @@ function BrandingForm({
   const [pending, setPending] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const router = useRouter();
   const primary = checkBothModes(colors.primary.light, colors.primary.dark);
   const accent = checkBothModes(colors.accent.light, colors.accent.dark);
   const usable = primary.usable && accent.usable;
@@ -232,6 +236,11 @@ function BrandingForm({
         },
       });
       onChange(stored);
+      // The layout's branding read is cached, so without dropping the tag and
+      // re-rendering the server components the page keeps showing the old values
+      // and this form repopulates from them.
+      await refreshBranding();
+      router.refresh();
       setSaved(true);
     } catch (error) {
       setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");

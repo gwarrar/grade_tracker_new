@@ -13,6 +13,9 @@
 import { API_BASE } from "@/lib/api";
 import { readableTextOn } from "@/lib/contrast";
 
+/** Cache tag for the branding read, revalidated by the branding editor on save. */
+export const BRANDING_TAG = "org-branding";
+
 /** The public branding payload from `GET /org/branding`. */
 export interface Branding {
   name: string;
@@ -70,9 +73,12 @@ export function assetUrl(path: string): string {
 export async function getBranding(): Promise<Branding> {
   try {
     const response = await fetch(`${API_BASE}/org/branding`, {
-      // Re-read periodically so a branding change appears without a redeploy,
-      // but not on every request -- this is on the critical path of every page.
-      next: { revalidate: 60 },
+      // Tagged rather than time-based. A 60-second window meant an administrator
+      // saved a colour, watched the page repopulate with the old one, and
+      // reasonably concluded the feature was broken. The branding editor
+      // revalidates this tag on save, so the change is visible immediately and
+      // every other request still gets a cached read.
+      next: { tags: [BRANDING_TAG] },
     });
     if (!response.ok) return FALLBACK;
     return (await response.json()) as Branding;
