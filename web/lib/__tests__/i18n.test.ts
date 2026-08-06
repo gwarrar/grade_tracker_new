@@ -94,6 +94,7 @@ describe("catalogue parity", () => {
         "nav.import", // "Import" is the German word too
         "admin.import.fields.description", // "Description" is the French word too
         "admin.import.fields.date", // "Date" is the French word too
+        "report.total", // "Total" is the French word too
       ]);
       const untranslated = shared.filter(
         (key) => !allowed.has(key) && read(en as Tree, key) === read(catalogue as Tree, key),

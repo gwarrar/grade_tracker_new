@@ -136,7 +136,9 @@
       "active": "Aktiv",
       "withdrawn": "Abgemeldet",
       "completed": "Abgeschlossen"
-    }
+    },
+    "active": "Aktiv",
+    "withdrawn": "Abgemeldet"
   },
   "notes": {
     "title": "Anmerkungen",
@@ -565,6 +567,22 @@
     "download": "CSV herunterladen",
     "graded": "Bewertete Studierende",
     "threshold": "Schwelle für Gefährdung",
+    "summary": "Zusammenfassung",
+    "teacherReport": "Lehrkraft-Bericht",
+    "termReport": "Semesterübersicht",
+    "assessments": "Leistungen",
+    "enrollmentReport": "Belegung",
+    "distributionReport": "Verteilung über die Zeit",
+    "pickTeacher": "Lehrkraft auswählen",
+    "pickTerm": "Semester auswählen",
+    "pickAssessment": "Leistung auswählen",
+    "capacity": "Kapazität",
+    "utilisation": "Auslastung",
+    "period": "Zeitraum",
+    "total": "Gesamt",
+    "byMonth": "Nach Monat",
+    "byTerm": "Nach Semester",
+    "range": "Spanne",
     "hint": "Die Zahlen liefert die Schnittstelle; die Formulierung entsteht hier, damit ein Bericht in Ihrer Sprache lesbar ist, ohne dass der Server einen Sprachführer vorhält."
   },
   "audit": {

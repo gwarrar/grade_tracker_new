@@ -1089,6 +1089,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reports/course/{course_id}/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A course's assessments
+         * @description Grades grouped by assessment title, each with its own average, spread, pass rate and band distribution. Answers "was the midterm too hard" — the one question a teacher opens a gradebook to find out. Class statistics span every student, so a student is refused.
+         */
+        get: operations["course_assessments_reports_course__course_id__assessments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/distribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Grade distribution over time
+         * @description Grades bucketed by ISO month of the award date (`bucket=month`) or by the course's term (`bucket=term`), each bucket carrying the band distribution. One payload drives a stacked area chart and the at-risk-trend question. Students are refused — the report spans every student.
+         */
+        get: operations["distribution_report_reports_distribution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/enrollment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Enrolment capacity and utilisation
+         * @description Per course: capacity, active, withdrawn and completed enrolments, and utilisation as a percentage of capacity. Finds both over-subscribed and dead courses. Students are refused — the report spans every student.
+         */
+        get: operations["enrollment_report_reports_enrollment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reports/student/{student_id}": {
         parameters: {
             query?: never;
@@ -1131,6 +1191,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reports/teacher/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A teacher's rollup
+         * @description The teacher themselves, or any administrator. A teacher asking for a colleague's rollup is refused with `FORBIDDEN`. Courses outside the caller's scope never appear, so an administrator's view is the only one that spans the institution.
+         */
+        get: operations["teacher_report_reports_teacher__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/term/{term}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A term's courses
+         * @description Scopeable where the institution-wide summary is not: a teacher gets their own courses in that term, an administrator the whole institution's. Students are refused, because any one student's copy would still contain their classmates' averages.
+         */
+        get: operations["term_report_reports_term__term__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reports/{kind}/{entity_id}/export.csv": {
         parameters: {
             query?: never;
@@ -1142,7 +1242,7 @@ export interface paths {
          * Download a report as CSV
          * @description The one endpoint that returns translated prose, because a downloaded file has no frontend to render it. `?locale=de` or `fr` also switches the delimiter to `;`, which is what Excel expects in those locales — a comma-separated file opens there as a single column.
          *
-         *     Use `summary` as both `kind` and `entity_id` for the institution-wide report.
+         *     Use `summary` as both `kind` and `entity_id` for the institution-wide report, and the same convention for `enrollment` and `distribution`. Assessments export with the course id as the entity, e.g. `/reports/assessments/CS101/export.csv`.
          */
         get: operations["export_csv_reports__kind___entity_id__export_csv_get"];
         put?: never;
@@ -1301,6 +1401,33 @@ export interface components {
              * @description True when the turn cap stopped the assistant before it concluded.
              */
             truncated: boolean;
+        };
+        /**
+         * AssessmentRow
+         * @description One assessment title within a course.
+         */
+        AssessmentRow: {
+            /** Average Percentage */
+            average_percentage: number;
+            /** Average Score */
+            average_score: number;
+            /** Count */
+            count: number;
+            /**
+             * Distribution
+             * @description Band label to count for this assessment, including zeros.
+             */
+            distribution: {
+                [key: string]: number;
+            };
+            /** Max Score */
+            max_score: number;
+            /** Min Score */
+            min_score: number;
+            /** Pass Rate */
+            pass_rate: number;
+            /** Title */
+            title: string;
         };
         /**
          * AuditEntryResponse
@@ -1501,6 +1628,22 @@ export interface components {
             params: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * CourseAssessmentsResponse
+         * @description A course's grades grouped by assessment title.
+         */
+        CourseAssessmentsResponse: {
+            /** Assessments */
+            assessments: components["schemas"]["AssessmentRow"][];
+            /** Course Id */
+            course_id: string;
+            /** Course Name */
+            course_name: string;
+            /** Max Grade */
+            max_grade: number;
+            /** Passing Grade */
+            passing_grade: number;
         };
         /**
          * CourseCreateRequest
@@ -1714,6 +1857,26 @@ export interface components {
             updated_at?: string | null;
         };
         /**
+         * CourseRollup
+         * @description One course in a teacher's or a term's breakdown.
+         */
+        CourseRollup: {
+            /** Average Percentage */
+            average_percentage?: number | null;
+            /** Course Id */
+            course_id: string;
+            /** Course Name */
+            course_name: string;
+            /** Grade Count */
+            grade_count: number;
+            /** Pass Rate */
+            pass_rate?: number | null;
+            /** Student Count */
+            student_count: number;
+            /** Term */
+            term?: string | null;
+        };
+        /**
          * CourseUpdateRequest
          * @description Changes to a course. Omitted fields are left alone.
          */
@@ -1818,6 +1981,34 @@ export interface components {
             student_count: number;
         };
         /**
+         * DistributionBucket
+         * @description The band distribution within one time bucket.
+         */
+        DistributionBucket: {
+            /**
+             * Bucket
+             * @description `YYYY-MM` for `month`, the course term for `term`.
+             */
+            bucket: string;
+            /** Distribution */
+            distribution: {
+                [key: string]: number;
+            };
+        };
+        /**
+         * DistributionReportResponse
+         * @description The grade distribution over time, one bucket per row.
+         */
+        DistributionReportResponse: {
+            /**
+             * Bucket
+             * @enum {string}
+             */
+            bucket: "month" | "term";
+            /** Buckets */
+            buckets: components["schemas"]["DistributionBucket"][];
+        };
+        /**
          * EnrollRequest
          * @description A registration.
          */
@@ -1827,6 +2018,16 @@ export interface components {
              * @example S001
              */
             student_id: string;
+        };
+        /**
+         * EnrollmentReportResponse
+         * @description Capacity, take-up and dropout per course.
+         */
+        EnrollmentReportResponse: {
+            /** Course Count */
+            course_count: number;
+            /** Rows */
+            rows: components["schemas"]["EnrollmentRow"][];
         };
         /**
          * EnrollmentResponse
@@ -1879,6 +2080,29 @@ export interface components {
              * @description The enrolled student.
              */
             student_id: string;
+        };
+        /**
+         * EnrollmentRow
+         * @description One course's enrolment position.
+         */
+        EnrollmentRow: {
+            /** Active */
+            active: number;
+            /** Capacity */
+            capacity: number;
+            /** Completed */
+            completed: number;
+            /** Course Id */
+            course_id: string;
+            /** Course Name */
+            course_name: string;
+            /**
+             * Utilisation
+             * @description Active enrolments as a percentage of capacity.
+             */
+            utilisation: number;
+            /** Withdrawn */
+            withdrawn: number;
         };
         /**
          * EnrollmentStatusRequest
@@ -3044,6 +3268,68 @@ export interface components {
             student_count: number;
             /** Top Students */
             top_students: components["schemas"]["RankedLine"][];
+        };
+        /**
+         * TeacherReportResponse
+         * @description A teacher's courses and their totals.
+         */
+        TeacherReportResponse: {
+            /** Average Percentage */
+            average_percentage?: number | null;
+            /** Course Count */
+            course_count: number;
+            /** Courses */
+            courses: components["schemas"]["CourseRollup"][];
+            /** Grade Count */
+            grade_count: number;
+            /** Student Count */
+            student_count: number;
+            /** Teacher Name */
+            teacher_name: string | null;
+            /** User Id */
+            user_id: number;
+        };
+        /**
+         * TermCourseRow
+         * @description A course in a term, with its owning teacher for the administrator's view.
+         */
+        TermCourseRow: {
+            /** Average Percentage */
+            average_percentage?: number | null;
+            /** Course Id */
+            course_id: string;
+            /** Course Name */
+            course_name: string;
+            /** Grade Count */
+            grade_count: number;
+            /** Pass Rate */
+            pass_rate?: number | null;
+            /** Student Count */
+            student_count: number;
+            /** Teacher Name */
+            teacher_name?: string | null;
+            /** Term */
+            term?: string | null;
+        };
+        /**
+         * TermReportResponse
+         * @description The courses running in one academic term.
+         */
+        TermReportResponse: {
+            /** Average Percentage */
+            average_percentage?: number | null;
+            /** Course Count */
+            course_count: number;
+            /** Courses */
+            courses: components["schemas"]["TermCourseRow"][];
+            /** Grade Count */
+            grade_count: number;
+            /** Pass Rate */
+            pass_rate?: number | null;
+            /** Student Count */
+            student_count: number;
+            /** Term */
+            term: string;
         };
         /**
          * TestResponse
@@ -5379,6 +5665,117 @@ export interface operations {
             };
         };
     };
+    course_assessments_reports_course__course_id__assessments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseAssessmentsResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — a student, or the course is outside your scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `COURSE_NOT_FOUND`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    distribution_report_reports_distribution_get: {
+        parameters: {
+            query?: {
+                /** @description How to group the distribution: by ISO month or by course term. */
+                bucket?: "month" | "term";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DistributionReportResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — below staff. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enrollment_report_reports_enrollment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrollmentReportResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — below staff. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     student_report_reports_student__student_id__get: {
         parameters: {
             query?: never;
@@ -5449,11 +5846,96 @@ export interface operations {
             };
         };
     };
+    teacher_report_reports_teacher__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherReportResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — below staff, or another teacher's rollup. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `USER_NOT_FOUND` — no account carries that id. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    term_report_reports_term__term__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                term: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermReportResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — below staff. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     export_csv_reports__kind___entity_id__export_csv_get: {
         parameters: {
             query?: {
                 /** @description Language for CSV column headers. */
                 locale?: string;
+                /** @description How to group the distribution: by ISO month or by course term. */
+                bucket?: "month" | "term";
             };
             header?: never;
             path: {

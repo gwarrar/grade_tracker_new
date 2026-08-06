@@ -136,7 +136,9 @@
       "active": "Actif",
       "withdrawn": "Retiré",
       "completed": "Terminé"
-    }
+    },
+    "active": "Actives",
+    "withdrawn": "Retirées"
   },
   "notes": {
     "title": "Remarques",
@@ -565,6 +567,22 @@
     "download": "Télécharger le CSV",
     "graded": "Étudiants évalués",
     "threshold": "Seuil de difficulté",
+    "summary": "Récapitulatif",
+    "teacherReport": "Bilan enseignant",
+    "termReport": "Bilan du semestre",
+    "assessments": "Évaluations",
+    "enrollmentReport": "Occupation",
+    "distributionReport": "Répartition dans le temps",
+    "pickTeacher": "Choisir un enseignant",
+    "pickTerm": "Choisir un semestre",
+    "pickAssessment": "Choisir une évaluation",
+    "capacity": "Capacité",
+    "utilisation": "Taux d’occupation",
+    "period": "Période",
+    "total": "Total",
+    "byMonth": "Par mois",
+    "byTerm": "Par semestre",
+    "range": "Étendue",
     "hint": "Les chiffres viennent de l’API ; la formulation est produite ici, pour qu’un rapport se lise dans votre langue sans que le serveur conserve un lexique."
   },
   "audit": {

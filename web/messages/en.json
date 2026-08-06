@@ -136,7 +136,9 @@
       "active": "Active",
       "withdrawn": "Withdrawn",
       "completed": "Completed"
-    }
+    },
+    "active": "Active",
+    "withdrawn": "Withdrawn"
   },
   "notes": {
     "title": "Notes",
@@ -565,6 +567,22 @@
     "download": "Download CSV",
     "graded": "Graded students",
     "threshold": "At-risk threshold",
+    "summary": "Summary",
+    "teacherReport": "Teacher rollup",
+    "termReport": "Term overview",
+    "assessments": "Assessments",
+    "enrollmentReport": "Enrolment capacity",
+    "distributionReport": "Distribution over time",
+    "pickTeacher": "Choose a teacher",
+    "pickTerm": "Choose a term",
+    "pickAssessment": "Choose an assessment",
+    "capacity": "Capacity",
+    "utilisation": "Utilisation",
+    "period": "Period",
+    "total": "Total",
+    "byMonth": "By month",
+    "byTerm": "By term",
+    "range": "Range",
     "hint": "Figures come from the API; the wording is rendered here, so a report reads in your language without the server holding a phrasebook."
   },
   "audit": {
