@@ -600,6 +600,23 @@
     "entityLabel": "Record",
     "system": "System",
     "history": "Change history",
-    "empty": "No changes recorded yet."
+    "empty": "No changes recorded yet.",
+    "entity": {
+      "ai_provider": "AI provider",
+      "ai_routing": "AI routing",
+      "course": "Course",
+      "enrollment": "Enrolment",
+      "grade": "Grade",
+      "i18n_override": "Translation override",
+      "note": "Note",
+      "organization": "Organisation",
+      "student": "Student",
+      "user": "Account"
+    },
+    "action": {
+      "create": "Created",
+      "delete": "Deleted",
+      "update": "Updated"
+    }
   }
 }

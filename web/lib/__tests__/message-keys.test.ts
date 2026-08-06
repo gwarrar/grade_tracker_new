@@ -62,6 +62,40 @@ function keysIn(source: string): string[] {
   );
 }
 
+/**
+ * Prefixes of keys assembled at runtime, as full dotted paths.
+ *
+ * `` t(`audit.entity.${kind}`) `` cannot be checked value by value from the source —
+ * the value arrives from the API. But the prefix has to name a branch that exists:
+ * `audit.entity` was absent entirely, so every row of the audit feed threw. Checking
+ * the branch catches the whole family at once, which is the failure that actually
+ * happened, and is silent about an individual member being absent.
+ */
+function dynamicPrefixesIn(source: string): string[] {
+  const namespaces = [...source.matchAll(/useTranslations\(\s*"([^"]*)"\s*\)/g)].map((m) => m[1]);
+  if (/useTranslations\(\s*\)/.test(source)) namespaces.push("");
+  if (namespaces.length === 0) return [];
+
+  const branches = [...source.matchAll(/\bt[A-Za-z]*\(\s*`([a-zA-Z0-9_.]*)\$\{/g)]
+    .map((m) => m[1].replace(/\.$/, ""))
+    // A template starting straight at the interpolation names no branch to check.
+    .filter((prefix) => prefix.length > 0);
+
+  return branches.filter(
+    (prefix) => !namespaces.some((ns) => isBranch(ns ? `${ns}.${prefix}` : prefix)),
+  );
+}
+
+/** Whether a dotted path resolves to an object holding at least one message. */
+function isBranch(path: string): boolean {
+  let node: unknown = en;
+  for (const part of path.split(".")) {
+    if (typeof node !== "object" || node === null || !(part in node)) return false;
+    node = (node as Record<string, unknown>)[part];
+  }
+  return typeof node === "object" && node !== null && Object.keys(node).length > 0;
+}
+
 describe("every translation key a component uses exists", () => {
   const files = ROOTS.flatMap((root) => sources(root));
 
@@ -71,7 +105,8 @@ describe("every translation key a component uses exists", () => {
   });
 
   for (const file of files) {
-    const missing = keysIn(readFileSync(file, "utf8"));
+    const source = readFileSync(file, "utf8");
+    const missing = [...keysIn(source), ...dynamicPrefixesIn(source)];
     if (missing.length === 0) continue;
     it(`${file.replace(/\\/g, "/")} resolves every key`, () => {
       expect(missing).toEqual([]);

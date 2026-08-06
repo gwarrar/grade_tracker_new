@@ -89,6 +89,7 @@ describe("catalogue parity", () => {
         "admin.ai.effort", // "Effort" in French
         "assistant.title", // "Assistant" is the French word too
         "admin.users.status", // "Status" is the German word too
+        "audit.entity.organization", // "Organisation" is spelled the same in all three
         "audit.system", // "System" is the German word too
         "audit.actionLabel", // "Action" is the French word too
         "nav.import", // "Import" is the German word too

@@ -600,6 +600,23 @@
     "entityLabel": "Enregistrement",
     "system": "Système",
     "history": "Historique des modifications",
-    "empty": "Aucune modification enregistrée pour l’instant."
+    "empty": "Aucune modification enregistrée pour l’instant.",
+    "entity": {
+      "ai_provider": "Fournisseur d’IA",
+      "ai_routing": "Routage d’IA",
+      "course": "Cours",
+      "enrollment": "Inscription",
+      "grade": "Note",
+      "i18n_override": "Remplacement de traduction",
+      "note": "Remarque",
+      "organization": "Organisation",
+      "student": "Étudiant",
+      "user": "Compte"
+    },
+    "action": {
+      "create": "Créé",
+      "delete": "Supprimé",
+      "update": "Modifié"
+    }
   }
 }

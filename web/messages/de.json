@@ -600,6 +600,23 @@
     "entityLabel": "Datensatz",
     "system": "System",
     "history": "Änderungsverlauf",
-    "empty": "Noch keine Änderungen aufgezeichnet."
+    "empty": "Noch keine Änderungen aufgezeichnet.",
+    "entity": {
+      "ai_provider": "KI-Anbieter",
+      "ai_routing": "KI-Routing",
+      "course": "Kurs",
+      "enrollment": "Einschreibung",
+      "grade": "Note",
+      "i18n_override": "Übersetzungsüberschreibung",
+      "note": "Notiz",
+      "organization": "Organisation",
+      "student": "Studierende:r",
+      "user": "Konto"
+    },
+    "action": {
+      "create": "Erstellt",
+      "delete": "Gelöscht",
+      "update": "Geändert"
+    }
   }
 }
