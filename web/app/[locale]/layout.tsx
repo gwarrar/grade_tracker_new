@@ -39,6 +39,27 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+/**
+ * The tab icon for an organisation that has uploaded none.
+ *
+ * A data URI rather than a file, and that is the whole point. Next treats a
+ * favicon in the app directory as a special case and *unshifts* it in front of
+ * whatever `generateMetadata` returns, so `web/app/favicon.ico` silently won over
+ * every uploaded icon — the branding page stored the file, served it, and the tab
+ * kept showing the stock mark. Any file put back at that path recreates the bug.
+ *
+ * Drawn from the brand colour so it is at least the institution's own hue before
+ * they upload anything.
+ */
+const DEFAULT_ICON =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">' +
+      '<rect width="32" height="32" rx="7" fill="#2e5bff"/>' +
+      '<path d="M9 21V11h3.6a5 5 0 0 1 0 10z" fill="#fff"/>' +
+      "</svg>",
+  );
+
 /** Pre-render every locale rather than resolving them on first request. */
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -58,7 +79,7 @@ export async function generateMetadata({
   return {
     title: { default: t("name"), template: `%s · ${branding.short_name || t("name")}` },
     description: t("tagline"),
-    icons: branding.favicon_path ? { icon: assetUrl(branding.favicon_path) } : undefined,
+    icons: { icon: branding.favicon_path ? assetUrl(branding.favicon_path) : DEFAULT_ICON },
   };
 }
 

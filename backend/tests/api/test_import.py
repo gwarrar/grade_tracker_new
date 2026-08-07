@@ -11,8 +11,9 @@ from __future__ import annotations
 import io
 import json
 import sqlite3
-from typing import Any
+from typing import Any, ClassVar
 
+from fastapi.testclient import TestClient
 from openpyxl import Workbook
 
 STUDENTS_MAPPING = {
@@ -365,3 +366,78 @@ class TestOwnExportRoundTrip:
         assert rebuilt.status_code == 200
         assert rebuilt.json()["name"] == "Operating Systems"
         assert rebuilt.json()["max_grade"] == 100.0
+
+
+class TestTeachers:
+    """A teacher has no directory record -- the account is the whole import.
+
+    Which is why there is no `create_accounts` opt-out here: declining to create the
+    account would import nothing at all.
+    """
+
+    MAPPING: ClassVar[dict[str, str]] = {"full_name": "full_name", "email": "email"}
+
+    def test_an_import_returns_one_credential_per_teacher(self, as_admin: Any) -> None:
+        content = (
+            b"full_name,email\nKatrin Weber,k.weber@school.test\nYusuf Demir,y.demir@school.test\n"
+        )
+        response = as_admin.post(
+            "/import/teachers",
+            files={"file": ("teachers.csv", content, "text/csv")},
+            data={"mapping": json.dumps(self.MAPPING)},
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["imported"] == 2
+        assert [row["email"] for row in body["credentials"]] == [
+            "k.weber@school.test",
+            "y.demir@school.test",
+        ]
+        # Absent rather than blank: a teacher has no student record, and an empty
+        # string would render as a trailing separator beside every name.
+        assert all(row["student_id"] is None for row in body["credentials"])
+
+    def test_an_imported_teacher_can_sign_in(self, app: Any, as_admin: Any) -> None:
+        """The point of the import. Every layer of this can pass while the accounts
+        it creates are unusable."""
+        content = b"full_name,email\nKatrin Weber,k.weber@school.test\n"
+        response = as_admin.post(
+            "/import/teachers",
+            files={"file": ("teachers.csv", content, "text/csv")},
+            data={"mapping": json.dumps(self.MAPPING)},
+        )
+        password = response.json()["credentials"][0]["initial_password"]
+
+        client = TestClient(app)
+        signed_in = client.post(
+            "/auth/login", json={"email": "k.weber@school.test", "password": password}
+        )
+
+        assert signed_in.status_code == 200, signed_in.text
+        me = client.get("/auth/me").json()
+        assert me["role"] == "teacher"
+        assert me["must_change_password"] is True
+
+    def test_a_teacher_may_not_import_teachers(self, as_teacher: Any) -> None:
+        """Importing teachers mints accounts, which is administration."""
+        response = as_teacher.post(
+            "/import/teachers",
+            files={"file": ("teachers.csv", b"full_name,email\nA,a@b.co\n", "text/csv")},
+            data={"mapping": json.dumps(self.MAPPING)},
+        )
+
+        assert response.status_code == 403
+
+
+def test_an_unknown_kind_is_refused_rather_than_imported(as_admin: Any) -> None:
+    """The kind dispatch used to end in a bare `else` that ran the grade importer, so
+    a path typo imported a file of students as grades and reported success."""
+    response = as_admin.post(
+        "/import/wizards",
+        files={"file": ("x.csv", b"a\n1\n", "text/csv")},
+        data={"mapping": json.dumps({"a": "a"})},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"

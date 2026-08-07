@@ -1618,6 +1618,10 @@ export interface components {
             color_accent_dark?: string | null;
             /** Color Accent Light */
             color_accent_light?: string | null;
+            /** Color Background Dark */
+            color_background_dark?: string | null;
+            /** Color Background Light */
+            color_background_light?: string | null;
             /** Color Primary Dark */
             color_primary_dark?: string | null;
             /** Color Primary Light */
@@ -2595,8 +2599,11 @@ export interface components {
             full_name: string;
             /** Initial Password */
             initial_password: string;
-            /** Student Id */
-            student_id: string;
+            /**
+             * Student Id
+             * @description The student record this account reads. Absent for a teacher, who has none.
+             */
+            student_id?: string | null;
         };
         /**
          * InsightResponse
@@ -2730,10 +2737,11 @@ export interface components {
         };
         /**
          * OrganizationColors
-         * @description Primary and accent colour pairs.
+         * @description Primary, accent and page-background colour pairs.
          */
         OrganizationColors: {
             accent: components["schemas"]["BrandColors"];
+            background: components["schemas"]["BrandColors"];
             primary: components["schemas"]["BrandColors"];
         };
         /**
@@ -5235,7 +5243,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description `students`, `courses` or `grades`. */
+                /** @description `students`, `teachers`, `courses` or `grades`. */
                 kind: string;
             };
             cookie?: never;
@@ -5283,7 +5291,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description `students`, `courses` or `grades`. */
+                /** @description `students`, `teachers`, `courses` or `grades`. */
                 kind: string;
             };
             cookie?: never;

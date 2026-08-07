@@ -429,6 +429,36 @@ class DirectoryService:
             raise CourseNotFoundError(f"No course with id {course_id!r}.", course_id=course_id)
         return _course_dict(row)
 
+    def _assert_teaches(self, teacher_id: Any) -> None:
+        """Refuse a course owner who cannot own a course.
+
+        The column is a plain foreign key to ``users``, so nothing stopped a course
+        being assigned to a student's account, or to an id belonging to nobody. Both
+        are silent: the course simply never appears for the person it names, because
+        ``course_scope`` matches on a teacher id that will never be theirs.
+
+        Rank is not the test -- an administrator is not a teacher for this purpose,
+        because ownership drives what a teacher *sees*, not what they may do.
+
+        Args:
+            teacher_id: The candidate owner, or None for an unassigned course.
+
+        Raises:
+            ValidationError: If the id is unknown, deactivated, or not a teacher's.
+        """
+        if teacher_id is None:
+            return
+        row = self._conn.execute(
+            "SELECT 1 FROM users WHERE id = ? AND role = 'teacher' AND is_active = 1",
+            (int(teacher_id),),
+        ).fetchone()
+        if row is None:
+            raise ValidationError(
+                "That is not an active teacher's account.",
+                field="teacher_id",
+                value=teacher_id,
+            )
+
     def create_course(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Add a course.
 
@@ -441,11 +471,14 @@ class DirectoryService:
 
         Raises:
             DuplicateEntryError: If the id is taken.
-            ValidationError: If a field is invalid.
+            ValidationError: If a field is invalid, including a teacher id that
+                belongs to nobody, to a deactivated account, or to somebody who is
+                not a teacher.
         """
         teacher_id = payload.get("teacher_id")
         if teacher_id is None and not self._principal.is_admin:
             teacher_id = self._principal.user_id
+        self._assert_teaches(teacher_id)
 
         prerequisite_ids = [str(value) for value in payload.get("prerequisite_ids", [])]
 
@@ -533,6 +566,8 @@ class DirectoryService:
         # teacher could give away a course and lose access to their own grade history.
         if updated.teacher_id != before.teacher_id and not self._principal.is_admin:
             raise ForbiddenError("Only an administrator can reassign a course.")
+        if updated.teacher_id != before.teacher_id:
+            self._assert_teaches(updated.teacher_id)
 
         with transaction(self._conn):
             self._store.update_course(updated)

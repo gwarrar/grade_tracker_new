@@ -11,7 +11,8 @@
  */
 
 import { API_BASE } from "@/lib/api";
-import { readableTextOn } from "@/lib/contrast";
+import { brandingCss, type BrandingColors } from "@/lib/branding-css";
+import { DEFAULT_BACKGROUND } from "@/lib/contrast";
 
 /** Cache tag for the branding read, revalidated by the branding editor on save. */
 export const BRANDING_TAG = "org-branding";
@@ -22,10 +23,7 @@ export interface Branding {
   short_name: string;
   logo_path: string | null;
   favicon_path: string | null;
-  colors: {
-    primary: { light: string; dark: string };
-    accent: { light: string; dark: string };
-  };
+  colors: BrandingColors;
   default_locale: string;
   enabled_locales: string[];
   default_theme: string;
@@ -42,6 +40,7 @@ const FALLBACK: Branding = {
   colors: {
     primary: { light: "#2e5bff", dark: "#7c9bff" },
     accent: { light: "#00a37a", dark: "#3dd9ac" },
+    background: DEFAULT_BACKGROUND,
   },
   default_locale: "en",
   enabled_locales: ["en", "de", "fr"],
@@ -81,32 +80,25 @@ export async function getBranding(): Promise<Branding> {
       next: { tags: [BRANDING_TAG] },
     });
     if (!response.ok) return FALLBACK;
-    return (await response.json()) as Branding;
+    const payload = (await response.json()) as Branding;
+    // Colours merged over the defaults rather than trusted whole. An API predating
+    // one of them — a rolling deploy, or a backend somebody forgot to restart —
+    // hands back a payload missing that key, and `brandingCss` would read `.light`
+    // off undefined and take the root layout with it. Every page, for one absent
+    // shade. Same reasoning as the fallback above: this file renders something.
+    return { ...payload, colors: { ...FALLBACK.colors, ...payload.colors } };
   } catch {
     return FALLBACK;
   }
 }
 
 /**
- * Render the brand colours as scoped custom properties.
+ * Render the organisation's palette as scoped custom properties.
  *
- * Overrides the defaults in `tokens.css` for both themes at once: `:root` carries
- * the light values, `.dark` the dark ones, exactly as the token file does.
+ * The rules themselves, and why they are shaped the way they are, live in
+ * `lib/branding-css.ts` — a pure function, so the specificity and print behaviour
+ * they depend on can be tested rather than hoped for.
  */
 export function BrandingStyle({ branding }: { branding: Branding }) {
-  const { primary, accent } = branding.colors;
-
-  const css = `
-:root {
-  --brand-primary: ${primary.light};
-  --brand-primary-contrast: ${readableTextOn(primary.light)};
-  --brand-accent: ${accent.light};
-}
-.dark {
-  --brand-primary: ${primary.dark};
-  --brand-primary-contrast: ${readableTextOn(primary.dark)};
-  --brand-accent: ${accent.dark};
-}`.trim();
-
-  return <style dangerouslySetInnerHTML={{ __html: css }} />;
+  return <style dangerouslySetInnerHTML={{ __html: brandingCss(branding.colors) }} />;
 }

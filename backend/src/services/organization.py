@@ -110,6 +110,8 @@ def _update_in_transaction(
         "color_primary_dark": before.primary.dark,
         "color_accent_light": before.accent.light,
         "color_accent_dark": before.accent.dark,
+        "color_background_light": before.background.light,
+        "color_background_dark": before.background.dark,
         "enabled_locales": before.enabled_locales,
         "default_locale": before.default_locale,
         "default_theme": before.default_theme,
@@ -148,6 +150,10 @@ def _update_in_transaction(
             cast(str, merged["color_accent_light"]),
             cast(str, merged["color_accent_dark"]),
         ),
+        background=BrandColor(
+            cast(str, merged["color_background_light"]),
+            cast(str, merged["color_background_dark"]),
+        ),
         enabled_locales=tuple(cast(list[str] | tuple[str, ...], merged["enabled_locales"])),
         default_locale=cast(str, merged["default_locale"]),
         default_theme=theme,
@@ -159,7 +165,8 @@ def _update_in_transaction(
     conn.execute(
         "UPDATE organization SET name = ?, short_name = ?, logo_path = ?, favicon_path = ?,"
         " color_primary_light = ?, color_primary_dark = ?, color_accent_light = ?,"
-        " color_accent_dark = ?, default_locale = ?, enabled_locales_json = ?,"
+        " color_accent_dark = ?, color_background_light = ?, color_background_dark = ?,"
+        " default_locale = ?, enabled_locales_json = ?,"
         " default_theme = ?, timezone = ?, grading_scale_json = ?, updated_at = ?"
         " WHERE id = 1",
         (
@@ -171,6 +178,8 @@ def _update_in_transaction(
             after.primary.dark,
             after.accent.light,
             after.accent.dark,
+            after.background.light,
+            after.background.dark,
             after.default_locale,
             json.dumps(after.enabled_locales),
             str(after.default_theme),

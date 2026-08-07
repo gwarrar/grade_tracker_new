@@ -416,3 +416,84 @@ class TestBranding:
         body = client.get("/org/branding").json()
         assert body["enabled_locales"] == ["en", "de", "fr"]
         assert [b["label"] for b in body["grading_scale"]] == ["A", "B", "C", "D", "F"]
+
+
+class TestCourseOwnership:
+    """`courses.teacher_id` is a plain foreign key to `users`, so nothing but this
+    guard stopped a course being handed to a student's account or to an id belonging
+    to nobody. Both fail silently: `course_scope` matches on a teacher id that will
+    never be the named person's, so the course simply never appears for them.
+    """
+
+    def _teacher_id(self, client: TestClient, *, active: bool = True) -> int:
+        """One teacher's account id.
+
+        `include_inactive` is off deliberately: the default listing carries the
+        seeded deactivated teacher, who sorts first and is exactly what this guard
+        refuses.
+        """
+        rows = client.get(
+            "/admin/users", params={"role": "teacher", "include_inactive": True}
+        ).json()
+        return next(row["id"] for row in rows if row["is_active"] is active)
+
+    def _student_user_id(self, client: TestClient) -> int:
+        return next(
+            row["id"] for row in client.get("/admin/users", params={"role": "student"}).json()
+        )
+
+    def test_a_course_can_be_assigned_to_a_teacher(self, as_admin: TestClient) -> None:
+        response = as_admin.post(
+            "/courses",
+            json={
+                "course_id": "CS900",
+                "name": "Compilers",
+                "teacher_id": self._teacher_id(as_admin),
+            },
+        )
+
+        assert response.status_code == 201, response.text
+
+    def test_a_course_cannot_be_assigned_to_a_student(self, as_admin: TestClient) -> None:
+        response = as_admin.post(
+            "/courses",
+            json={
+                "course_id": "CS901",
+                "name": "Compilers",
+                "teacher_id": self._student_user_id(as_admin),
+            },
+        )
+
+        assert response.status_code == 422
+        assert response.json()["code"] == "VALIDATION_ERROR"
+
+    def test_a_course_cannot_be_assigned_to_nobody(self, as_admin: TestClient) -> None:
+        response = as_admin.post(
+            "/courses", json={"course_id": "CS902", "name": "Compilers", "teacher_id": 999_999}
+        )
+
+        assert response.status_code == 422
+
+    def test_a_course_cannot_be_assigned_to_a_deactivated_teacher(
+        self, as_admin: TestClient
+    ) -> None:
+        """Deactivating an account revokes its sessions, so a course pointing at one
+        is a course nobody can grade."""
+        response = as_admin.post(
+            "/courses",
+            json={
+                "course_id": "CS903",
+                "name": "Compilers",
+                "teacher_id": self._teacher_id(as_admin, active=False),
+            },
+        )
+
+        assert response.status_code == 422
+
+    def test_reassignment_is_checked_too(self, as_admin: TestClient) -> None:
+        """Both writers route through the same guard, so neither can drift."""
+        response = as_admin.patch(
+            "/courses/CS999", json={"teacher_id": self._student_user_id(as_admin)}
+        )
+
+        assert response.status_code == 422

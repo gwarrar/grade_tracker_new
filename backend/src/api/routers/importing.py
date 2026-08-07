@@ -30,14 +30,21 @@ from services.scoping import Principal
 
 router = APIRouter(prefix="/import", tags=["Import"])
 
-#: Who may import each kind. Students and courses change the register itself, so
-#: only administrators may; grades are a teacher's ordinary work.
-_ROLE_BY_KIND = {"students": Role.ADMIN, "courses": Role.ADMIN, "grades": Role.TEACHER}
+#: Who may import each kind. Students, teachers and courses change the register
+#: itself, so only administrators may; grades are a teacher's ordinary work.
+#: Importing teachers mints accounts, which is why it sits with the other two
+#: rather than with grades.
+_ROLE_BY_KIND = {
+    "students": Role.ADMIN,
+    "teachers": Role.ADMIN,
+    "courses": Role.ADMIN,
+    "grades": Role.TEACHER,
+}
 
 ImportKind = Annotated[
     str,
     Path(
-        description="`students`, `courses` or `grades`.",
+        description="`students`, `teachers`, `courses` or `grades`.",
         examples=["grades"],
     ),
 ]
@@ -85,7 +92,10 @@ class ImportReportModel(BaseModel):
 class ImportedCredential(BaseModel):
     """A sign-in account minted by an import, and its one-time password."""
 
-    student_id: str
+    student_id: str | None = Field(
+        default=None,
+        description="The student record this account reads. Absent for a teacher, who has none.",
+    )
     full_name: str
     email: str
     initial_password: str

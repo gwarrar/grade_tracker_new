@@ -16,6 +16,20 @@ export async function generateMetadata({
   return { title: t("title") };
 }
 
+/**
+ * Every zone this runtime knows, UTC first.
+ *
+ * Built here, on the server, and handed to the form as data. Reading it inside the
+ * client component meant Node answered during the server render and the browser
+ * answered again during hydration, from two different ICU builds — a handful of
+ * zones apart, which React reported as a hydration mismatch on the `<select>` every
+ * time the page loaded.
+ */
+const TIME_ZONES = [
+  "UTC",
+  ...Intl.supportedValuesOf("timeZone").filter((zone) => zone !== "UTC"),
+];
+
 export default async function BrandingPage({
   params,
 }: {
@@ -26,5 +40,5 @@ export default async function BrandingPage({
 
   await requireSession(locale, can.editBranding);
 
-  return <BrandingView initialBranding={await getBranding()} />;
+  return <BrandingView initialBranding={await getBranding()} timeZones={TIME_ZONES} />;
 }

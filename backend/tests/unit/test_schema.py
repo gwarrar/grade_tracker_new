@@ -29,6 +29,17 @@ class TestOrganizationTable:
         with pytest.raises(sqlite3.IntegrityError):
             sqlite_conn.execute("UPDATE organization SET default_theme = 'neon' WHERE id = 1")
 
+    def test_the_background_columns_are_backfilled(self, sqlite_conn: sqlite3.Connection) -> None:
+        """An ALTER without a DEFAULT would leave the seeded row NULL, and the
+        frontend would render `--bg: null` over the whole application. These values
+        must also match the shipped `--bg` in web/app/tokens.css, which is what
+        renders in the moment before the branding response arrives."""
+        row = sqlite_conn.execute(
+            "SELECT color_background_light, color_background_dark FROM organization WHERE id = 1"
+        ).fetchone()
+
+        assert (row[0], row[1]) == ("#FBFBFA", "#08080A")
+
 
 class TestUsersTable:
     def test_rejects_an_unknown_role(self, sqlite_conn: sqlite3.Connection) -> None:

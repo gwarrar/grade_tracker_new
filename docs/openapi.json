@@ -416,6 +416,28 @@
             ],
             "title": "Color Accent Light"
           },
+          "color_background_dark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Background Dark"
+          },
+          "color_background_light": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Background Light"
+          },
           "color_primary_dark": {
             "anyOf": [
               {
@@ -2456,12 +2478,19 @@
             "type": "string"
           },
           "student_id": {
-            "title": "Student Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The student record this account reads. Absent for a teacher, who has none.",
+            "title": "Student Id"
           }
         },
         "required": [
-          "student_id",
           "full_name",
           "email",
           "initial_password"
@@ -2679,9 +2708,12 @@
         "type": "object"
       },
       "OrganizationColors": {
-        "description": "Primary and accent colour pairs.",
+        "description": "Primary, accent and page-background colour pairs.",
         "properties": {
           "accent": {
+            "$ref": "#/components/schemas/BrandColors"
+          },
+          "background": {
             "$ref": "#/components/schemas/BrandColors"
           },
           "primary": {
@@ -2690,7 +2722,8 @@
         },
         "required": [
           "primary",
-          "accent"
+          "accent",
+          "background"
         ],
         "title": "OrganizationColors",
         "type": "object"
@@ -6958,12 +6991,12 @@
         "operationId": "import_file_import__kind__post",
         "parameters": [
           {
-            "description": "`students`, `courses` or `grades`.",
+            "description": "`students`, `teachers`, `courses` or `grades`.",
             "in": "path",
             "name": "kind",
             "required": true,
             "schema": {
-              "description": "`students`, `courses` or `grades`.",
+              "description": "`students`, `teachers`, `courses` or `grades`.",
               "examples": [
                 "grades"
               ],
@@ -7015,12 +7048,12 @@
         "operationId": "preview_import_import__kind__preview_post",
         "parameters": [
           {
-            "description": "`students`, `courses` or `grades`.",
+            "description": "`students`, `teachers`, `courses` or `grades`.",
             "in": "path",
             "name": "kind",
             "required": true,
             "schema": {
-              "description": "`students`, `courses` or `grades`.",
+              "description": "`students`, `teachers`, `courses` or `grades`.",
               "examples": [
                 "grades"
               ],

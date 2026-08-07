@@ -42,10 +42,12 @@ from notenverwaltung.exceptions import (
     ValidationError,
 )
 from notenverwaltung.gradebook import ImportReport
+from notenverwaltung.models.user import Role
 from notenverwaltung.storage import transaction
 from services.directory import DirectoryService
 from services.grading import GradingService
 from services.scoping import Principal
+from services.users import UserService
 
 SAMPLE_ROWS = 5
 """How many data rows a preview carries back for disambiguation."""
@@ -315,20 +317,30 @@ class ImportService:
         and a machine-readable code while the rest carry on.
 
         Args:
-            kind: ``students``, ``courses`` or ``grades``.
+            kind: ``students``, ``teachers``, ``courses`` or ``grades``.
             rows: The data rows.
             column_mapping: Field name to source column name.
 
         Returns:
             Counts and per-row failures.
+
+        Raises:
+            ValidationError: If the kind is not one this service imports. This used
+                to be an ``else`` that ran the grade importer, so a typo in the path
+                silently wrote a file of students as grades and reported success.
         """
+        importers = {
+            "students": self._import_student,
+            "teachers": self._import_teacher,
+            "courses": self._import_course,
+            "grades": self._import_grade,
+        }
+        one = importers.get(kind)
+        if one is None:
+            raise ValidationError(f"Unknown import kind {kind!r}.", field="kind", value=kind)
+
         report = ImportReport()
-        if kind == "students":
-            self._import_rows(rows, column_mapping, report, self._import_student)
-        elif kind == "courses":
-            self._import_rows(rows, column_mapping, report, self._import_course)
-        else:
-            self._import_rows(rows, column_mapping, report, self._import_grade)
+        self._import_rows(rows, column_mapping, report, one)
         return report
 
     def _import_rows(
@@ -380,6 +392,25 @@ class ImportService:
                     "initial_password": password,
                 }
             )
+
+    def _import_teacher(self, row: dict[str, str], column_mapping: dict[str, str]) -> None:
+        """Import one teacher row as a sign-in account.
+
+        Shorter than its student counterpart because there is nothing else to write:
+        a teacher has no directory record, only an account. ``create_account`` is not
+        honoured here for the same reason — an account is the entire import.
+        """
+        full_name = self._required(row, column_mapping, "full_name")
+        email = self._required(row, column_mapping, "email")
+        _, password = UserService(self._conn, self._principal).create(
+            email=email, full_name=full_name, role=Role.TEACHER
+        )
+        # No `student_id` key at all rather than an empty one: the field is optional
+        # on the wire, and a blank string would render as a trailing separator next
+        # to every teacher's name.
+        self._credentials.append(
+            {"full_name": full_name, "email": email, "initial_password": password}
+        )
 
     def _import_course(self, row: dict[str, str], column_mapping: dict[str, str]) -> None:
         """Import one course row through the directory service."""

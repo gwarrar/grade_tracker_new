@@ -23,10 +23,11 @@ class BrandColors(BaseModel):
 
 
 class OrganizationColors(BaseModel):
-    """Primary and accent colour pairs."""
+    """Primary, accent and page-background colour pairs."""
 
     primary: BrandColors
     accent: BrandColors
+    background: BrandColors
 
 
 class GradeBandResponse(BaseModel):
@@ -61,6 +62,8 @@ class BrandingPatch(BaseModel):
     color_primary_dark: str | None = None
     color_accent_light: str | None = None
     color_accent_dark: str | None = None
+    color_background_light: str | None = None
+    color_background_dark: str | None = None
     enabled_locales: list[str] | None = None
     default_locale: str | None = None
     default_theme: Theme | None = None

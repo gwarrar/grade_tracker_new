@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { checkBothModes, checkContrast, readableTextOn } from "../contrast";
+import { checkBackground, checkBothModes, checkContrast, readableTextOn } from "../contrast";
 
 // The FALLBACK branding in components/branding/branding.tsx. Duplicated here
 // deliberately: importing it would pull a server component and its fetch into a
@@ -52,5 +52,14 @@ describe("shipped brand colours", () => {
     // filled button, which is a different question from the fill's own legibility.
     expect(checkContrast(readableTextOn(PRIMARY.light), PRIMARY.light).passesAA).toBe(true);
     expect(checkContrast(readableTextOn(ACCENT.dark), ACCENT.dark).passesAA).toBe(true);
+  });
+});
+
+describe("the shipped page backgrounds", () => {
+  it("keep body and muted text readable", () => {
+    // Pinned here for the same reason as the brand pair above: these are the values
+    // an organisation inherits until it chooses its own, and nobody is prompted to
+    // check them.
+    expect(checkBackground("#fbfbfa", "#08080a").usable).toBe(true);
   });
 });

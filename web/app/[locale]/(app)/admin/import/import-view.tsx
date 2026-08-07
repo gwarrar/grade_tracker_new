@@ -32,14 +32,14 @@ import { api, ApiError, type Response } from "@/lib/api";
 import { parseCsv } from "@/lib/csv";
 import { formatNumber } from "@/lib/format";
 
-type ImportKind = "students" | "courses" | "grades";
+type ImportKind = "students" | "teachers" | "courses" | "grades";
 type Preview = Response<"/import/{kind}/preview", "post">;
 type Report = Response<"/import/{kind}", "post">;
 type ImportMap = Response<"/ai/import-map", "post">;
 /** Field name to source column name, the shape the API expects. */
 type Mapping = Record<string, string>;
 
-const KINDS: ImportKind[] = ["students", "courses", "grades"];
+const KINDS: ImportKind[] = ["students", "teachers", "courses", "grades"];
 
 // The gradebook fields each kind accepts, mirroring the import service. The
 // server is the authority; this list only fills the <select> options.
@@ -48,6 +48,9 @@ const FIELDS: Record<ImportKind, readonly string[]> = {
     "student_id", "first_name", "last_name", "email", "is_active",
     "phone", "date_of_birth", "cohort",
   ],
+  // Two fields, because a teacher has no directory record — the sign-in account is
+  // the entire import, which is also why there is no create-account opt-out below.
+  teachers: ["full_name", "email"],
   courses: [
     "course_id", "name", "max_grade", "passing_grade", "max_students", "term",
     "credits", "description", "room", "schedule", "department", "start_date", "end_date",
@@ -498,7 +501,8 @@ export function ImportView({ locale }: { locale: string }) {
             rows={(committed.credentials ?? []).map((row) => ({
               email: row.email,
               password: row.initial_password,
-              name: `${row.full_name} · ${row.student_id}`,
+              // A teacher has no student record, so no trailing separator either.
+              name: row.student_id ? `${row.full_name} · ${row.student_id}` : row.full_name,
             }))}
             onDismiss={() => setCommitted({ ...committed, credentials: [] })}
           />

@@ -10,7 +10,12 @@ import { assetUrl, type Branding } from "@/components/branding/branding";
 import { FormError, Input, Select } from "@/components/app/detail-fields";
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError } from "@/lib/api";
-import { checkBothModes, readableTextOn, suggestDarkVariant } from "@/lib/contrast";
+import {
+  checkBackground,
+  checkBothModes,
+  readableTextOn,
+  suggestDarkVariant,
+} from "@/lib/contrast";
 import {
   validateGradingScale,
   type GradeBand,
@@ -19,10 +24,6 @@ import {
 
 const LOCALES = ["en", "de", "fr"] as const;
 const THEMES = ["light", "dark", "system"] as const;
-const TIME_ZONES = [
-  "UTC",
-  ...Intl.supportedValuesOf("timeZone").filter((zone) => zone !== "UTC"),
-];
 
 type AssetKind = "logo" | "favicon";
 type ColorKind = keyof Branding["colors"];
@@ -32,7 +33,23 @@ type PreviewStyle = CSSProperties & {
   "--preview-accent": string;
 };
 
-export function BrandingView({ initialBranding }: { initialBranding: Branding }) {
+export function BrandingView({
+  initialBranding,
+  timeZones,
+}: {
+  initialBranding: Branding;
+  /**
+   * The zone list, built on the server and passed down rather than read here.
+   *
+   * `Intl.supportedValuesOf("timeZone")` answers from the host's ICU data, and
+   * Node's differs from the browser's — a few zones apart, enough that the
+   * `<option>` set in the server-rendered HTML did not match the one the client
+   * produced, and React reported a hydration mismatch on every load. Taking the
+   * list as a prop means the client renders the array that is already in the
+   * HTML, so there is nothing to disagree about.
+   */
+  timeZones: string[];
+}) {
   const t = useTranslations("admin.branding");
   const [branding, setBranding] = useState(initialBranding);
 
@@ -44,7 +61,7 @@ export function BrandingView({ initialBranding }: { initialBranding: Branding })
       </div>
 
       <AssetEditor branding={branding} onChange={setBranding} />
-      <BrandingForm branding={branding} onChange={setBranding} />
+      <BrandingForm branding={branding} onChange={setBranding} timeZones={timeZones} />
       <GradingScaleEditor branding={branding} onChange={setBranding} />
     </div>
   );
@@ -166,9 +183,11 @@ function AssetEditor({
 function BrandingForm({
   branding,
   onChange,
+  timeZones,
 }: {
   branding: Branding;
   onChange: (branding: Branding) => void;
+  timeZones: string[];
 }) {
   const t = useTranslations("admin.branding");
   const tAction = useTranslations("action");
@@ -182,9 +201,15 @@ function BrandingForm({
   const [code, setCode] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const router = useRouter();
-  const primary = checkBothModes(colors.primary.light, colors.primary.dark);
-  const accent = checkBothModes(colors.accent.light, colors.accent.dark);
-  const usable = primary.usable && accent.usable;
+  // Judged against the background being edited, not the shipped one, so the ratios
+  // move as the backdrop does. Checking a brand colour against a background the
+  // organisation is not using is not a check.
+  const primary = checkBothModes(colors.primary.light, colors.primary.dark, colors.background);
+  const accent = checkBothModes(colors.accent.light, colors.accent.dark, colors.background);
+  // The other direction: the background has to keep body text readable, and that
+  // text is not configurable, so the background is what yields.
+  const background = checkBackground(colors.background.light, colors.background.dark);
+  const usable = primary.usable && accent.usable && background.usable;
 
   function setColor(kind: ColorKind, mode: ColorMode, value: string) {
     setColors((current) => ({
@@ -229,6 +254,8 @@ function BrandingForm({
           color_primary_dark: colors.primary.dark,
           color_accent_light: colors.accent.light,
           color_accent_dark: colors.accent.dark,
+          color_background_light: colors.background.light,
+          color_background_dark: colors.background.dark,
           enabled_locales: enabledLocales,
           default_locale: defaultLocale,
           default_theme: String(form.get("default_theme") ?? "system"),
@@ -267,12 +294,27 @@ function BrandingForm({
             colors={colors.primary}
             result={primary}
             onChange={(mode, value) => setColor("primary", mode, value)}
+            onSuggest={() =>
+              setColor("primary", "dark", suggestDarkVariant(colors.primary.light, colors.background.dark))
+            }
           />
           <ColorPair
             label={t("accent")}
             colors={colors.accent}
             result={accent}
             onChange={(mode, value) => setColor("accent", mode, value)}
+            onSuggest={() =>
+              setColor("accent", "dark", suggestDarkVariant(colors.accent.light, colors.background.dark))
+            }
+          />
+          {/* No suggestion button: `suggestDarkVariant` lightens towards legibility
+              on a dark backdrop, which is the opposite of what a dark background
+              wants. A second heuristic costs more than it is worth. */}
+          <ColorPair
+            label={t("background")}
+            colors={colors.background}
+            result={background}
+            onChange={(mode, value) => setColor("background", mode, value)}
           />
         </div>
         <ColorPreview colors={colors} />
@@ -333,7 +375,7 @@ function BrandingForm({
           </Select>
 
           <Select name="timezone" label={t("timezone")} value={branding.timezone}>
-            {TIME_ZONES.map((zone) => (
+            {timeZones.map((zone) => (
               <option key={zone} value={zone}>
                 {zone}
               </option>
@@ -356,11 +398,14 @@ function ColorPair({
   colors,
   result,
   onChange,
+  onSuggest,
 }: {
   label: string;
   colors: { light: string; dark: string };
   result: ReturnType<typeof checkBothModes>;
   onChange: (mode: ColorMode, value: string) => void;
+  /** Offered only where a mechanical suggestion makes sense — see the callers. */
+  onSuggest?: () => void;
 }) {
   const t = useTranslations("admin.branding");
 
@@ -389,11 +434,11 @@ function ColorPair({
           dark: result.dark.ratio.toFixed(2),
         })}
       </p>
-      {!result.dark.passesAALarge && (
+      {onSuggest && !result.dark.passesAALarge && (
         <button
           type="button"
           className="mt-3 text-xs font-medium text-brand hover:underline"
-          onClick={() => onChange("dark", suggestDarkVariant(colors.light))}
+          onClick={onSuggest}
         >
           {t("suggestDark")}
         </button>
@@ -408,12 +453,15 @@ function ColorPreview({ colors }: { colors: Branding["colors"] }) {
   return (
     <div className="mt-4 grid gap-4 sm:grid-cols-2" aria-label={t("preview")}>
       {(["light", "dark"] as const).map((mode) => {
-        const dark = mode === "dark";
+        // Taken from the form rather than hardcoded to the shipped values. With
+        // the background configurable, a fixed preview would show a page nobody is
+        // going to see — and this is where the decision that cards keep their own
+        // colour becomes visible before saving rather than after.
         const style: PreviewStyle = {
           "--preview-primary": colors.primary[mode],
           "--preview-accent": colors.accent[mode],
-          backgroundColor: dark ? "#08080a" : "#fbfbfa",
-          color: dark ? "#ffffff" : "#08080a",
+          backgroundColor: colors.background[mode],
+          color: readableTextOn(colors.background[mode]),
         };
         return (
           <div key={mode} className="rounded-xl border border-line p-5" style={style}>

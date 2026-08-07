@@ -69,7 +69,6 @@
     "term": "Semestre",
     "credits": "Crédits",
     "teacher": "Enseignant",
-    "teacherId": "Identifiant enseignant",
     "maxStudents": "Nombre maximal d’étudiants",
     "maxGrade": "Note maximale",
     "passingGrade": "Seuil de réussite",
@@ -87,7 +86,8 @@
     "prerequisites": "Prérequis",
     "prerequisitesHint": "Sélectionnez les cours requis parmi les 200 premiers disponibles. Les identifiants existants hors liste restent sélectionnés.",
     "deleteTitle": "Supprimer le cours ?",
-    "deleteDescription": "Le cours, ses notes et ses inscriptions seront définitivement supprimés."
+    "deleteDescription": "Le cours, ses notes et ses inscriptions seront définitivement supprimés.",
+    "noTeacher": "Non attribué"
   },
   "grade": {
     "add": "Ajouter une note",
@@ -249,7 +249,7 @@
     "USER_NOT_FOUND": "Ce compte est introuvable.",
     "LAST_SUPERADMIN": "Quelqu’un doit pouvoir administrer le système. Nommez d’abord un autre super-administrateur.",
     "CANNOT_MODIFY_SELF": "Vous ne pouvez ni changer votre propre rôle ni vous désactiver.",
-    "CONTRAST_TOO_LOW": "Ces couleurs de marque sont trop pâles pour être lues. Ajustez-les jusqu’à ce que les deux paires soient conformes, puis enregistrez.",
+    "CONTRAST_TOO_LOW": "Ces couleurs sont trop pâles pour être lues. Ajustez-les jusqu’à ce que chaque paire soit conforme, puis enregistrez.",
     "BAD_REQUEST": "La requête n’a pas pu être comprise. Vérifiez les valeurs et réessayez.",
     "NOT_FOUND": "Introuvable. L’élément a peut-être été supprimé, ou vous n’y avez pas accès.",
     "METHOD_NOT_ALLOWED": "Cette action n’est pas disponible ici.",
@@ -436,7 +436,8 @@
       },
       "confirmTitle": "Remplacer le barème de notation ?",
       "confirmDescription": "Cette action modifie chaque mention affichée dans l’application.",
-      "saved": "Modifications enregistrées."
+      "saved": "Modifications enregistrées.",
+      "background": "Arrière-plan de la page"
     },
     "users": {
       "title": "Comptes",
@@ -468,7 +469,8 @@
       "kindValue": {
         "students": "Étudiants",
         "courses": "Cours",
-        "grades": "Notes"
+        "grades": "Notes",
+        "teachers": "Enseignants"
       },
       "drop": "Déposez une feuille de calcul ici, ou choisissez-en une.",
       "dropHint": "Les fichiers .csv sont lus dans votre navigateur, les .xlsx par le serveur. Rien n’est écrit tant que vous n’avez pas confirmé l’aperçu.",
@@ -517,7 +519,8 @@
         "score": "Note",
         "date": "Date",
         "weight": "Coefficient",
-        "notes": "Remarques"
+        "notes": "Remarques",
+        "full_name": "Nom complet"
       },
       "preview": "Aperçu de l’import",
       "previewing": "Aperçu en cours…",

@@ -70,6 +70,10 @@ class Organization:
         favicon_path: Uploaded favicon.
         primary: Brand colour for primary actions.
         accent: Brand colour for highlights.
+        background: Page backdrop for each theme. Distinct from the two above in
+            what constrains it: primary and accent must be legible *on* the
+            background, whereas the background must keep the text legible on
+            itself, and that text is not configurable.
         default_locale: Language for users who have expressed no preference.
         enabled_locales: Languages offered in the switcher.
         default_theme: Colour scheme for users who have expressed no preference.
@@ -84,6 +88,7 @@ class Organization:
     favicon_path: str | None = field(default=None)
     primary: BrandColor = field(default_factory=lambda: BrandColor("#2E5BFF", "#7C9BFF"))
     accent: BrandColor = field(default_factory=lambda: BrandColor("#00A37A", "#3DD9AC"))
+    background: BrandColor = field(default_factory=lambda: BrandColor("#FBFBFA", "#08080A"))
     default_locale: str = "en"
     enabled_locales: tuple[str, ...] = SUPPORTED_LOCALES
     default_theme: Theme = Theme.SYSTEM
@@ -142,6 +147,7 @@ class Organization:
             "colors": {
                 "primary": {"light": self.primary.light, "dark": self.primary.dark},
                 "accent": {"light": self.accent.light, "dark": self.accent.dark},
+                "background": {"light": self.background.light, "dark": self.background.dark},
             },
             "default_locale": self.default_locale,
             "enabled_locales": list(self.enabled_locales),
@@ -178,6 +184,7 @@ class Organization:
             favicon_path=row["favicon_path"],
             primary=BrandColor(row["color_primary_light"], row["color_primary_dark"]),
             accent=BrandColor(row["color_accent_light"], row["color_accent_dark"]),
+            background=BrandColor(row["color_background_light"], row["color_background_dark"]),
             default_locale=row["default_locale"],
             enabled_locales=enabled,
             default_theme=theme,

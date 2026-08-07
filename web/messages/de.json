@@ -69,7 +69,6 @@
     "term": "Semester",
     "credits": "Leistungspunkte",
     "teacher": "Lehrkraft",
-    "teacherId": "Lehrkraft-ID",
     "maxStudents": "Maximale Teilnehmerzahl",
     "maxGrade": "Höchstpunktzahl",
     "passingGrade": "Bestehensgrenze",
@@ -87,7 +86,8 @@
     "prerequisites": "Voraussetzungen",
     "prerequisitesHint": "Alle erforderlichen Kurse aus den ersten 200 verfügbaren auswählen. Bestehende Kennungen außerhalb dieser Liste bleiben ausgewählt.",
     "deleteTitle": "Kurs löschen?",
-    "deleteDescription": "Der Kurs sowie seine Noten und Anmeldungen werden dauerhaft gelöscht."
+    "deleteDescription": "Der Kurs sowie seine Noten und Anmeldungen werden dauerhaft gelöscht.",
+    "noTeacher": "Nicht zugewiesen"
   },
   "grade": {
     "add": "Note hinzufügen",
@@ -249,7 +249,7 @@
     "USER_NOT_FOUND": "Dieses Konto wurde nicht gefunden.",
     "LAST_SUPERADMIN": "Jemand muss das System verwalten können. Ernennen Sie zuerst eine weitere Person.",
     "CANNOT_MODIFY_SELF": "Sie können weder Ihre eigene Rolle ändern noch sich selbst deaktivieren.",
-    "CONTRAST_TOO_LOW": "Diese Markenfarben sind zu blass zum Lesen. Passen Sie sie an, bis beide Paare bestehen, und speichern Sie dann.",
+    "CONTRAST_TOO_LOW": "Diese Farben sind zu blass zum Lesen. Passen Sie sie an, bis jedes Paar besteht, und speichern Sie dann.",
     "BAD_REQUEST": "Die Anfrage war nicht verständlich. Prüfen Sie die Werte und versuchen Sie es erneut.",
     "NOT_FOUND": "Nicht gefunden. Der Eintrag wurde möglicherweise entfernt, oder Sie haben keinen Zugriff darauf.",
     "METHOD_NOT_ALLOWED": "Diese Aktion ist hier nicht verfügbar.",
@@ -436,7 +436,8 @@
       },
       "confirmTitle": "Notensystem ersetzen?",
       "confirmDescription": "Dadurch ändert sich jede in der Anwendung angezeigte Buchstabennote.",
-      "saved": "Änderungen gespeichert."
+      "saved": "Änderungen gespeichert.",
+      "background": "Seitenhintergrund"
     },
     "users": {
       "title": "Konten",
@@ -468,7 +469,8 @@
       "kindValue": {
         "students": "Studierende",
         "courses": "Kurse",
-        "grades": "Noten"
+        "grades": "Noten",
+        "teachers": "Lehrkräfte"
       },
       "drop": "Tabelle hier ablegen oder eine Datei auswählen.",
       "dropHint": ".csv wird in Ihrem Browser gelesen, .xlsx auf dem Server. Geschrieben wird erst nach der Bestätigung der Vorschau.",
@@ -517,7 +519,8 @@
         "score": "Punkte",
         "date": "Datum",
         "weight": "Gewichtung",
-        "notes": "Anmerkungen"
+        "notes": "Anmerkungen",
+        "full_name": "Vollständiger Name"
       },
       "preview": "Importvorschau",
       "previewing": "Vorschau wird erstellt…",

@@ -21,6 +21,8 @@ BRANDING = {
     "color_primary_dark": "#abcdef",
     "color_accent_light": "#654321",
     "color_accent_dark": "#fedcba",
+    "color_background_light": "#f0eee6",
+    "color_background_dark": "#101014",
     "enabled_locales": ["en", "de"],
     "default_locale": "de",
     "default_theme": "dark",
@@ -62,6 +64,10 @@ def test_a_superadmin_can_change_branding(as_superadmin: TestClient) -> None:
     body = response.json()
     assert body["name"] == "Ada Academy"
     assert body["colors"]["primary"] == {"light": "#123456", "dark": "#abcdef"}
+    # The page backdrop, which the frontend injects as `--bg`. An institution whose
+    # identity is a warm off-white could restyle every button and still sit on the
+    # product's own background before this existed.
+    assert body["colors"]["background"] == {"light": "#f0eee6", "dark": "#101014"}
     assert body["enabled_locales"] == ["en", "de"]
     assert body["grading_scale"] == SCALE
 
@@ -85,6 +91,7 @@ def test_a_superadmin_can_replace_the_grading_scale(as_superadmin: TestClient) -
     [
         {"name": None},
         {"color_primary_light": "blue"},
+        {"color_background_light": "eggshell"},
         {"enabled_locales": ["en", "es"]},
         {"enabled_locales": ["de"], "default_locale": "en"},
     ],

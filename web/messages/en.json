@@ -69,7 +69,6 @@
     "term": "Term",
     "credits": "Credits",
     "teacher": "Teacher",
-    "teacherId": "Teacher ID",
     "maxStudents": "Maximum students",
     "maxGrade": "Maximum grade",
     "passingGrade": "Passing grade",
@@ -87,7 +86,8 @@
     "prerequisites": "Prerequisites",
     "prerequisitesHint": "Select all required courses from the first 200 available. Existing IDs outside that list remain selected.",
     "deleteTitle": "Delete course?",
-    "deleteDescription": "This permanently deletes the course and its grades and enrolments."
+    "deleteDescription": "This permanently deletes the course and its grades and enrolments.",
+    "noTeacher": "Unassigned"
   },
   "grade": {
     "add": "Add grade",
@@ -249,7 +249,7 @@
     "USER_NOT_FOUND": "That account could not be found.",
     "LAST_SUPERADMIN": "Someone must be able to configure the system. Promote another superadmin first.",
     "CANNOT_MODIFY_SELF": "You cannot change your own role or deactivate yourself.",
-    "CONTRAST_TOO_LOW": "Those brand colours are too faint to read. Adjust them until both pairs pass, then save.",
+    "CONTRAST_TOO_LOW": "Those colours are too faint to read. Adjust them until every pair passes, then save.",
     "BAD_REQUEST": "The request could not be understood. Check the values and try again.",
     "NOT_FOUND": "That was not found. It may have been removed, or you may not have access to it.",
     "METHOD_NOT_ALLOWED": "That action is not available here.",
@@ -436,7 +436,8 @@
       },
       "confirmTitle": "Replace the grading scale?",
       "confirmDescription": "This changes every displayed letter grade across the application.",
-      "saved": "Changes saved."
+      "saved": "Changes saved.",
+      "background": "Page background"
     },
     "users": {
       "title": "Accounts",
@@ -468,7 +469,8 @@
       "kindValue": {
         "students": "Students",
         "courses": "Courses",
-        "grades": "Grades"
+        "grades": "Grades",
+        "teachers": "Teachers"
       },
       "drop": "Drop a spreadsheet here, or choose one.",
       "dropHint": ".csv is read in your browser; .xlsx is read by the server. Nothing is written until you confirm the preview.",
@@ -517,7 +519,8 @@
         "score": "Score",
         "date": "Date",
         "weight": "Weight",
-        "notes": "Notes"
+        "notes": "Notes",
+        "full_name": "Full name"
       },
       "preview": "Preview import",
       "previewing": "Previewing…",

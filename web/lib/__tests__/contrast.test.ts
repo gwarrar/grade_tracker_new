@@ -7,6 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  checkBackground,
   checkBothModes,
   checkContrast,
   contrastRatio,
@@ -99,5 +100,53 @@ describe("readableTextOn", () => {
     expect(readableTextOn("#ffffff")).toBe("#08080a");
     expect(readableTextOn("#000000")).toBe("#ffffff");
     expect(readableTextOn("#2e5bff")).toBe("#ffffff");
+  });
+});
+
+describe("configured backgrounds", () => {
+  it("judges brand colours against the background in force", () => {
+    // The gate has to follow the configuration. A mid-blue readable on the shipped
+    // near-black is not readable on a lighter charcoal, and validating against the
+    // shipped value would have passed it anyway.
+    const shipped = checkBothModes("#2e5bff", "#5b7cff");
+    const lighter = checkBothModes("#2e5bff", "#5b7cff", {
+      light: "#fbfbfa",
+      dark: "#5a5a68",
+    });
+
+    expect(shipped.dark.ratio).toBeGreaterThan(lighter.dark.ratio);
+  });
+
+  it("aims the dark suggestion at the background it is given", () => {
+    const forShipped = suggestDarkVariant("#00332a");
+    const forLighter = suggestDarkVariant("#00332a", "#6a6a75");
+
+    // A lighter backdrop needs a lighter counterpart to clear the same threshold.
+    expect(forLighter).not.toBe(forShipped);
+  });
+});
+
+describe("checkBackground", () => {
+  it("accepts the shipped backgrounds", () => {
+    // A gate that rejects its own defaults is a gate nobody trusts.
+    expect(checkBackground("#fbfbfa", "#08080a").usable).toBe(true);
+  });
+
+  it("rejects a light background that swallows body text", () => {
+    // `--text` is #14140f and is not configurable, so a mid-grey page is unreadable
+    // no matter what the brand colours do — and the brand gate would not notice,
+    // because a dark brand colour on a dark page can still pass.
+    expect(checkBackground("#5a5a5a", "#08080a").usable).toBe(false);
+  });
+
+  it("rejects a dark background that is too pale for its text", () => {
+    expect(checkBackground("#fbfbfa", "#9a9aa0").usable).toBe(false);
+  });
+
+  it("is decided by the worse of body and muted text", () => {
+    // Muted text fails first, so a background that passes only `--text` must still
+    // be refused — half-legible is not a state worth shipping.
+    const result = checkBackground("#7d7d76", "#08080a");
+    expect(result.light.passesAA).toBe(false);
   });
 });

@@ -29,6 +29,7 @@ type Course = Response<"/courses/{course_id}", "get">;
 type CoursePage = Response<"/courses", "get">;
 type Register = Response<"/courses/{course_id}/enrollments", "get">;
 type StudentPage = Response<"/students", "get">;
+type Accounts = Response<"/admin/users", "get">;
 type CourseCreate = paths["/courses"]["post"]["requestBody"]["content"]["application/json"];
 type CourseUpdate = paths["/courses/{course_id}"]["patch"]["requestBody"]["content"]["application/json"];
 
@@ -325,6 +326,54 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
   );
 }
 
+/**
+ * Who owns the course.
+ *
+ * This was a bare number input asking for a user id, so assigning a course meant
+ * knowing an integer by heart, and a wrong one was accepted silently — the course
+ * then never appeared for the person it named, because `course_scope` matches on a
+ * teacher id that would never be theirs. The API validates the id now; this makes a
+ * wrong one hard to pick in the first place.
+ *
+ * Rendered only for administrators, which is also who may call this endpoint. A
+ * teacher creating a course is given it by default and needs no control at all.
+ */
+function TeacherPicker({ course }: { course?: Course }) {
+  const t = useTranslations();
+
+  const teachers = useQuery({
+    queryKey: ["admin", "users", { role: "teacher" }],
+    queryFn: () =>
+      api<Accounts>("/admin/users", { query: { role: "teacher", include_inactive: false } }),
+    staleTime: 60_000,
+  });
+
+  const options = teachers.data ?? [];
+  // A course whose teacher has since been deactivated still has to render its own
+  // value, or opening the form would quietly reassign it on save.
+  const orphaned =
+    course?.teacher_id && !options.some((row) => row.id === course.teacher_id)
+      ? course.teacher_id
+      : null;
+
+  return (
+    <Select
+      name="teacher_id"
+      label={t("course.teacher")}
+      value={course?.teacher_id ? String(course.teacher_id) : ""}
+      required={false}
+    >
+      <option value="">{t("course.noTeacher")}</option>
+      {orphaned !== null && <option value={String(orphaned)}>{course?.teacher_name ?? orphaned}</option>}
+      {options.map((teacher) => (
+        <option key={teacher.id} value={String(teacher.id)}>
+          {teacher.full_name}
+        </option>
+      ))}
+    </Select>
+  );
+}
+
 function CourseFields({
   course,
   courses,
@@ -351,9 +400,7 @@ function CourseFields({
       <Input name="max_students" label={t("course.maxStudents")} value={String(course?.max_students ?? 30)} type="number" inputMode="numeric" />
       <Input name="max_grade" label={t("course.maxGrade")} value={course ? formatNumber(course.max_grade, locale) : "100"} inputMode="decimal" />
       <Input name="passing_grade" label={t("course.passingGrade")} value={course ? formatNumber(course.passing_grade, locale) : "60"} inputMode="decimal" />
-      {can.writeStudent(me) && (
-        <Input name="teacher_id" label={t("course.teacherId")} value={course?.teacher_id ? String(course.teacher_id) : ""} type="number" inputMode="numeric" required={false} />
-      )}
+      {can.writeStudent(me) && <TeacherPicker course={course} />}
       <Select name="status" label={t("course.status")} value={course?.status ?? "active"}>
         <option value="active">{t("course.statusValue.active")}</option>
         <option value="archived">{t("course.statusValue.archived")}</option>
@@ -496,7 +543,16 @@ function CourseDetail({
     const passingGrade = parseLocaleNumber(String(data.get("passing_grade") ?? ""), locale);
     const maxStudents = Number(data.get("max_students"));
     const teacherText = String(data.get("teacher_id") ?? "").trim();
-    const teacherId = teacherText ? Number(teacherText) : course?.teacher_id ?? null;
+    // `has` rather than a truthiness check on the value: the picker is rendered for
+    // administrators only, so for a teacher editing their own course the field is
+    // absent and must mean "unchanged". Reading an absent field as empty would
+    // orphan the course the moment its owner edited anything on it. An empty value
+    // from a present picker is the Unassigned option, and does mean null.
+    const teacherId = data.has("teacher_id")
+      ? teacherText
+        ? Number(teacherText)
+        : null
+      : (course?.teacher_id ?? null);
     if (
       credits === null ||
       maxGrade === null ||
