@@ -121,6 +121,10 @@ describe("every API error code has a message", () => {
     // "error.NOT_FOUND", because nothing asserted the generic ones were covered.
     "BAD_REQUEST", "NOT_FOUND", "METHOD_NOT_ALLOWED", "CONFLICT", "INTERNAL_ERROR",
     "AI_NOT_CONFIGURED", "AI_PROVIDER_NOT_FOUND", "AI_BAD_OUTPUT",
+    // This installation's own ceiling on billable calls, distinct from the
+    // provider's AI_RATE_LIMITED: one says we stopped you, the other says the
+    // vendor did, and only one of them resets on a schedule we can state.
+    "AI_QUOTA_EXCEEDED",
   ];
 
   for (const [locale, catalogue] of Object.entries(CATALOGUES)) {

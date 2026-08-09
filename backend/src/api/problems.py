@@ -11,6 +11,7 @@ in the API docs; the UI is expected to ignore it.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import FastAPI, Request, status
@@ -20,6 +21,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from llm.base import LLMError
 from notenverwaltung.exceptions import GradeBookError
+
+logger = logging.getLogger(__name__)
 
 CONTENT_TYPE = "application/problem+json"
 
@@ -126,6 +129,34 @@ def register_handlers(app: FastAPI) -> None:
         """
         code = _STATUS_CODES.get(exc.status_code, "HTTP_ERROR")
         return problem(exc.status_code, code, str(exc.detail))
+
+    @app.exception_handler(Exception)
+    async def _unhandled(  # pyright: ignore[reportUnusedFunction] - registered by the decorator
+        request: Request, exc: Exception
+    ) -> JSONResponse:
+        """Return the same envelope for a crash as for everything else.
+
+        Without this the framework answers `text/plain "Internal Server Error"`, and
+        that is the one response shape the client cannot read: every error path in the
+        frontend parses `application/problem+json`, so a real backend fault surfaced
+        as a *parse* error and told nobody anything. ``INTERNAL_ERROR`` was already
+        declared below and was unreachable.
+
+        The detail is deliberately fixed prose. An exception's message is the one
+        string in this file not written for a reader — it carries file paths, SQL
+        fragments and occasionally the value that broke — and this envelope is
+        rendered to whoever made the request. The traceback goes to the log, where
+        the person who can act on it is looking.
+
+        `raise_server_exceptions=False` is needed to see this from a TestClient;
+        with the default the test client re-raises instead of returning a response.
+        """
+        logger.exception("Unhandled error on %s %s", request.method, request.url.path, exc_info=exc)
+        return problem(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "INTERNAL_ERROR",
+            "The server failed to handle this request.",
+        )
 
 
 _STATUS_CODES = {

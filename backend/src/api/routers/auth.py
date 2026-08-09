@@ -36,20 +36,20 @@ def _set_session_cookie(response: Response, token: str, settings: Settings) -> N
     ``HttpOnly`` so script on the page cannot read it, which is what turns an XSS
     from "session stolen" into "session not stolen". ``SameSite=Lax`` blocks the
     cookie on cross-site POSTs, which is CSRF protection without a token dance.
-    ``Secure`` everywhere except localhost, where there is no HTTPS to require.
+    ``Secure`` everywhere except a purely local deployment, where there is no HTTPS
+    to require — that judgement lives on the settings, which explains it.
 
     Args:
         response: The outgoing response.
         token: The raw session token.
-        settings: Application settings, for the TTL and origin list.
+        settings: Application settings, for the TTL and the cookie policy.
     """
-    is_local = any("localhost" in o or "127.0.0.1" in o for o in settings.cors_origin_list)
     response.set_cookie(
         key=SESSION_COOKIE,
         value=token,
         httponly=True,
         samesite="lax",
-        secure=not is_local,
+        secure=settings.session_cookie_secure,
         max_age=settings.session_ttl_hours * 3600,
         path="/",
     )

@@ -261,7 +261,8 @@
     "METHOD_NOT_ALLOWED": "Diese Aktion ist hier nicht verfügbar.",
     "CONFLICT": "Das steht im Konflikt mit einem vorhandenen Eintrag.",
     "INTERNAL_ERROR": "Auf dem Server ist ein Fehler aufgetreten. Versuchen Sie es erneut; wenn es bestehen bleibt, wenden Sie sich an eine Administratorin oder einen Administrator.",
-    "GRADING_SCALE_POINTS": "Notenpunkte dürfen nicht negativ sein."
+    "GRADING_SCALE_POINTS": "Notenpunkte dürfen nicht negativ sein.",
+    "AI_QUOTA_EXCEEDED": "Das KI-Kontingent für diese Stunde ist aufgebraucht. Versuchen Sie es später erneut."
   },
   "landing": {
     "nav": {

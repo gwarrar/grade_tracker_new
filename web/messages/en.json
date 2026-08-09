@@ -261,7 +261,8 @@
     "METHOD_NOT_ALLOWED": "That action is not available here.",
     "CONFLICT": "That conflicts with an existing record.",
     "INTERNAL_ERROR": "Something went wrong on the server. Try again; if it persists, contact an administrator.",
-    "GRADING_SCALE_POINTS": "Grade points cannot be negative."
+    "GRADING_SCALE_POINTS": "Grade points cannot be negative.",
+    "AI_QUOTA_EXCEEDED": "You have used this hour's AI allowance. Try again shortly."
   },
   "landing": {
     "nav": {

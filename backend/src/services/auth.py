@@ -12,6 +12,7 @@ from __future__ import annotations
 import sqlite3
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from notenverwaltung.exceptions import GradeBookError, NotAuthenticatedError, ValidationError
 from notenverwaltung.models import Role, Theme
@@ -39,6 +40,33 @@ class AccountDisabledError(GradeBookError):
 
     code = "ACCOUNT_DISABLED"
     http_status = 403
+
+
+#: How stale a session's ``last_seen_at`` may get before it is written again.
+#: Its only reader is the device list on the profile page, which shows a date.
+SESSION_TOUCH_SECONDS = 60
+
+
+def is_stale(last_seen: str | None, seconds: int) -> bool:
+    """Whether a stored timestamp is older than a cutoff.
+
+    Args:
+        last_seen: An ISO-8601 UTC timestamp as :func:`utc_now` writes them, or None
+            for a session that has never been touched.
+        seconds: How old is too old.
+
+    Returns:
+        True when the value is missing, unparseable, or older than the cutoff.
+        Unparseable counts as stale so a bad row is repaired by the next request
+        rather than freezing forever.
+    """
+    if not last_seen:
+        return True
+    try:
+        seen = datetime.strptime(last_seen, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+    except ValueError:
+        return True
+    return (datetime.now(UTC) - seen).total_seconds() >= seconds
 
 
 class RateLimitedError(GradeBookError):
@@ -231,12 +259,13 @@ class AuthService:
             The principal, or ``None`` if the token is unknown, expired, or belongs
             to a deactivated account.
         """
+        token_hash = hash_token(raw_token)
         row = self._conn.execute(
             "SELECT u.id, u.email, u.role, u.full_name, u.is_active, u.locale,"
-            "       u.theme_preference, u.must_change_password"
+            "       u.theme_preference, u.must_change_password, s.last_seen_at"
             "  FROM sessions s JOIN users u ON u.id = s.user_id"
             " WHERE s.token_sha256 = ? AND s.expires_at > ?",
-            (hash_token(raw_token), utc_now()),
+            (token_hash, utc_now()),
         ).fetchone()
 
         if row is None or not row["is_active"]:
@@ -244,10 +273,16 @@ class AuthService:
             # sign-in, which is the point of storing sessions rather than signing them.
             return None
 
-        self._conn.execute(
-            "UPDATE sessions SET last_seen_at = ? WHERE token_sha256 = ?",
-            (utc_now(), hash_token(raw_token)),
-        )
+        # Only when it has gone stale. This ran on every authenticated request,
+        # including every GET, and on SQLite a write is a lock and an fsync -- paid
+        # per page view to keep a timestamp nobody reads to the second. The device
+        # list on the profile page is the only reader, and a minute's resolution is
+        # more than it shows.
+        if is_stale(row["last_seen_at"], SESSION_TOUCH_SECONDS):
+            self._conn.execute(
+                "UPDATE sessions SET last_seen_at = ? WHERE token_sha256 = ?",
+                (utc_now(), token_hash),
+            )
         return self._principal_from_row(row)
 
     def list_sessions(self, user_id: int) -> list[dict[str, object]]:

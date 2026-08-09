@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from api.config import get_settings
 from api.problems import register_handlers
@@ -35,6 +36,7 @@ from notenverwaltung import __version__
 from notenverwaltung.storage import apply_migrations, connect
 from services.ai_admin import AiAdminService
 from services.auth import LoginThrottle
+from services.rate_limit import CallQuota
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +177,17 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Added last, so it is outermost and rewrites the client address before anything
+    # reads it. Only when hosts are configured: believing X-Forwarded-For from anyone
+    # lets a caller claim an address and walk around the sign-in lockout, and ignoring
+    # it behind a real proxy gives every caller the proxy's address, which collapses
+    # that lockout onto the email alone -- and the email alone is exactly what
+    # LoginThrottle's docstring says must never key it, because then anybody can lock
+    # anybody out. There is no safe default; there is only a configured one.
+    trusted = settings.trusted_proxy_list
+    if trusted:
+        app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=trusted)
+
     app.mount(
         "/uploads",
         StaticFiles(directory=settings.upload_path, check_dir=False),
@@ -185,6 +198,7 @@ def create_app() -> FastAPI:
     app.state.login_throttle = LoginThrottle(
         settings.login_max_attempts, settings.login_lockout_minutes
     )
+    app.state.ai_quota = CallQuota(settings.ai_max_calls_per_hour)
 
     register_handlers(app)
     app.include_router(auth.router)

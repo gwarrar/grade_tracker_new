@@ -10,11 +10,12 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from api.deps import AdminUser, CurrentUser, DbConn, TeacherUser
 from services.ai import MAX_QUESTION_LENGTH, AiService
+from services.rate_limit import CallQuota
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -111,16 +112,30 @@ class ImportMapResponse(BaseModel):
     confidence: str
 
 
-def service(conn: DbConn, user: CurrentUser) -> AiService:
-    """Build the AI service for this request.
+def service(request: Request, conn: DbConn, user: CurrentUser) -> AiService:
+    """Build the AI service for this request, once the caller's quota allows it.
+
+    The quota is charged here rather than per route because every route on this
+    router reaches a provider, and every one of those is billed. Until this existed
+    the only gate was authentication, so any signed-in student could spend without
+    limit and the first sign of it was the vendor's invoice.
+
+    Charged against the account, not the address: the bill follows the account, and
+    an address is shared by everyone behind one router.
 
     Args:
+        request: The incoming request, which carries the application's quota.
         conn: The request's connection.
         user: The authenticated caller, and the only source of visibility.
 
     Returns:
         The service.
+
+    Raises:
+        QuotaExceededError: If this account has spent its hourly allowance.
     """
+    quota: CallQuota = request.app.state.ai_quota
+    quota.check(str(user.user_id))
     return AiService(conn, user)
 
 
