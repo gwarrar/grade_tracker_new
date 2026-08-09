@@ -119,6 +119,19 @@ class CourseFullError(GradeBookError):
     http_status = 409
 
 
+class PrerequisitesNotMetError(GradeBookError):
+    """Raised when a student has not completed everything a course requires.
+
+    Its own code rather than a plain validation failure, because the answer is
+    actionable and specific: the caller needs to be told which courses are
+    outstanding, and "request failed validation" tells whoever is enrolling nothing
+    they can act on. ``context["missing"]`` carries the list.
+    """
+
+    code = "PREREQUISITES_NOT_MET"
+    http_status = 409
+
+
 class NotAuthenticatedError(GradeBookError):
     """Raised when an operation needs a signed-in user and there is none."""
 

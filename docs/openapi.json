@@ -6162,6 +6162,24 @@
               "description": "Only this academic term.",
               "title": "Term"
             }
+          },
+          {
+            "description": "`active` or `archived`. Omitted returns both, which is what the course list wants — archiving is not deletion. A picker offering a course to enrol on or grade should ask for `active`.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`active` or `archived`. Omitted returns both, which is what the course list wants — archiving is not deletion. A picker offering a course to enrol on or grade should ask for `active`.",
+              "title": "Status"
+            }
           }
         ],
         "responses": {

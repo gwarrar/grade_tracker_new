@@ -151,7 +151,11 @@
       "completed": "Abgeschlossen"
     },
     "active": "Aktiv",
-    "withdrawn": "Abgemeldet"
+    "withdrawn": "Abgemeldet",
+    "completeSuccess": "Anmeldung als abgeschlossen markiert.",
+    "completeTitle": "Anmeldung als abgeschlossen markieren?",
+    "completeDescription": "{course} als abgeschlossen markieren? Datensatz und Noten bleiben erhalten, und der Kurs zählt danach für alle Voraussetzungen, die ihn verlangen.",
+    "completeStudentDescription": "{student} als Absolvent dieses Kurses markieren? Datensatz und Noten bleiben erhalten, und der Kurs zählt danach für alle Voraussetzungen, die ihn verlangen."
   },
   "notes": {
     "title": "Anmerkungen",
@@ -216,7 +220,8 @@
     "retire": "Stilllegen",
     "search": "Suchen",
     "export": "CSV exportieren",
-    "close": "Schließen"
+    "close": "Schließen",
+    "complete": "Als abgeschlossen markieren"
   },
   "error": {
     "STUDENT_NOT_FOUND": "Diese:r Studierende wurde nicht gefunden.",
@@ -262,7 +267,8 @@
     "CONFLICT": "Das steht im Konflikt mit einem vorhandenen Eintrag.",
     "INTERNAL_ERROR": "Auf dem Server ist ein Fehler aufgetreten. Versuchen Sie es erneut; wenn es bestehen bleibt, wenden Sie sich an eine Administratorin oder einen Administrator.",
     "GRADING_SCALE_POINTS": "Notenpunkte dürfen nicht negativ sein.",
-    "AI_QUOTA_EXCEEDED": "Das KI-Kontingent für diese Stunde ist aufgebraucht. Versuchen Sie es später erneut."
+    "AI_QUOTA_EXCEEDED": "Das KI-Kontingent für diese Stunde ist aufgebraucht. Versuchen Sie es später erneut.",
+    "PREREQUISITES_NOT_MET": "Diese Person hat nicht alle Voraussetzungen des Kurses abgeschlossen."
   },
   "landing": {
     "nav": {

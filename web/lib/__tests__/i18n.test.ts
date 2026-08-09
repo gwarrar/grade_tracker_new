@@ -113,6 +113,9 @@ describe("every API error code has a message", () => {
   const CODES = [
     "STUDENT_NOT_FOUND", "COURSE_NOT_FOUND", "GRADE_NOT_FOUND", "DUPLICATE_ENTRY",
     "COURSE_FULL", "VALIDATION_ERROR", "NOT_AUTHENTICATED", "FORBIDDEN",
+    // Its own code rather than a generic validation failure: "request failed
+    // validation" tells whoever is enrolling nothing they can act on.
+    "PREREQUISITES_NOT_MET",
     "INVALID_CREDENTIALS", "ACCOUNT_DISABLED", "TOO_MANY_ATTEMPTS",
     "PAYLOAD_TOO_LARGE", "NO_GRADES_RECORDED", "OVERRIDE_NOT_FOUND",
     // Every entry of _STATUS_CODES in api/problems.py. These are the codes a

@@ -68,8 +68,10 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
   });
 
   const courses = useQuery({
-    queryKey: ["courses", "management"],
-    queryFn: () => api<CoursePage>("/courses", { query: { size: 200 } }),
+    queryKey: ["courses", "management", "active"],
+    // Active only: this list is the enrolment picker, and enrolling somebody on an
+    // archived course is the thing archiving is supposed to stop.
+    queryFn: () => api<CoursePage>("/courses", { query: { size: 200, status: "active" } }),
     enabled: can.createCourse(me),
   });
 
@@ -397,7 +399,7 @@ function StudentDetail({
   const [deactivating, setDeactivating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [enrollmentAction, setEnrollmentAction] = useState<{
-    kind: "withdraw" | "remove";
+    kind: "complete" | "withdraw" | "remove";
     courseId: string;
     courseName: string;
   } | null>(null);
@@ -463,7 +465,13 @@ function StudentDetail({
   });
 
   const enrollment = useMutation({
-    mutationFn: ({ kind, courseId }: { kind: "enroll" | "withdraw" | "remove"; courseId: string }) => {
+    mutationFn: ({
+      kind,
+      courseId,
+    }: {
+      kind: "enroll" | "complete" | "withdraw" | "remove";
+      courseId: string;
+    }) => {
       const path = `/courses/${courseId}/enrollments/${studentId}`;
       if (kind === "enroll") {
         return api(`/courses/${courseId}/enrollments`, {
@@ -472,6 +480,9 @@ function StudentDetail({
         });
       }
       if (kind === "withdraw") return api(path, { method: "PATCH", body: { status: "withdrawn" } });
+      // Offered here as well as on the course register: whoever learns the word on
+      // one screen will look for it on the other.
+      if (kind === "complete") return api(path, { method: "PATCH", body: { status: "completed" } });
       return api(path, { method: "DELETE" });
     },
     onSuccess: (_, action) => {
@@ -634,9 +645,14 @@ function StudentDetail({
                               {t(`enrollment.status.${entry.status}` as "enrollment.status.active")}
                             </span>
                             {ownedCourse && entry.status === "active" && (
-                              <button type="button" className="btn btn-ghost" onClick={() => setEnrollmentAction({ kind: "withdraw", courseId: entry.course_id, courseName: entry.name })}>
-                                {t("action.withdraw")}
-                              </button>
+                              <>
+                                <button type="button" className="btn btn-ghost" onClick={() => setEnrollmentAction({ kind: "complete", courseId: entry.course_id, courseName: entry.name })}>
+                                  {t("action.complete")}
+                                </button>
+                                <button type="button" className="btn btn-ghost" onClick={() => setEnrollmentAction({ kind: "withdraw", courseId: entry.course_id, courseName: entry.name })}>
+                                  {t("action.withdraw")}
+                                </button>
+                              </>
                             )}
                             {ownedCourse && (
                               <button type="button" className="btn btn-danger" onClick={() => setEnrollmentAction({ kind: "remove", courseId: entry.course_id, courseName: entry.name })}>
@@ -718,12 +734,12 @@ function StudentDetail({
       />
       <Confirm
         open={enrollmentAction !== null}
-        title={t(enrollmentAction?.kind === "remove" ? "enrollment.removeTitle" : "enrollment.withdrawTitle")}
+        title={t(`enrollment.${enrollmentAction?.kind ?? "withdraw"}Title` as "enrollment.withdrawTitle")}
         description={t(
-          enrollmentAction?.kind === "remove" ? "enrollment.removeDescription" : "enrollment.withdrawDescription",
+          `enrollment.${enrollmentAction?.kind ?? "withdraw"}Description` as "enrollment.withdrawDescription",
           { course: enrollmentAction?.courseName ?? "" },
         )}
-        confirmLabel={t(enrollmentAction?.kind === "remove" ? "action.remove" : "action.withdraw")}
+        confirmLabel={t(`action.${enrollmentAction?.kind ?? "withdraw"}` as "action.withdraw")}
         cancelLabel={t("action.cancel")}
         onConfirm={() => enrollmentAction ? enrollment.mutateAsync(enrollmentAction).then(() => undefined).catch(() => undefined) : undefined}
         onCancel={() => setEnrollmentAction(null)}

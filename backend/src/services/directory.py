@@ -20,6 +20,7 @@ from notenverwaltung.exceptions import (
     CourseNotFoundError,
     DuplicateEntryError,
     ForbiddenError,
+    PrerequisitesNotMetError,
     StudentNotFoundError,
     ValidationError,
 )
@@ -39,6 +40,11 @@ STUDENT_SORTABLE = {
     "email": "s.email",
     "created": "s.created_at",
 }
+
+#: What `courses.status` may hold, mirroring the CHECK in `005_directory.sql`.
+#: Named here so a bad filter is a 422 naming the alternatives rather than a query
+#: that quietly matches nothing.
+_COURSE_STATUSES = frozenset({"active", "archived"})
 
 COURSE_SORTABLE = {
     "id": "c.course_id",
@@ -380,6 +386,7 @@ class DirectoryService:
         sort: str | None = None,
         search: str | None = None,
         term: str | None = None,
+        status: str | None = None,
     ) -> Page[dict[str, Any]]:
         """List courses the caller may see.
 
@@ -389,10 +396,31 @@ class DirectoryService:
             sort: A field from :data:`COURSE_SORTABLE`, optionally ``-`` prefixed.
             search: Free text matched against name and id.
             term: Restrict to one academic term.
+            status: ``active`` or ``archived``. Omitted returns both, which is right
+                for the course list — archiving is not deletion and the register
+                still has to show what was archived. It is wrong for the enrolment
+                and grading pickers, which had no way to ask until this existed, so
+                archiving a course changed a badge and nothing else.
 
         Returns:
             One page of course dictionaries, each carrying enrolment counts.
+
+        Raises:
+            ValidationError: If the status is not one the column allows.
         """
+        if status is not None and status not in _COURSE_STATUSES:
+            raise ValidationError(
+                f"Unknown course status {status!r}.",
+                field="status",
+                allowed=sorted(_COURSE_STATUSES),
+            )
+
+        extra: Scope | None = None
+        for column, value in (("c.term", term), ("c.status", status)):
+            if value:
+                narrowed = Scope(f"{column} = ?", (value,))
+                extra = narrowed if extra is None else extra & narrowed
+
         rows, total = paginate(
             self._conn,
             select=_COURSE_SELECT,
@@ -403,7 +431,7 @@ class DirectoryService:
             size=size,
             search=search,
             search_columns=["c.name", "c.course_id"],
-            extra=Scope("c.term = ?", (term,)) if term else None,
+            extra=extra,
         )
         return Page(items=[_course_dict(r) for r in rows], total=total, page=page, size=size)
 
@@ -680,6 +708,7 @@ class DirectoryService:
             ForbiddenError: If the caller does not own the course.
             CourseFullError: If the course is at capacity.
             DuplicateEntryError: If the student is already enrolled.
+            ValidationError: If a prerequisite has not been completed.
         """
         course = self.get_course(course_id)
         self._assert_can_write(course)
@@ -691,6 +720,8 @@ class DirectoryService:
                 course_id=course_id,
                 capacity=course["max_students"],
             )
+
+        self._assert_prerequisites_met(course_id, student_id)
 
         enrollment = Enrollment(
             student_id=student_id, course_id=course_id, enrolled_by=self._principal.user_id
@@ -730,6 +761,53 @@ class DirectoryService:
                 after=enrollment.to_dict(),
             )
         return enrollment.to_dict()
+
+    def _assert_prerequisites_met(self, course_id: str, student_id: str) -> None:
+        """Refuse an enrolment whose prerequisites the student has not completed.
+
+        The table and the authoring screen have existed since the beginning, and
+        nothing ever consulted them: ``_validate_prerequisites`` checks that the
+        *list* is coherent — no duplicates, no self-reference, every target real —
+        which is referential integrity on the course record, not a gate on anybody.
+        A prerequisite that is never checked is a field an administrator fills in
+        and the system ignores.
+
+        "Completed" means a completed enrolment, not a passing grade. A grade says
+        how somebody did in a course; the enrolment status says the course is behind
+        them, and only one of those is a statement about *finishing*. This is why the
+        UI had to be able to mark completion before this check could exist at all —
+        until then no student could satisfy any prerequisite, and turning this on
+        would have made every prerequisite an unpassable wall.
+
+        Args:
+            course_id: The course being joined.
+            student_id: Who is joining it.
+
+        Raises:
+            PrerequisitesNotMetError: Naming every prerequisite still outstanding,
+                rather than the first — somebody fixing this wants the whole list.
+        """
+        outstanding = [
+            row["requires_course_id"]
+            for row in self._conn.execute(
+                "SELECT p.requires_course_id FROM course_prerequisites p"
+                " WHERE p.course_id = ?"
+                "   AND NOT EXISTS ("
+                "       SELECT 1 FROM enrollments e"
+                "        WHERE e.student_id = ?"
+                "          AND e.course_id = p.requires_course_id"
+                "          AND e.status = 'completed')"
+                " ORDER BY p.requires_course_id",
+                (course_id, student_id),
+            )
+        ]
+        if outstanding:
+            raise PrerequisitesNotMetError(
+                f"{student_id} has not completed every prerequisite for {course_id}.",
+                student_id=student_id,
+                course_id=course_id,
+                missing=outstanding,
+            )
 
     def set_enrollment_status(self, course_id: str, student_id: str, status: str) -> dict[str, Any]:
         """Change an enrolment's status.

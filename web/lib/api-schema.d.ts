@@ -4702,6 +4702,8 @@ export interface operations {
                 q?: string | null;
                 /** @description Only this academic term. */
                 term?: string | null;
+                /** @description `active` or `archived`. Omitted returns both, which is what the course list wants — archiving is not deletion. A picker offering a course to enrol on or grade should ask for `active`. */
+                status?: string | null;
             };
             header?: never;
             path?: never;

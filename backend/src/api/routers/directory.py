@@ -190,9 +190,21 @@ def list_courses(
     ] = None,
     q: Annotated[str | None, Query(description="Free text over name and id.")] = None,
     term: Annotated[str | None, Query(description="Only this academic term.")] = None,
+    status: Annotated[
+        str | None,
+        Query(
+            description=(
+                "`active` or `archived`. Omitted returns both, which is what the "
+                "course list wants — archiving is not deletion. A picker offering a "
+                "course to enrol on or grade should ask for `active`."
+            )
+        ),
+    ] = None,
 ) -> PageResponse[CourseResponse]:
     """List courses within the caller's scope."""
-    result = service.list_courses(page=page, size=size, sort=sort, search=q, term=term)
+    result = service.list_courses(
+        page=page, size=size, sort=sort, search=q, term=term, status=status
+    )
     return PageResponse[CourseResponse](
         items=[CourseResponse(**item) for item in result.items],
         total=result.total,

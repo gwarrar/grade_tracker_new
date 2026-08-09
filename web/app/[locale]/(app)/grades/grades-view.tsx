@@ -98,7 +98,11 @@ export function GradesView({
   // the API scopes this exactly as it scopes the grades themselves.
   const courses = useQuery({
     queryKey: ["courses", "grade-picker"],
-    queryFn: () => api<Courses>("/courses", { query: { size: 200, sort: "name" } }),
+    // Active only. An archived course is one nobody is still teaching, and offering
+    // it here is offering to record a mark against a closed register -- which the
+    // API had no way to express until it grew a status filter.
+    queryFn: () =>
+      api<Courses>("/courses", { query: { size: 200, sort: "name", status: "active" } }),
     staleTime: 5 * 60_000,
   });
 

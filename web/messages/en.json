@@ -151,7 +151,11 @@
       "completed": "Completed"
     },
     "active": "Active",
-    "withdrawn": "Withdrawn"
+    "withdrawn": "Withdrawn",
+    "completeSuccess": "Enrolment marked complete.",
+    "completeTitle": "Mark this enrolment complete?",
+    "completeDescription": "Mark {course} as completed? The record and its grades are kept, and the course then counts towards any prerequisite that requires it.",
+    "completeStudentDescription": "Mark {student} as having completed this course? The record and their grades are kept, and it then counts towards any prerequisite that requires this course."
   },
   "notes": {
     "title": "Notes",
@@ -216,7 +220,8 @@
     "retire": "Retire",
     "search": "Search",
     "export": "Export CSV",
-    "close": "Close"
+    "close": "Close",
+    "complete": "Mark complete"
   },
   "error": {
     "STUDENT_NOT_FOUND": "That student could not be found.",
@@ -262,7 +267,8 @@
     "CONFLICT": "That conflicts with an existing record.",
     "INTERNAL_ERROR": "Something went wrong on the server. Try again; if it persists, contact an administrator.",
     "GRADING_SCALE_POINTS": "Grade points cannot be negative.",
-    "AI_QUOTA_EXCEEDED": "You have used this hour's AI allowance. Try again shortly."
+    "AI_QUOTA_EXCEEDED": "You have used this hour's AI allowance. Try again shortly.",
+    "PREREQUISITES_NOT_MET": "This student has not completed every prerequisite for the course."
   },
   "landing": {
     "nav": {
