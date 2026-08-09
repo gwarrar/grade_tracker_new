@@ -8,11 +8,20 @@ that forgets.
 
 from __future__ import annotations
 
+import json
 import sqlite3
+from pathlib import Path
 
 import pytest
 
 from api.seed import seed
+from notenverwaltung.storage import apply_migrations
+
+#: Migration 010's own text, so the second spelling it has to recognise is pinned
+#: against the exact string `json.dumps` produces rather than a copy of it.
+_MIGRATION_TEXT = (
+    Path(__file__).resolve().parents[2] / "migrations" / "010_grade_points.sql"
+).read_text(encoding="utf-8")
 
 
 class TestOrganizationTable:
@@ -244,3 +253,44 @@ class TestSeed:
         for row in sqlite_conn.execute("SELECT password_hash, password_salt FROM users"):
             assert len(row["password_hash"]) == 128  # 64 bytes, hex
             assert "demo-password" not in row["password_hash"]
+
+
+class TestGradePoints:
+    """Migration 010 prices the shipped A-F scale so a GPA works out of the box."""
+
+    def test_the_seeded_scale_is_priced(self, sqlite_conn: sqlite3.Connection) -> None:
+        stored = sqlite_conn.execute(
+            "SELECT grading_scale_json FROM organization WHERE id = 1"
+        ).fetchone()[0]
+
+        assert [band.get("points") for band in json.loads(stored)] == [4.0, 3.0, 2.0, 1.0, 0.0]
+
+    def test_a_rewritten_default_is_priced_too(self, sqlite_conn: sqlite3.Connection) -> None:
+        """The same document comes back from `json.dumps` spelled differently — spaced
+        separators, float thresholds — and an installation that merely saved its
+        colours has not customised its grading scale."""
+        rewritten = json.dumps(
+            [
+                {"min_percentage": 90.0, "label": "A"},
+                {"min_percentage": 80.0, "label": "B"},
+                {"min_percentage": 70.0, "label": "C"},
+                {"min_percentage": 60.0, "label": "D"},
+                {"min_percentage": 0.0, "label": "F"},
+            ]
+        )
+
+        assert rewritten in _MIGRATION_TEXT
+
+    def test_a_customised_scale_is_left_alone(self, sqlite_conn: sqlite3.Connection) -> None:
+        """There is no correct guess to make on an institution's behalf: a German 1-6
+        scale awards its lowest number to its best grade, and inferring points from
+        position would silently invert it."""
+        custom = json.dumps([{"min_percentage": 0, "label": "pass"}])
+        sqlite_conn.execute("UPDATE organization SET grading_scale_json = ?", (custom,))
+
+        apply_migrations(sqlite_conn)
+
+        stored = sqlite_conn.execute(
+            "SELECT grading_scale_json FROM organization WHERE id = 1"
+        ).fetchone()[0]
+        assert stored == custom

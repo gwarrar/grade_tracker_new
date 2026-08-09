@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated, Self
 
 from fastapi import APIRouter, Depends, File, Path, UploadFile
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from api.config import Settings, get_settings
 from api.deps import DbConn, SuperAdminUser
@@ -35,6 +35,10 @@ class GradeBandResponse(BaseModel):
 
     min_percentage: float
     label: str
+    points: float | None = Field(
+        default=None,
+        description="Worth in a grade point average. Null until the institution sets it.",
+    )
 
 
 class OrganizationResponse(BaseModel):
@@ -82,6 +86,16 @@ class GradeBandRequest(BaseModel):
 
     min_percentage: float
     label: str
+    points: float | None = Field(
+        default=None,
+        ge=0,
+        description=(
+            "Worth in a grade point average — 4.0 for an A on a US scale, 1.0 for a "
+            "German 1. Omit it and no GPA is reported; there is no sensible default, "
+            "because a scale that awards its lowest number to its best grade would be "
+            "inverted by any guess. No relation to `min_percentage` is enforced."
+        ),
+    )
 
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]

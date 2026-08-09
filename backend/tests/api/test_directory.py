@@ -326,7 +326,9 @@ class TestReports:
             "student_name",
             "email",
             "grades",
+            "courses",
             "average_percentage",
+            "gpa",
             "passed_count",
             "failed_count",
             "courses_graded",
@@ -349,6 +351,35 @@ class TestReports:
 
         report = as_teacher.get("/reports/student/S001").json()
         assert {g["course_id"] for g in report["grades"]} == {"CS101"}
+        # The GPA has to be trimmed on the same pass. Left whole it would be one
+        # number summarising every course the student takes, handed to a teacher
+        # who was just refused the marks behind it -- the same leak as the list
+        # above, compressed into a single field.
+        assert {c["course_id"] for c in report["courses"]} == {"CS101"}
+        assert report["courses_graded"] == 1
+
+    def test_a_teachers_copy_reports_a_gpa_over_their_own_course_only(
+        self, app: object, as_teacher: TestClient
+    ) -> None:
+        """A 99% elsewhere must not lift the GPA a teacher sees for their own course."""
+        with TestClient(app) as other:  # type: ignore[arg-type]
+            sign_in(other, "other_teacher")
+            other.post("/courses/CS999/enrollments", json={"student_id": "S001"})
+            other.post(
+                "/grades",
+                json={
+                    "student_id": "S001",
+                    "course_id": "CS999",
+                    "score": 99,
+                    "date": "2026-02-01",
+                },
+            )
+            full = other.get("/reports/student/S001").json()
+
+        scoped = as_teacher.get("/reports/student/S001").json()
+
+        assert scoped["gpa"] is not None
+        assert scoped["gpa"] != full["gpa"]
 
     def test_a_student_sees_class_stats_but_only_their_own_marks(
         self, as_student: TestClient

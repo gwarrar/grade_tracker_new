@@ -115,7 +115,13 @@
     "invalidScore": "Geben Sie die Punkte im Zahlenformat Ihrer Sprache ein.",
     "invalidWeight": "Geben Sie die Gewichtung im Zahlenformat Ihrer Sprache ein.",
     "retireTitle": "Note stilllegen?",
-    "retireDescription": "Diese Note verschwindet aus den normalen Ansichten, der Datensatz bleibt jedoch für mögliche Einsprüche erhalten."
+    "retireDescription": "Diese Note verschwindet aus den normalen Ansichten, der Datensatz bleibt jedoch für mögliche Einsprüche erhalten.",
+    "bulkAdd": "Noten eintragen",
+    "bulkTitle": "Noten für einen Kurs eintragen",
+    "bulkIntro": "Benennen Sie die Leistung einmal und tragen Sie dann je Person eine Note ein. Lassen Sie das Feld leer, wen Sie noch nicht bewerten.",
+    "bulkSaved": "{count, plural, one {# Note gespeichert} other {# Noten gespeichert}}",
+    "bulkRejected": "{count, plural, one {# Note wurde abgelehnt} other {# Noten wurden abgelehnt}}",
+    "saving": "Wird gespeichert…"
   },
   "enrollment": {
     "other": "Anmeldungen",
@@ -254,7 +260,8 @@
     "NOT_FOUND": "Nicht gefunden. Der Eintrag wurde möglicherweise entfernt, oder Sie haben keinen Zugriff darauf.",
     "METHOD_NOT_ALLOWED": "Diese Aktion ist hier nicht verfügbar.",
     "CONFLICT": "Das steht im Konflikt mit einem vorhandenen Eintrag.",
-    "INTERNAL_ERROR": "Auf dem Server ist ein Fehler aufgetreten. Versuchen Sie es erneut; wenn es bestehen bleibt, wenden Sie sich an eine Administratorin oder einen Administrator."
+    "INTERNAL_ERROR": "Auf dem Server ist ein Fehler aufgetreten. Versuchen Sie es erneut; wenn es bestehen bleibt, wenden Sie sich an eine Administratorin oder einen Administrator.",
+    "GRADING_SCALE_POINTS": "Notenpunkte dürfen nicht negativ sein."
   },
   "landing": {
     "nav": {
@@ -437,7 +444,9 @@
       "confirmTitle": "Notensystem ersetzen?",
       "confirmDescription": "Dadurch ändert sich jede in der Anwendung angezeigte Buchstabennote.",
       "saved": "Änderungen gespeichert.",
-      "background": "Seitenhintergrund"
+      "background": "Seitenhintergrund",
+      "points": "Notenpunkte",
+      "pointsHint": "Optional"
     },
     "users": {
       "title": "Konten",
@@ -603,7 +612,8 @@
     "byMonth": "Nach Monat",
     "byTerm": "Nach Semester",
     "range": "Spanne",
-    "hint": "Die Zahlen liefert die Schnittstelle; die Formulierung entsteht hier, damit ein Bericht in Ihrer Sprache lesbar ist, ohne dass der Server einen Sprachführer vorhält."
+    "hint": "Die Zahlen liefert die Schnittstelle; die Formulierung entsteht hier, damit ein Bericht in Ihrer Sprache lesbar ist, ohne dass der Server einen Sprachführer vorhält.",
+    "gpa": "Notendurchschnitt"
   },
   "audit": {
     "actionLabel": "Aktion",

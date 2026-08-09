@@ -23,6 +23,12 @@ from services.scoping import Principal, course_scope, grade_scope
 # three hand-written copies is three chances to disagree with `_row_to_dict`.
 _PERCENTAGE = "g.score * 100.0 / c.max_grade"
 
+#: Most marks one bulk entry may carry. A class, generously — not a file, which is
+#: what the import endpoint is for and where the configurable cap lives. Bounded at
+#: all because the request body is a list and an unbounded list is a denial of
+#: service dressed up as a spreadsheet.
+_MAX_BULK_SCORES = 500
+
 SORTABLE = {
     "date": "g.date",
     "score": "g.score",
@@ -243,12 +249,14 @@ class GradingService:
             ForbiddenError: If the caller may not grade this course.
             StudentNotFoundError: If the student does not exist.
             CourseNotFoundError: If the course does not exist.
-            ValidationError: If the score, weight or date is invalid.
+            ValidationError: If the score, weight or date is invalid, or the student
+                is not enrolled on the course.
         """
         self._assert_can_grade(course_id)
 
         student = self._store.get_student(student_id)
         course = self._store.get_course(course_id)
+        self._assert_enrolled(student_id, course_id)
         grade = Grade(
             student=student,
             course=course,
@@ -271,6 +279,81 @@ class GradingService:
                 after=stored.to_dict(),
             )
         return self.get_grade(stored.grade_id or 0)
+
+    def record_many(
+        self,
+        *,
+        course_id: str,
+        title: str,
+        date: str,
+        weight: float,
+        scores: list[tuple[str, float]],
+    ) -> dict[str, Any]:
+        """Record one assessment's marks for a whole class.
+
+        Marking a test is one act with many results, and doing it a row at a time
+        meant picking the same course and typing the same date thirty times over.
+
+        A rejected row costs only itself. :meth:`record` opens its own transaction,
+        which nests inside this one as a savepoint, so a row that fails rolls back
+        alone while the rest still commit — the same behaviour the file importer
+        relies on, for the same reason. The return shape is the importer's report,
+        because "how many landed and which ones did not" is the same question.
+
+        Args:
+            course_id: The course being marked.
+            title: What the assessment was, e.g. ``"Midterm"``.
+            date: When it was awarded.
+            weight: Its weight in the average, the same for every student.
+            scores: ``(student_id, score)`` per student. A student with nothing to
+                record is absent from this list rather than present with a zero —
+                whether a blank mark means zero is not this layer's call.
+
+        Returns:
+            ``imported``, ``skipped``, and an ``errors`` list carrying the student id
+            and a machine-readable code for each rejected row.
+
+        Raises:
+            ForbiddenError: If the caller may not grade this course.
+            ValidationError: If there are more marks than the cap allows.
+        """
+        # Once, before any writing. Every row names the same course, so a per-row
+        # check answers the same question N times -- and refusing the whole request
+        # is the honest response to "you cannot grade this class", where skipping
+        # each row would report thirty separate failures for one cause.
+        self._assert_can_grade(course_id)
+        if len(scores) > _MAX_BULK_SCORES:
+            raise ValidationError(
+                f"A bulk entry carries {len(scores)} marks; the cap is {_MAX_BULK_SCORES}.",
+                field="scores",
+                rows=len(scores),
+                limit=_MAX_BULK_SCORES,
+            )
+
+        imported = 0
+        errors: list[dict[str, str]] = []
+        with transaction(self._conn):
+            for student_id, score in scores:
+                try:
+                    self.record(
+                        student_id=student_id,
+                        course_id=course_id,
+                        score=score,
+                        date=date,
+                        title=title,
+                        weight=weight,
+                    )
+                except ValueError as exc:
+                    # Every domain error subclasses ValueError -- not-found,
+                    # validation, forbidden -- which is what lets one clause cover
+                    # an unknown student id and an out-of-range score alike.
+                    errors.append(
+                        {"student_id": student_id, "code": getattr(exc, "code", "VALIDATION_ERROR")}
+                    )
+                else:
+                    imported += 1
+
+        return {"imported": imported, "skipped": len(errors), "errors": errors}
 
     def amend(self, grade_id: int, changes: dict[str, Any]) -> dict[str, Any]:
         """Change an existing grade.
@@ -373,6 +456,38 @@ class GradingService:
             return
         if not exists(self._conn, "courses", "course_id", course_id, course_scope(self._principal)):
             raise ForbiddenError("You cannot grade this course.", course_id=course_id)
+
+    def _assert_enrolled(self, student_id: str, course_id: str) -> None:
+        """Refuse a mark for somebody who is not in the class.
+
+        Without this the write succeeds and the read-back at the end of
+        :meth:`record` fails: ``grade_scope`` shows a teacher only the grades whose
+        *student and course* are both theirs, and a student who is not enrolled fails
+        the first half. The row landed, the caller got a 404, and nobody — including
+        the teacher who wrote it — could ever see it again.
+
+        Any enrolment status counts, matching ``student_scope``. A withdrawn student
+        may still need a final mark recorded, and the enrolment row is the evidence
+        they were ever in the room.
+
+        Args:
+            student_id: Who is being graded.
+            course_id: What they are being graded on.
+
+        Raises:
+            ValidationError: If no enrolment joins the two.
+        """
+        row = self._conn.execute(
+            "SELECT 1 FROM enrollments WHERE student_id = ? AND course_id = ?",
+            (student_id, course_id),
+        ).fetchone()
+        if row is None:
+            raise ValidationError(
+                "That student is not enrolled on this course.",
+                field="student_id",
+                student_id=student_id,
+                course_id=course_id,
+            )
 
     def _letter_scope(self, letter: str) -> Scope:
         """Turn a band label into the percentage range it covers.

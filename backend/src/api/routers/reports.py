@@ -166,6 +166,20 @@ class RankedLine(BaseModel):
     average_percentage: float
 
 
+class CourseResult(BaseModel):
+    """One student's standing in one course."""
+
+    course_id: str
+    course_name: str
+    credits: float = Field(description="What the course is worth, and its weight in the GPA.")
+    grade_count: int
+    average_percentage: float
+    letter: str = Field(description="Band the course average falls in.")
+    points: float | None = Field(
+        description="What that band is worth, or null when the grading scale prices no points."
+    )
+
+
 class StudentReportResponse(BaseModel):
     """A student's full record."""
 
@@ -173,7 +187,18 @@ class StudentReportResponse(BaseModel):
     student_name: str
     email: str
     grades: list[GradeLine]
+    courses: list[CourseResult] = Field(
+        description="One standing per course, the basis of the GPA."
+    )
     average_percentage: float | None
+    gpa: float | None = Field(
+        description=(
+            "Credit-weighted grade point average, or null when the grading scale "
+            "prices no bands. Not the same thing as `average_percentage`: that "
+            "weights each mark by its own weight, this weights each course by its "
+            "credits, so a six-credit course counts six times a one-credit one."
+        )
+    )
     passed_count: int
     failed_count: int
     courses_graded: int

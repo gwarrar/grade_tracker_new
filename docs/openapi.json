@@ -532,6 +532,138 @@
         "title": "BrandingPatch",
         "type": "object"
       },
+      "BulkGradeError": {
+        "description": "One rejected mark.",
+        "properties": {
+          "code": {
+            "description": "Stable error code, e.g. `VALIDATION_ERROR`.",
+            "title": "Code",
+            "type": "string"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "code"
+        ],
+        "title": "BulkGradeError",
+        "type": "object"
+      },
+      "BulkGradeRequest": {
+        "description": "One assessment's marks for a whole class.\n\nThe assessment is stated once and the marks vary, which is the shape of the act:\na teacher marks *a test*, not thirty unrelated grades that happen to share a date.",
+        "properties": {
+          "course_id": {
+            "examples": [
+              "CS101"
+            ],
+            "minLength": 1,
+            "title": "Course Id",
+            "type": "string"
+          },
+          "date": {
+            "description": "ISO `YYYY-MM-DD`. The same alternatives `POST /grades` accepts.",
+            "examples": [
+              "2026-01-15"
+            ],
+            "title": "Date",
+            "type": "string"
+          },
+          "scores": {
+            "description": "One entry per student being marked. A student with nothing to record is **absent from this list**, not present with a zero — a blank box and a mark of zero are different facts, and only the client knows which it saw.",
+            "items": {
+              "$ref": "#/components/schemas/BulkScore"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Scores",
+            "type": "array"
+          },
+          "title": {
+            "default": "",
+            "examples": [
+              "Midterm"
+            ],
+            "maxLength": 100,
+            "title": "Title",
+            "type": "string"
+          },
+          "weight": {
+            "default": 1.0,
+            "description": "Applied to every mark in the batch.",
+            "exclusiveMinimum": 0.0,
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "course_id",
+          "date",
+          "scores"
+        ],
+        "title": "BulkGradeRequest",
+        "type": "object"
+      },
+      "BulkGradeResponse": {
+        "description": "The outcome of a bulk entry.\n\nDeliberately the import report's shape: one bad mark must not cost the other\ntwenty-nine, so the answer is a count and a list rather than success or failure.",
+        "properties": {
+          "errors": {
+            "description": "One entry per rejected mark.",
+            "items": {
+              "$ref": "#/components/schemas/BulkGradeError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "imported": {
+            "description": "Marks recorded.",
+            "title": "Imported",
+            "type": "integer"
+          },
+          "skipped": {
+            "description": "Marks rejected.",
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "imported",
+          "skipped",
+          "errors"
+        ],
+        "title": "BulkGradeResponse",
+        "type": "object"
+      },
+      "BulkScore": {
+        "description": "One student's mark in a bulk entry.",
+        "properties": {
+          "score": {
+            "description": "Must not exceed the course maximum.",
+            "examples": [
+              85.0
+            ],
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "student_id": {
+            "examples": [
+              "S001"
+            ],
+            "minLength": 1,
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "score"
+        ],
+        "title": "BulkScore",
+        "type": "object"
+      },
       "CommandRequest": {
         "description": "An instruction for the command palette.",
         "properties": {
@@ -1090,6 +1222,60 @@
           "credits"
         ],
         "title": "CourseResponse",
+        "type": "object"
+      },
+      "CourseResult": {
+        "description": "One student's standing in one course.",
+        "properties": {
+          "average_percentage": {
+            "title": "Average Percentage",
+            "type": "number"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "credits": {
+            "description": "What the course is worth, and its weight in the GPA.",
+            "title": "Credits",
+            "type": "number"
+          },
+          "grade_count": {
+            "title": "Grade Count",
+            "type": "integer"
+          },
+          "letter": {
+            "description": "Band the course average falls in.",
+            "title": "Letter",
+            "type": "string"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What that band is worth, or null when the grading scale prices no points.",
+            "title": "Points"
+          }
+        },
+        "required": [
+          "course_id",
+          "course_name",
+          "credits",
+          "grade_count",
+          "average_percentage",
+          "letter",
+          "points"
+        ],
+        "title": "CourseResult",
         "type": "object"
       },
       "CourseRollup": {
@@ -1860,6 +2046,19 @@
           "min_percentage": {
             "title": "Min Percentage",
             "type": "number"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Worth in a grade point average — 4.0 for an A on a US scale, 1.0 for a German 1. Omit it and no GPA is reported; there is no sensible default, because a scale that awards its lowest number to its best grade would be inverted by any guess. No relation to `min_percentage` is enforced.",
+            "title": "Points"
           }
         },
         "required": [
@@ -1879,6 +2078,18 @@
           "min_percentage": {
             "title": "Min Percentage",
             "type": "number"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Worth in a grade point average. Null until the institution sets it.",
+            "title": "Points"
           }
         },
         "required": [
@@ -3781,6 +3992,14 @@
             ],
             "title": "Average Percentage"
           },
+          "courses": {
+            "description": "One standing per course, the basis of the GPA.",
+            "items": {
+              "$ref": "#/components/schemas/CourseResult"
+            },
+            "title": "Courses",
+            "type": "array"
+          },
           "courses_graded": {
             "title": "Courses Graded",
             "type": "integer"
@@ -3792,6 +4011,18 @@
           "failed_count": {
             "title": "Failed Count",
             "type": "integer"
+          },
+          "gpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Credit-weighted grade point average, or null when the grading scale prices no bands. Not the same thing as `average_percentage`: that weights each mark by its own weight, this weights each course by its credits, so a six-credit course counts six times a one-credit one.",
+            "title": "Gpa"
           },
           "grades": {
             "items": {
@@ -3818,7 +4049,9 @@
           "student_name",
           "email",
           "grades",
+          "courses",
           "average_percentage",
+          "gpa",
           "passed_count",
           "failed_count",
           "courses_graded"
@@ -6764,6 +6997,47 @@
           }
         },
         "summary": "Record a grade",
+        "tags": [
+          "Grades"
+        ]
+      }
+    },
+    "/grades/bulk": {
+      "post": {
+        "description": "The assessment — title, date and weight — is stated once and applies to every mark, because marking a test is one act with many results.\n\nA rejected mark costs only itself: the rest still commit, and each failure comes back with the student it belongs to and a machine-readable code. A student who was not marked is absent from `scores` rather than present with a zero.\n\nEvery mark produces its own audit entry, exactly as the single-grade endpoint does.",
+        "operationId": "record_grades_grades_bulk_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkGradeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkGradeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "`FORBIDDEN` — you cannot grade this course."
+          },
+          "404": {
+            "description": "`COURSE_NOT_FOUND`."
+          },
+          "422": {
+            "description": "`VALIDATION_ERROR` — an unparseable date, or too many marks."
+          }
+        },
+        "summary": "Record one assessment for a whole class",
         "tags": [
           "Grades"
         ]

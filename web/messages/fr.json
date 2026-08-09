@@ -115,7 +115,13 @@
     "invalidScore": "Saisissez la note au format numérique de votre langue.",
     "invalidWeight": "Saisissez le coefficient au format numérique de votre langue.",
     "retireTitle": "Retirer la note ?",
-    "retireDescription": "Cette note disparaîtra des vues ordinaires, mais son dossier sera conservé en cas de contestation."
+    "retireDescription": "Cette note disparaîtra des vues ordinaires, mais son dossier sera conservé en cas de contestation.",
+    "bulkAdd": "Saisir les notes",
+    "bulkTitle": "Saisir les notes d’une classe",
+    "bulkIntro": "Nommez l’évaluation une seule fois, puis saisissez une note par étudiant. Laissez la case vide pour ceux que vous n’évaluez pas encore.",
+    "bulkSaved": "{count, plural, one {# note enregistrée} other {# notes enregistrées}}",
+    "bulkRejected": "{count, plural, one {# note a été rejetée} other {# notes ont été rejetées}}",
+    "saving": "Enregistrement…"
   },
   "enrollment": {
     "other": "Inscriptions",
@@ -254,7 +260,8 @@
     "NOT_FOUND": "Introuvable. L’élément a peut-être été supprimé, ou vous n’y avez pas accès.",
     "METHOD_NOT_ALLOWED": "Cette action n’est pas disponible ici.",
     "CONFLICT": "Cela entre en conflit avec un enregistrement existant.",
-    "INTERNAL_ERROR": "Une erreur s’est produite sur le serveur. Réessayez ; si le problème persiste, contactez un administrateur."
+    "INTERNAL_ERROR": "Une erreur s’est produite sur le serveur. Réessayez ; si le problème persiste, contactez un administrateur.",
+    "GRADING_SCALE_POINTS": "Les points de note ne peuvent pas être négatifs."
   },
   "landing": {
     "nav": {
@@ -437,7 +444,9 @@
       "confirmTitle": "Remplacer le barème de notation ?",
       "confirmDescription": "Cette action modifie chaque mention affichée dans l’application.",
       "saved": "Modifications enregistrées.",
-      "background": "Arrière-plan de la page"
+      "background": "Arrière-plan de la page",
+      "points": "Points de note",
+      "pointsHint": "Facultatif"
     },
     "users": {
       "title": "Comptes",
@@ -603,7 +612,8 @@
     "byMonth": "Par mois",
     "byTerm": "Par semestre",
     "range": "Étendue",
-    "hint": "Les chiffres viennent de l’API ; la formulation est produite ici, pour qu’un rapport se lise dans votre langue sans que le serveur conserve un lexique."
+    "hint": "Les chiffres viennent de l’API ; la formulation est produite ici, pour qu’un rapport se lise dans votre langue sans que le serveur conserve un lexique.",
+    "gpa": "Moyenne pondérée"
   },
   "audit": {
     "actionLabel": "Action",

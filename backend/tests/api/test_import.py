@@ -332,6 +332,10 @@ class TestOwnExportRoundTrip:
         assert created.status_code == 201, created.text
         course = as_admin.post("/courses", json={"course_id": "CS200", "name": "Operating Systems"})
         assert course.status_code == 201, course.text
+        # The enrolment is what says this student took this course. A mark without
+        # one is a row `grade_scope` hides from the teacher who wrote it.
+        enrolled = as_admin.post("/courses/CS200/enrollments", json={"student_id": "S100"})
+        assert enrolled.status_code == 201, enrolled.text
         grade = as_admin.post(
             "/grades",
             json={"student_id": "S100", "course_id": "CS200", "score": 88, "date": "2026-03-01"},

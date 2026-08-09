@@ -554,7 +554,7 @@ function GradingScaleEditor({
         {bands.map((band, index) => (
           <div
             key={index}
-            className="grid gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+            className="grid gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
           >
             <label className="text-sm text-muted">
               {t("threshold")}
@@ -571,6 +571,25 @@ function GradingScaleEditor({
                 value={band.label}
                 className="field-input"
                 onChange={(event) => change(index, { label: event.target.value })}
+              />
+            </label>
+            {/* Blank is a state, not zero. An unpriced scale reports no GPA at all,
+                which is the right answer for an institution that does not use one —
+                whereas a zero would say every student failed. */}
+            <label className="text-sm text-muted">
+              {t("points")}
+              <input
+                type="number"
+                step="any"
+                min="0"
+                value={band.points ?? ""}
+                placeholder={t("pointsHint")}
+                className="field-input numeric"
+                onChange={(event) =>
+                  change(index, {
+                    points: event.target.value === "" ? null : Number(event.target.value),
+                  })
+                }
               />
             </label>
             <div className="flex gap-1">
@@ -613,7 +632,8 @@ function GradingScaleEditor({
         className="btn mt-3"
         onClick={() => {
           setBands((current) => [
-            { min_percentage: (current[0]?.min_percentage ?? -10) + 10, label: "" },
+            // `points: null`, not 0 — a new band is unpriced until somebody prices it.
+            { min_percentage: (current[0]?.min_percentage ?? -10) + 10, label: "", points: null },
             ...current,
           ]);
           setSaved(false);

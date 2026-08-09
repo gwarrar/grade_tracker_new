@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, Query, status
 from api.deps import CurrentUser, DbConn, TeacherUser
 from api.schemas.domain import (
     AuditEntryResponse,
+    BulkGradeRequest,
+    BulkGradeResponse,
     GradeCreateRequest,
     GradeResponse,
     GradeUpdateRequest,
@@ -129,6 +131,39 @@ def list_grades(
 def record_grade(payload: GradeCreateRequest, service: Grading, _: TeacherUser) -> GradeResponse:
     """Record a grade."""
     return GradeResponse(**service.record(**payload.model_dump()))
+
+
+@router.post(
+    "/bulk",
+    response_model=BulkGradeResponse,
+    summary="Record one assessment for a whole class",
+    description=(
+        "The assessment — title, date and weight — is stated once and applies to "
+        "every mark, because marking a test is one act with many results.\n\n"
+        "A rejected mark costs only itself: the rest still commit, and each failure "
+        "comes back with the student it belongs to and a machine-readable code. "
+        "A student who was not marked is absent from `scores` rather than present "
+        "with a zero.\n\n"
+        "Every mark produces its own audit entry, exactly as the single-grade "
+        "endpoint does."
+    ),
+    responses={
+        403: {"description": "`FORBIDDEN` — you cannot grade this course."},
+        404: {"description": "`COURSE_NOT_FOUND`."},
+        422: {"description": "`VALIDATION_ERROR` — an unparseable date, or too many marks."},
+    },
+)
+def record_grades(payload: BulkGradeRequest, service: Grading, _: TeacherUser) -> BulkGradeResponse:
+    """Record one assessment's marks for a whole class."""
+    return BulkGradeResponse(
+        **service.record_many(
+            course_id=payload.course_id,
+            title=payload.title,
+            date=payload.date,
+            weight=payload.weight,
+            scores=[(entry.student_id, entry.score) for entry in payload.scores],
+        )
+    )
 
 
 @router.get(

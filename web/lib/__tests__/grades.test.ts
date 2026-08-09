@@ -61,10 +61,13 @@ describe("groupByCourse", () => {
     expect(groups[0].lines).toHaveLength(2);
   });
 
-  it("averages within a course, weighted", () => {
+  it("averages a course's marks the way the server does", () => {
+    // The per-course average moved to the server when the GPA needed one, so the
+    // component no longer computes it. This still pins the definition the server's
+    // number has to match — a divergence in either direction fails here.
     const [intro] = groupByCourse(lines);
 
-    expect(intro.average).toBe(80);
+    expect(weightedAverage(intro.lines)).toBe(80);
   });
 
   it("counts passes and failures per course", () => {

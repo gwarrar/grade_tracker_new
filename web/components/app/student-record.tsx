@@ -30,12 +30,21 @@ interface GradeLine extends Line {
   date: string;
 }
 
+interface CourseResult {
+  course_id: string;
+  average_percentage: number;
+  points: number | null;
+}
+
 interface Report {
   average_percentage: number | null;
+  gpa: number | null;
   passed_count: number;
   failed_count: number;
   courses_graded: number;
   grades: GradeLine[];
+  /** Per-course standings, already scoped by the server. */
+  courses: CourseResult[];
 }
 
 interface EnrolledCourse {
@@ -59,6 +68,10 @@ export function StudentRecord({
   const groups = groupByCourse(report.grades);
   const graded = new Set(groups.map((g) => g.course_id));
   const ungraded = courses.filter((course) => !graded.has(course.course_id));
+  // The per-course average comes from the server now that it computes one for the
+  // GPA. Grouping the individual marks is still this component's job; averaging
+  // them in two places was two numbers that could disagree.
+  const averages = new Map(report.courses.map((result) => [result.course_id, result]));
 
   return (
     <div className="space-y-8">
@@ -73,6 +86,11 @@ export function StudentRecord({
               : "—"
           }
         />
+        {/* Only when the grading scale prices its bands. An institution that does
+            not use a GPA should see no tile, not a zero. */}
+        {report.gpa != null && (
+          <StatTile label={t("report.gpa")} value={formatNumber(report.gpa, locale)} />
+        )}
         <StatTile label={t("course.other")} value={formatNumber(courses.length, locale)} />
         <StatTile label={t("grade.passing")} value={formatNumber(report.passed_count, locale)} />
         <StatTile label={t("grade.failing")} value={formatNumber(report.failed_count, locale)} />
@@ -83,7 +101,14 @@ export function StudentRecord({
           <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-2">
             <h3 className="text-sm font-medium text-text">{group.course_name}</h3>
             <p className="numeric text-xs text-subtle">
-              {group.average != null ? formatPercent(group.average, locale) : "—"}
+              {(() => {
+                const result = averages.get(group.course_id);
+                if (!result) return "—";
+                const percent = formatPercent(result.average_percentage, locale);
+                return result.points != null
+                  ? `${percent} · ${formatNumber(result.points, locale)}`
+                  : percent;
+              })()}
             </p>
           </header>
 

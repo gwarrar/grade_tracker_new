@@ -69,7 +69,15 @@ def test_a_superadmin_can_change_branding(as_superadmin: TestClient) -> None:
     # product's own background before this existed.
     assert body["colors"]["background"] == {"light": "#f0eee6", "dark": "#101014"}
     assert body["enabled_locales"] == ["en", "de"]
-    assert body["grading_scale"] == SCALE
+    # The shipped A-F scale is priced 4-3-2-1-0 by migration 010, and a branding
+    # patch leaves the scale alone.
+    assert [(b["label"], b["points"]) for b in body["grading_scale"]] == [
+        ("A", 4.0),
+        ("B", 3.0),
+        ("C", 2.0),
+        ("D", 1.0),
+        ("F", 0.0),
+    ]
 
 
 def test_a_superadmin_can_replace_the_grading_scale(as_superadmin: TestClient) -> None:
@@ -83,7 +91,32 @@ def test_a_superadmin_can_replace_the_grading_scale(as_superadmin: TestClient) -
     response = as_superadmin.put("/org/grading-scale", json=scale)
 
     assert response.status_code == 200, response.text
+    # Points come back null: a scale sent without them has not been priced, and
+    # inventing a number would be inventing a GPA. Every scale stored before grade
+    # points existed reads back exactly this way.
+    assert response.json()["grading_scale"] == [{**band, "points": None} for band in scale]
+
+
+def test_a_superadmin_can_price_the_grading_scale(as_superadmin: TestClient) -> None:
+    """Points are what turn a scale into something a GPA can average."""
+    scale = [
+        {"min_percentage": 92, "label": "1", "points": 1.0},
+        {"min_percentage": 50, "label": "4", "points": 4.0},
+        {"min_percentage": 0, "label": "6", "points": 6.0},
+    ]
+
+    response = as_superadmin.put("/org/grading-scale", json=scale)
+
+    assert response.status_code == 200, response.text
+    # A German scale awards its lowest number to its highest threshold. Nothing may
+    # reject or reorder that -- points carry no relationship to the percentage.
     assert response.json()["grading_scale"] == scale
+
+
+def test_grade_points_cannot_be_negative(as_superadmin: TestClient) -> None:
+    scale = [{"min_percentage": 0, "label": "F", "points": -1}]
+
+    assert as_superadmin.put("/org/grading-scale", json=scale).status_code == 422
 
 
 @pytest.mark.parametrize(

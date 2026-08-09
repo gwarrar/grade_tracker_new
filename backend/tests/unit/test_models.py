@@ -212,3 +212,42 @@ class TestGradingScale:
         assert german.label_for(95) == "1"
         assert german.label_for(55) == "4"
         assert german.label_for(10) == "6"
+
+    def test_the_default_scale_is_priced(self) -> None:
+        """A-F carries its own conventional points; that is a fact about the scale,
+        not an assumption imposed on institutions using their own labels."""
+        assert DEFAULT_SCALE.points_for(95) == 4.0
+        assert DEFAULT_SCALE.points_for(0) == 0.0
+
+    def test_an_unpriced_band_yields_no_points(self) -> None:
+        """None rather than zero. Zero is a grade; None is an unanswered question,
+        and only one of them belongs in an average."""
+        scale = GradingScale(bands=(GradeBand(50, "pass"), GradeBand(0, "retry")))
+        assert scale.points_for(80) is None
+        assert scale.label_for(80) == "pass"
+
+    def test_points_may_run_opposite_to_the_thresholds(self) -> None:
+        """A German 1-6 scale awards its lowest number to its highest threshold.
+        Nothing may enforce a relationship between points and percentage."""
+        german = GradingScale(
+            bands=(GradeBand(92, "1", 1.0), GradeBand(50, "4", 4.0), GradeBand(0, "6", 6.0))
+        )
+        assert german.points_for(95) == 1.0
+        assert german.points_for(10) == 6.0
+
+    def test_negative_points_are_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            GradeBand(90, "A", -1.0)
+
+    def test_a_scale_stored_before_points_existed_still_loads(self) -> None:
+        """Backward compatibility is the whole reason `points` is optional."""
+        scale = GradingScale.from_list(
+            [{"min_percentage": 50, "label": "pass"}, {"min_percentage": 0, "label": "retry"}]
+        )
+        assert scale.bands[0].points is None
+
+    def test_unpriced_bands_round_trip_without_gaining_a_key(self) -> None:
+        """`to_list` omits points rather than writing null, so an organisation that
+        never configures a GPA sees its stored document unchanged."""
+        scale = GradingScale(bands=(GradeBand(0, "F"),))
+        assert scale.to_list() == [{"min_percentage": 0.0, "label": "F"}]

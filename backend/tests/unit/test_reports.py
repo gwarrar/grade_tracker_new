@@ -8,6 +8,7 @@ import pytest
 
 from notenverwaltung.exceptions import CourseNotFoundError, StudentNotFoundError
 from notenverwaltung.gradebook import GradeBook
+from notenverwaltung.grading_scale import GradeBand, GradingScale
 from notenverwaltung.models import Course
 from notenverwaltung.reports import (
     CsvReportGenerator,
@@ -42,12 +43,17 @@ class TestStudentReport:
             "student_name",
             "email",
             "grades",
+            "courses",
             "average_percentage",
+            "gpa",
             "passed_count",
             "failed_count",
             "courses_graded",
         }
         assert " " not in payload["grades"][0]["letter"]
+        # The GPA is a number, not a rendered "3.9 / 4.0". Formatting is the
+        # frontend's, and it differs by locale before it differs by scale.
+        assert payload["gpa"] is None or isinstance(payload["gpa"], (int, float))
 
     def test_ungraded_student_yields_none_not_zero(self, builder: ReportBuilder) -> None:
         report = builder.student_report("S003")
@@ -178,3 +184,56 @@ class TestRenderers:
             ReportBuilder(GradeBook(InMemoryGradeStore())).summary_report()
         )
         assert "average_percentage," in output
+
+
+class TestGradePointAverage:
+    """The GPA weights each *course* by its credits; `average_percentage` weights
+    each *mark* by its own weight. Two different questions, two different numbers.
+    """
+
+    def test_a_course_result_exists_per_graded_course(self, builder: ReportBuilder) -> None:
+        report = builder.student_report("S001")
+
+        # Name order, not id order: "Data Structures" (CS102) before "Intro to
+        # Programming" (CS101).
+        assert [(c.course_id, c.grade_count) for c in report.courses] == [
+            ("CS102", 1),
+            ("CS101", 1),
+        ]
+
+    def test_equal_credits_average_the_points(self, builder: ReportBuilder) -> None:
+        # Anna: 85% in CS101 (B, 3.0) and 90% in CS102 (A, 4.0), one credit each.
+        assert builder.student_report("S001").gpa == pytest.approx(3.5)
+
+    def test_credits_actually_weight_the_average(self, gradebook: GradeBook) -> None:
+        """The whole point of a GPA over a plain mean. A three-credit course must
+        pull the number three times as hard as a one-credit one."""
+        gradebook.add_course(Course("CS300", "Thesis", max_grade=100.0, credits=3.0))
+        gradebook.record_grade("S001", "CS300", 95, "2026-02-01", title="Report")
+
+        report = ReportBuilder(gradebook).student_report("S001")
+
+        # B(3.0) at 1 credit + A(4.0) at 1 + A(4.0) at 3 = 19.0 over 5 credits.
+        assert report.gpa == pytest.approx(3.8)
+
+    def test_an_unpriced_scale_reports_no_gpa(self, gradebook: GradeBook) -> None:
+        """Rather than zero, which would read as a student who failed everything."""
+        gradebook.scale = GradingScale(bands=(GradeBand(50, "pass"), GradeBand(0, "retry")))
+
+        report = ReportBuilder(gradebook).student_report("S001")
+
+        assert report.gpa is None
+        assert [c.points for c in report.courses] == [None, None]
+        assert [c.letter for c in report.courses] == ["pass", "pass"]
+
+    def test_an_ungraded_student_has_no_gpa(self, builder: ReportBuilder) -> None:
+        report = builder.student_report("S003")
+
+        assert report.courses == []
+        assert report.gpa is None
+
+    def test_course_results_are_ordered_by_name(self, builder: ReportBuilder) -> None:
+        """So the same student produces the same report twice."""
+        names = [c.course_name for c in builder.student_report("S001").courses]
+
+        assert names == sorted(names)

@@ -6,9 +6,14 @@
  * percentages, ignoring weight) is off by an amount nobody notices until a student
  * queries their transcript.
  *
- * The server already returns a `letter` per grade and an `average_percentage` for the
- * report as a whole. These helpers only cover what the server does not: the split by
- * course, and the per-course average within it.
+ * The server already returns a `letter` per grade, an `average_percentage` for the
+ * report as a whole, and — since the GPA needed one — a per-course average too. What
+ * it does not return is the split of individual marks under each course heading,
+ * which is the one thing left here.
+ *
+ * `weightedAverage` is still exported and still tested: it is the definition the
+ * server's per-course number has to agree with, and a test that pins the arithmetic
+ * on this side is how a divergence would be noticed.
  */
 
 /** The subset of a report's grade line these helpers need. */
@@ -20,13 +25,11 @@ export interface Line {
   is_passing: boolean;
 }
 
-/** One course's marks, with its own average. */
+/** One course's marks. */
 export interface CourseGroup<T extends Line> {
   course_id: string;
   course_name: string;
   lines: T[];
-  /** Weighted mean percentage, or null when the course has no marks. */
-  average: number | null;
   passed: number;
   failed: number;
 }
@@ -62,7 +65,7 @@ export function weightedAverage(lines: readonly Line[]): number | null {
  * silently override a deliberate ordering.
  *
  * @param lines - Every mark in the report.
- * @returns One group per course, each with its own weighted average.
+ * @returns One group per course.
  */
 export function groupByCourse<T extends Line>(lines: readonly T[]): CourseGroup<T>[] {
   const groups = new Map<string, CourseGroup<T>>();
@@ -74,7 +77,6 @@ export function groupByCourse<T extends Line>(lines: readonly T[]): CourseGroup<
         course_id: line.course_id,
         course_name: line.course_name,
         lines: [],
-        average: null,
         passed: 0,
         failed: 0,
       };
@@ -83,10 +85,6 @@ export function groupByCourse<T extends Line>(lines: readonly T[]): CourseGroup<
     group.lines.push(line);
     if (line.is_passing) group.passed += 1;
     else group.failed += 1;
-  }
-
-  for (const group of groups.values()) {
-    group.average = weightedAverage(group.lines);
   }
 
   return [...groups.values()];

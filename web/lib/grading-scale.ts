@@ -2,6 +2,14 @@
 export interface GradeBand {
   min_percentage: number;
   label: string;
+  /**
+   * Worth in a grade point average, or absent until the institution decides.
+   *
+   * Optional because a GPA only means something once somebody says what an A is
+   * worth, and no relationship to `min_percentage` may be assumed or enforced: a
+   * German 1-6 scale awards its *lowest* number to its *highest* threshold.
+   */
+  points?: number | null;
 }
 
 /** Stable reason a grading scale cannot be saved. */
@@ -11,7 +19,8 @@ export type GradingScaleError =
   | "zero"
   | "duplicate"
   | "percentage"
-  | "label";
+  | "label"
+  | "points";
 
 /**
  * Mirror the backend grading-scale invariants before an administrator saves.
@@ -31,6 +40,14 @@ export function validateGradingScale(bands: GradeBand[]): GradingScaleError | nu
   )
     return "percentage";
   if (bands.some((band) => band.label.trim() === "")) return "label";
+  if (
+    bands.some(
+      (band) =>
+        band.points != null && (!Number.isFinite(band.points) || band.points < 0),
+    )
+  ) {
+    return "points";
+  }
 
   const thresholds = bands.map((band) => band.min_percentage);
   if (new Set(thresholds).size !== thresholds.length) return "duplicate";

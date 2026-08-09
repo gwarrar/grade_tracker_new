@@ -24,17 +24,25 @@ class GradeBand:
     Attributes:
         min_percentage: Inclusive lower bound, as a percentage of the maximum grade.
         label: The label awarded at or above ``min_percentage``, e.g. ``"A"``.
+        points: What this band is worth in a grade point average, or ``None`` when
+            the institution has not decided. Optional because a GPA only means
+            something once somebody says what an A is worth, and defaulting to 4.0
+            would assume an American scale in a product that ships in German and
+            French. No relationship to ``min_percentage`` is enforced: a German 1-6
+            scale awards its *lowest* number to its *highest* threshold, and this
+            type has no business having an opinion about that.
     """
 
     min_percentage: float
     label: str
+    points: float | None = None
 
     def __post_init__(self) -> None:
         """Validate and normalise one displayed grade band.
 
         Raises:
-            ValidationError: If the threshold is outside a finite percentage range
-                or the displayed label is blank.
+            ValidationError: If the threshold is outside a finite percentage range,
+                the displayed label is blank, or the points are negative.
         """
         if not math.isfinite(self.min_percentage) or not 0 <= self.min_percentage <= 100:
             raise ValidationError(
@@ -46,6 +54,13 @@ class GradeBand:
         if not label:
             raise ValidationError("A grading band label cannot be blank.", field="label")
         object.__setattr__(self, "label", label)
+
+        if self.points is not None and (not math.isfinite(self.points) or self.points < 0):
+            raise ValidationError(
+                "Grade points must be a finite number of zero or more.",
+                field="points",
+                value=self.points,
+            )
 
 
 @dataclass(frozen=True)
@@ -102,16 +117,46 @@ class GradingScale:
         # Unreachable: __post_init__ guarantees a band at 0.
         return self.bands[-1].label
 
+    def points_for(self, percentage: float) -> float | None:
+        """Return the grade points a percentage earns.
+
+        Args:
+            percentage: Score as a percentage of the course maximum, 0-100.
+
+        Returns:
+            The points of the band the percentage falls in, or ``None`` when that
+            band carries none. A caller averaging these must drop the missing ones
+            rather than treat them as zero — an unpriced band is an unanswered
+            question, and zero is an answer.
+        """
+        for band in self.bands:
+            if percentage >= band.min_percentage:
+                return band.points
+        # Unreachable: __post_init__ guarantees a band at 0.
+        return self.bands[-1].points
+
     def to_list(self) -> list[dict[str, object]]:
-        """Return a JSON-serialisable representation, for storage in organisation config."""
-        return [{"min_percentage": b.min_percentage, "label": b.label} for b in self.bands]
+        """Return a JSON-serialisable representation, for storage in organisation config.
+
+        ``points`` is omitted when unset rather than written as null, so an
+        organisation that never configures a GPA sees its stored scale unchanged.
+        """
+        return [
+            {"min_percentage": b.min_percentage, "label": b.label}
+            if b.points is None
+            else {"min_percentage": b.min_percentage, "label": b.label, "points": b.points}
+            for b in self.bands
+        ]
 
     @classmethod
     def from_list(cls, data: list[dict[str, object]]) -> GradingScale:
         """Rebuild a scale from :meth:`to_list` output.
 
         Args:
-            data: Band dictionaries with ``min_percentage`` and ``label`` keys.
+            data: Band dictionaries with ``min_percentage`` and ``label`` keys, and
+                optionally ``points``. Its absence is not an error: every scale
+                stored before grade points existed lacks it, and those must keep
+                loading.
 
         Returns:
             The reconstructed scale.
@@ -125,10 +170,12 @@ class GradingScale:
                 label = band["label"]
                 if not isinstance(label, str):
                     raise TypeError("grading band labels must be text")
+                points = band.get("points")
                 parsed.append(
                     GradeBand(
                         min_percentage=float(band["min_percentage"]),  # type: ignore[arg-type]
                         label=label,
+                        points=None if points is None else float(points),  # type: ignore[arg-type]
                     )
                 )
         except (KeyError, TypeError, ValueError) as exc:
@@ -138,11 +185,16 @@ class GradingScale:
 
 DEFAULT_SCALE = GradingScale(
     bands=(
-        GradeBand(90.0, "A"),
-        GradeBand(80.0, "B"),
-        GradeBand(70.0, "C"),
-        GradeBand(60.0, "D"),
-        GradeBand(0.0, "F"),
+        GradeBand(90.0, "A", 4.0),
+        GradeBand(80.0, "B", 3.0),
+        GradeBand(70.0, "C", 2.0),
+        GradeBand(60.0, "D", 1.0),
+        GradeBand(0.0, "F", 0.0),
     )
 )
-"""The A-F scale from the project specification: A≥90, B≥80, C≥70, D≥60, else F."""
+"""The A-F scale from the project specification: A≥90, B≥80, C≥70, D≥60, else F.
+
+Priced 4-3-2-1-0 because this particular scale *is* the American one — carrying its
+conventional points is a fact about A-F, not an assumption imposed on anyone. An
+institution using its own labels starts with no points and sets them itself.
+"""

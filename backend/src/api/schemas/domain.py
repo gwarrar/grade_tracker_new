@@ -330,6 +330,57 @@ class GradeCreateRequest(BaseModel):
     notes: str = Field(default="", max_length=2000)
 
 
+class BulkScore(BaseModel):
+    """One student's mark in a bulk entry."""
+
+    student_id: str = Field(min_length=1, examples=["S001"])
+    score: float = Field(ge=0, description="Must not exceed the course maximum.", examples=[85.0])
+
+
+class BulkGradeRequest(BaseModel):
+    """One assessment's marks for a whole class.
+
+    The assessment is stated once and the marks vary, which is the shape of the act:
+    a teacher marks *a test*, not thirty unrelated grades that happen to share a date.
+    """
+
+    course_id: str = Field(min_length=1, examples=["CS101"])
+    title: str = Field(default="", max_length=100, examples=["Midterm"])
+    date: str = Field(
+        description="ISO `YYYY-MM-DD`. The same alternatives `POST /grades` accepts.",
+        examples=["2026-01-15"],
+    )
+    weight: float = Field(default=1.0, gt=0, description="Applied to every mark in the batch.")
+    scores: list[BulkScore] = Field(
+        min_length=1,
+        max_length=500,
+        description=(
+            "One entry per student being marked. A student with nothing to record is "
+            "**absent from this list**, not present with a zero — a blank box and a "
+            "mark of zero are different facts, and only the client knows which it saw."
+        ),
+    )
+
+
+class BulkGradeError(BaseModel):
+    """One rejected mark."""
+
+    student_id: str
+    code: str = Field(description="Stable error code, e.g. `VALIDATION_ERROR`.")
+
+
+class BulkGradeResponse(BaseModel):
+    """The outcome of a bulk entry.
+
+    Deliberately the import report's shape: one bad mark must not cost the other
+    twenty-nine, so the answer is a count and a list rather than success or failure.
+    """
+
+    imported: int = Field(description="Marks recorded.")
+    skipped: int = Field(description="Marks rejected.")
+    errors: list[BulkGradeError] = Field(description="One entry per rejected mark.")
+
+
 class GradeUpdateRequest(BaseModel):
     """Changes to a grade. Omitted fields are left alone."""
 

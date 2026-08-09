@@ -17,6 +17,7 @@ from notenverwaltung.exceptions import ForbiddenError, ValidationError
 from notenverwaltung.gradebook import GradeBook, weighted_mean
 from notenverwaltung.models import Role
 from notenverwaltung.reports import CsvReportGenerator, ReportBuilder
+from notenverwaltung.reports.base import grade_point_average
 from notenverwaltung.storage import SqliteGradeStore
 from notenverwaltung.storage.scope import Scope
 from services.organization import load_grading_scale, load_organization
@@ -150,6 +151,16 @@ class ReportingService:
             visible = self._visible_course_ids()
             payload["grades"] = [g for g in payload["grades"] if g["course_id"] in visible]
             payload["average_percentage"] = _recompute(payload["grades"])
+            # The GPA has to be trimmed on the same pass. Left alone it would be a
+            # single number summarising every course the student takes, handed to a
+            # teacher who was just refused the marks it was computed from -- the
+            # exact leak the filtering above exists to close, in one field instead
+            # of a list.
+            payload["courses"] = [c for c in payload["courses"] if c["course_id"] in visible]
+            payload["gpa"] = grade_point_average(
+                [(c["points"], c["credits"]) for c in payload["courses"]]
+            )
+            payload["courses_graded"] = len(payload["courses"])
         return payload
 
     def course_report(self, course_id: str) -> dict[str, Any]:

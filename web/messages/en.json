@@ -115,7 +115,13 @@
     "invalidScore": "Enter the score using your locale's number format.",
     "invalidWeight": "Enter the weight using your locale's number format.",
     "retireTitle": "Retire grade?",
-    "retireDescription": "This grade will disappear from normal views, but its record is retained for possible disputes."
+    "retireDescription": "This grade will disappear from normal views, but its record is retained for possible disputes.",
+    "bulkAdd": "Enter marks",
+    "bulkTitle": "Enter marks for a class",
+    "bulkIntro": "Name the assessment once, then type a mark per student. Leave a box empty for anyone you are not marking yet.",
+    "bulkSaved": "{count, plural, one {# mark recorded} other {# marks recorded}}",
+    "bulkRejected": "{count, plural, one {# mark was rejected} other {# marks were rejected}}",
+    "saving": "Saving…"
   },
   "enrollment": {
     "other": "Enrolments",
@@ -254,7 +260,8 @@
     "NOT_FOUND": "That was not found. It may have been removed, or you may not have access to it.",
     "METHOD_NOT_ALLOWED": "That action is not available here.",
     "CONFLICT": "That conflicts with an existing record.",
-    "INTERNAL_ERROR": "Something went wrong on the server. Try again; if it persists, contact an administrator."
+    "INTERNAL_ERROR": "Something went wrong on the server. Try again; if it persists, contact an administrator.",
+    "GRADING_SCALE_POINTS": "Grade points cannot be negative."
   },
   "landing": {
     "nav": {
@@ -437,7 +444,9 @@
       "confirmTitle": "Replace the grading scale?",
       "confirmDescription": "This changes every displayed letter grade across the application.",
       "saved": "Changes saved.",
-      "background": "Page background"
+      "background": "Page background",
+      "points": "Grade points",
+      "pointsHint": "Optional"
     },
     "users": {
       "title": "Accounts",
@@ -603,7 +612,8 @@
     "byMonth": "By month",
     "byTerm": "By term",
     "range": "Range",
-    "hint": "Figures come from the API; the wording is rendered here, so a report reads in your language without the server holding a phrasebook."
+    "hint": "Figures come from the API; the wording is rendered here, so a report reads in your language without the server holding a phrasebook.",
+    "gpa": "GPA"
   },
   "audit": {
     "actionLabel": "Action",

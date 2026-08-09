@@ -61,6 +61,56 @@ class GradeLine:
     notes: str
 
 
+def grade_point_average(weighted: list[tuple[float | None, float]]) -> float | None:
+    """Average grade points, weighting each by its course's credits.
+
+    Args:
+        weighted: ``(points, credits)`` per course. A course whose band carries no
+            points is dropped rather than counted as zero — an unpriced band is an
+            unanswered question, and zero is an answer that would drag the average
+            down for an institution that simply never configured a GPA.
+
+    Returns:
+        The average to three decimals, or ``None`` when no course carries points.
+        ``None`` rather than ``0.0`` for the same reason: the caller must be able to
+        tell "no GPA to show" from "a GPA of zero", and only one of those is worth
+        printing.
+    """
+    priced = [(points, credits) for points, credits in weighted if points is not None]
+    if not priced:
+        return None
+    return round(weighted_mean(priced), 3)
+
+
+@dataclass
+class CourseResult:
+    """One student's standing in one course.
+
+    This is a new concept rather than a rearrangement of existing data. Until a GPA
+    needed it, the product had no per-course grade for a student anywhere on the
+    server — a report was a flat list of individual marks, and the only per-course
+    average was computed in the browser. A credit-weighted GPA cannot be built from
+    individual marks, because credits attach to the course and not to the mark.
+
+    Attributes:
+        course_id: The course.
+        course_name: Its display name.
+        credits: What the course is worth, and the weight of this result in the GPA.
+        grade_count: How many marks the average covers.
+        average_percentage: Weighted mean of this course's marks.
+        letter: The band that average falls in.
+        points: What that band is worth, or ``None`` if the scale prices no points.
+    """
+
+    course_id: str
+    course_name: str
+    credits: float
+    grade_count: int
+    average_percentage: float
+    letter: str
+    points: float | None
+
+
 @dataclass
 class StudentReport:
     """Everything needed to render one student's report.
@@ -70,7 +120,12 @@ class StudentReport:
         student_name: Their display name.
         email: Their contact address.
         grades: Every live grade, most recent first.
+        courses: One standing per course, the basis of the GPA.
         average_percentage: Weighted mean percentage, or ``None`` if ungraded.
+        gpa: Credit-weighted grade point average, or ``None`` when the grading
+            scale prices no bands. Distinct from ``average_percentage``, which
+            weights each *mark* by its own weight; this weights each *course* by
+            its credits, so a six-credit course counts six times a one-credit one.
         passed_count: Grades at or above the passing threshold.
         failed_count: Grades below it.
         courses_graded: Distinct courses with at least one grade.
@@ -80,7 +135,9 @@ class StudentReport:
     student_name: str
     email: str
     grades: list[GradeLine] = field(default_factory=list)
+    courses: list[CourseResult] = field(default_factory=list)
     average_percentage: float | None = None
+    gpa: float | None = None
     passed_count: int = 0
     failed_count: int = 0
     courses_graded: int = 0
@@ -186,11 +243,13 @@ class ReportBuilder:
         student = self._book.store.get_student(student_id)
         grades = self._book.get_student_grades(student_id)
         lines = [self._line(g) for g in grades]
+        courses = self._course_results(grades)
         return StudentReport(
             student_id=student.student_id,
             student_name=student.full_name,
             email=student.email,
             grades=lines,
+            courses=courses,
             average_percentage=(
                 round(
                     weighted_mean([(g.percentage, g.weight) for g in grades]),
@@ -199,10 +258,45 @@ class ReportBuilder:
                 if grades
                 else None
             ),
+            gpa=grade_point_average([(c.points, c.credits) for c in courses]),
             passed_count=sum(1 for line in lines if line.is_passing),
             failed_count=sum(1 for line in lines if not line.is_passing),
             courses_graded=len({line.course_id for line in lines}),
         )
+
+    def _course_results(self, grades: list[Any]) -> list[CourseResult]:
+        """Collapse a student's marks into one standing per course.
+
+        Ordered by course name rather than by whatever order the grades arrived in,
+        so the same student produces the same report twice.
+
+        Args:
+            grades: The student's live grades.
+
+        Returns:
+            One result per course holding at least one mark.
+        """
+        by_course: dict[str, list[Any]] = {}
+        for grade in grades:
+            by_course.setdefault(grade.course.course_id, []).append(grade)
+
+        scale = self._book.scale
+        results: list[CourseResult] = []
+        for course_grades in by_course.values():
+            course = course_grades[0].course
+            average = weighted_mean([(g.percentage, g.weight) for g in course_grades])
+            results.append(
+                CourseResult(
+                    course_id=course.course_id,
+                    course_name=course.name,
+                    credits=course.credits,
+                    grade_count=len(course_grades),
+                    average_percentage=round(average, 2),
+                    letter=scale.label_for(average),
+                    points=scale.points_for(average),
+                )
+            )
+        return sorted(results, key=lambda result: result.course_name)
 
     def course_report(self, course_id: str) -> CourseReport:
         """Build a report for one course.

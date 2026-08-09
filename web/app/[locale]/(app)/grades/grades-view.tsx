@@ -20,6 +20,7 @@ import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { AssistantPanel } from "@/components/app/assistant";
+import { BulkGrades } from "@/components/app/bulk-grades";
 import { AuditEntryLine } from "@/components/app/audit";
 import { Field, FormError, Input, PanelHeader, Select, Textarea } from "@/components/app/detail-fields";
 import { MasterDetail } from "@/components/app/master-detail";
@@ -68,6 +69,7 @@ export function GradesView({
   const [search, setSearch] = useState("");
   const [asking, setAsking] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [bulk, setBulk] = useState(false);
   const [createCode, setCreateCode] = useState<string | null>(null);
   const [invalidScore, setInvalidScore] = useState(false);
   const [invalidWeight, setInvalidWeight] = useState(false);
@@ -248,6 +250,18 @@ export function GradesView({
               {t("grade.add")}
             </button>
           )}
+          {can.writeGrade(me) && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                setNotice(null);
+                setBulk(true);
+              }}
+            >
+              {t("grade.bulkAdd")}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setAsking((current) => !current)}
@@ -271,6 +285,19 @@ export function GradesView({
         <div className="mb-6">
           <AssistantPanel onClose={() => setAsking(false)} />
         </div>
+      )}
+
+      {bulk && courses.data && (
+        <BulkGrades
+          courses={courses.data.items}
+          initialCourseId={courseId}
+          locale={locale}
+          onClose={() => setBulk(false)}
+          onSaved={() => {
+            setNotice(t("grade.created"));
+            void refresh();
+          }}
+        />
       )}
 
       {notice && (

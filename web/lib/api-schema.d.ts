@@ -709,6 +709,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/grades/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record one assessment for a whole class
+         * @description The assessment — title, date and weight — is stated once and applies to every mark, because marking a test is one act with many results.
+         *
+         *     A rejected mark costs only itself: the rest still commit, and each failure comes back with the student it belongs to and a machine-readable code. A student who was not marked is absent from `scores` rather than present with a zero.
+         *
+         *     Every mark produces its own audit entry, exactly as the single-grade endpoint does.
+         */
+        post: operations["record_grades_grades_bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/grades/{grade_id}": {
         parameters: {
             query?: never;
@@ -1639,6 +1663,97 @@ export interface components {
             timezone?: string | null;
         };
         /**
+         * BulkGradeError
+         * @description One rejected mark.
+         */
+        BulkGradeError: {
+            /**
+             * Code
+             * @description Stable error code, e.g. `VALIDATION_ERROR`.
+             */
+            code: string;
+            /** Student Id */
+            student_id: string;
+        };
+        /**
+         * BulkGradeRequest
+         * @description One assessment's marks for a whole class.
+         *
+         *     The assessment is stated once and the marks vary, which is the shape of the act:
+         *     a teacher marks *a test*, not thirty unrelated grades that happen to share a date.
+         */
+        BulkGradeRequest: {
+            /**
+             * Course Id
+             * @example CS101
+             */
+            course_id: string;
+            /**
+             * Date
+             * @description ISO `YYYY-MM-DD`. The same alternatives `POST /grades` accepts.
+             * @example 2026-01-15
+             */
+            date: string;
+            /**
+             * Scores
+             * @description One entry per student being marked. A student with nothing to record is **absent from this list**, not present with a zero — a blank box and a mark of zero are different facts, and only the client knows which it saw.
+             */
+            scores: components["schemas"]["BulkScore"][];
+            /**
+             * Title
+             * @default
+             * @example Midterm
+             */
+            title: string;
+            /**
+             * Weight
+             * @description Applied to every mark in the batch.
+             * @default 1
+             */
+            weight: number;
+        };
+        /**
+         * BulkGradeResponse
+         * @description The outcome of a bulk entry.
+         *
+         *     Deliberately the import report's shape: one bad mark must not cost the other
+         *     twenty-nine, so the answer is a count and a list rather than success or failure.
+         */
+        BulkGradeResponse: {
+            /**
+             * Errors
+             * @description One entry per rejected mark.
+             */
+            errors: components["schemas"]["BulkGradeError"][];
+            /**
+             * Imported
+             * @description Marks recorded.
+             */
+            imported: number;
+            /**
+             * Skipped
+             * @description Marks rejected.
+             */
+            skipped: number;
+        };
+        /**
+         * BulkScore
+         * @description One student's mark in a bulk entry.
+         */
+        BulkScore: {
+            /**
+             * Score
+             * @description Must not exceed the course maximum.
+             * @example 85
+             */
+            score: number;
+            /**
+             * Student Id
+             * @example S001
+             */
+            student_id: string;
+        };
+        /**
          * CommandRequest
          * @description An instruction for the command palette.
          */
@@ -1898,6 +2013,35 @@ export interface components {
              * @description ISO-8601 UTC.
              */
             updated_at?: string | null;
+        };
+        /**
+         * CourseResult
+         * @description One student's standing in one course.
+         */
+        CourseResult: {
+            /** Average Percentage */
+            average_percentage: number;
+            /** Course Id */
+            course_id: string;
+            /** Course Name */
+            course_name: string;
+            /**
+             * Credits
+             * @description What the course is worth, and its weight in the GPA.
+             */
+            credits: number;
+            /** Grade Count */
+            grade_count: number;
+            /**
+             * Letter
+             * @description Band the course average falls in.
+             */
+            letter: string;
+            /**
+             * Points
+             * @description What that band is worth, or null when the grading scale prices no points.
+             */
+            points: number | null;
         };
         /**
          * CourseRollup
@@ -2262,6 +2406,11 @@ export interface components {
             label: string;
             /** Min Percentage */
             min_percentage: number;
+            /**
+             * Points
+             * @description Worth in a grade point average — 4.0 for an A on a US scale, 1.0 for a German 1. Omit it and no GPA is reported; there is no sensible default, because a scale that awards its lowest number to its best grade would be inverted by any guess. No relation to `min_percentage` is enforced.
+             */
+            points?: number | null;
         };
         /**
          * GradeBandResponse
@@ -2272,6 +2421,11 @@ export interface components {
             label: string;
             /** Min Percentage */
             min_percentage: number;
+            /**
+             * Points
+             * @description Worth in a grade point average. Null until the institution sets it.
+             */
+            points?: number | null;
         };
         /**
          * GradeCreateRequest
@@ -3311,12 +3465,22 @@ export interface components {
         StudentReportResponse: {
             /** Average Percentage */
             average_percentage: number | null;
+            /**
+             * Courses
+             * @description One standing per course, the basis of the GPA.
+             */
+            courses: components["schemas"]["CourseResult"][];
             /** Courses Graded */
             courses_graded: number;
             /** Email */
             email: string;
             /** Failed Count */
             failed_count: number;
+            /**
+             * Gpa
+             * @description Credit-weighted grade point average, or null when the grading scale prices no bands. Not the same thing as `average_percentage`: that weights each mark by its own weight, this weights each course by its credits, so a six-credit course counts six times a one-credit one.
+             */
+            gpa: number | null;
             /** Grades */
             grades: components["schemas"]["GradeLine"][];
             /** Passed Count */
@@ -5047,6 +5211,51 @@ export interface operations {
                 content?: never;
             };
             /** @description `VALIDATION_ERROR` — score out of range, or an unparseable date. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    record_grades_grades_bulk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkGradeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkGradeResponse"];
+                };
+            };
+            /** @description `FORBIDDEN` — you cannot grade this course. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `COURSE_NOT_FOUND`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `VALIDATION_ERROR` — an unparseable date, or too many marks. */
             422: {
                 headers: {
                     [name: string]: unknown;
