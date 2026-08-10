@@ -1481,6 +1481,32 @@ export interface components {
             title: string;
         };
         /**
+         * AssessmentSchema
+         * @description One piece of assessed work a course marks, and what it is worth.
+         *
+         *     Defined on the course rather than typed per mark. `grades.title` was free text
+         *     and `grades.weight` a float on every row, which made a course-level fact behave
+         *     like a per-row one -- and `course_assessments_report` groups by exact string
+         *     equality, so "Midterm" and "midterm" already split one assessment into two.
+         *
+         *     A grade still stores its own name and weight. This says what the course *offers*;
+         *     changing it does not reweight marks already awarded.
+         */
+        AssessmentSchema: {
+            /**
+             * Name
+             * @example Midterm
+             */
+            name: string;
+            /**
+             * Weight
+             * @description How much this counts against the course's other assessments. A final worth 3 counts three times a quiz worth 1. Not to be confused with a course's `credits`, which weighs whole courses against each other in the GPA.
+             * @default 1
+             * @example 2.5
+             */
+            weight: number;
+        };
+        /**
          * AuditEntryResponse
          * @description One entry from an entity's change history.
          */
@@ -1808,6 +1834,8 @@ export interface components {
          * @description A new course.
          */
         CourseCreateRequest: {
+            /** Assessments */
+            assessments?: components["schemas"]["AssessmentSchema"][];
             /**
              * Course Id
              * @example CS301
@@ -1897,6 +1925,11 @@ export interface components {
          * @description A course, with enrolment counts.
          */
         CourseResponse: {
+            /**
+             * Assessments
+             * @description What this course marks, in display order. Empty means free text.
+             */
+            assessments?: components["schemas"]["AssessmentSchema"][];
             /**
              * Course Id
              * @description Institution-assigned code.
@@ -2068,6 +2101,8 @@ export interface components {
          * @description Changes to a course. Omitted fields are left alone.
          */
         CourseUpdateRequest: {
+            /** Assessments */
+            assessments?: components["schemas"]["AssessmentSchema"][];
             /** Credits */
             credits?: number | null;
             /** Department */

@@ -453,7 +453,8 @@
       "saved": "Changes saved.",
       "background": "Page background",
       "points": "Grade points",
-      "pointsHint": "Optional"
+      "pointsHint": "Optional",
+      "previewCard": "Cards and tables"
     },
     "users": {
       "title": "Accounts",

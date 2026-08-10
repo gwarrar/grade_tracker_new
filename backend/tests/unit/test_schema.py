@@ -294,3 +294,95 @@ class TestGradePoints:
             "SELECT grading_scale_json FROM organization WHERE id = 1"
         ).fetchone()[0]
         assert stored == custom
+
+
+class TestCourseAssessments:
+    """Migration 011 seeds each course from the marks it has already recorded."""
+
+    def _grade(self, conn: sqlite3.Connection, course_id: str, title: str, weight: float) -> None:
+        conn.execute(
+            "INSERT INTO grades (student_id, course_id, score, date, title, weight)"
+            " VALUES ('S1', ?, 70, '2026-01-01', ?, ?)",
+            (course_id, title, weight),
+        )
+
+    def _seed_course(self, conn: sqlite3.Connection, course_id: str) -> None:
+        conn.execute(
+            "INSERT OR IGNORE INTO students (student_id, first_name, last_name, email)"
+            " VALUES ('S1', 'A', 'B', 'a@b.co')"
+        )
+        conn.execute("INSERT INTO courses (course_id, name) VALUES (?, 'Course')", (course_id,))
+
+    def _rerun_011(self, conn: sqlite3.Connection) -> None:
+        """Replay migration 011 against a database that already holds grades.
+
+        The fixture migrates on creation, so by the time a test has inserted marks
+        the migration has already run and found nothing -- `apply_migrations` records
+        each version and will not repeat it. Dropping the table and forgetting the
+        version reproduces the real upgrade: an existing installation, full of marks,
+        meeting this migration for the first time.
+        """
+        conn.execute("DROP TABLE course_assessments")
+        conn.execute("DELETE FROM schema_migrations WHERE version = '011_course_assessments'")
+        apply_migrations(conn)
+
+    def test_the_scheme_is_backfilled_from_existing_marks(
+        self, sqlite_conn: sqlite3.Connection
+    ) -> None:
+        """So no course arrives empty and none loses the scheme it has been using."""
+        self._seed_course(sqlite_conn, "C1")
+        self._grade(sqlite_conn, "C1", "Midterm", 1.0)
+        self._grade(sqlite_conn, "C1", "Final", 2.5)
+
+        self._rerun_011(sqlite_conn)
+
+        rows = sqlite_conn.execute(
+            "SELECT name, weight FROM course_assessments WHERE course_id = 'C1' ORDER BY name"
+        ).fetchall()
+        assert [(row[0], row[1]) for row in rows] == [("Final", 2.5), ("Midterm", 1.0)]
+
+    def test_untitled_marks_seed_nothing(self, sqlite_conn: sqlite3.Connection) -> None:
+        """An empty title is "one overall grade", not an assessment called ""."""
+        self._seed_course(sqlite_conn, "C2")
+        self._grade(sqlite_conn, "C2", "", 1.0)
+
+        self._rerun_011(sqlite_conn)
+
+        assert (
+            sqlite_conn.execute(
+                "SELECT COUNT(*) FROM course_assessments WHERE course_id = 'C2'"
+            ).fetchone()[0]
+            == 0
+        )
+
+    def test_one_title_with_two_weights_collapses_deterministically(
+        self, sqlite_conn: sqlite3.Connection
+    ) -> None:
+        """Nothing ever stopped the same title carrying different weights on different
+        rows. MAX is a decision rather than a coin toss; an administrator who
+        disagrees edits the course."""
+        self._seed_course(sqlite_conn, "C3")
+        self._grade(sqlite_conn, "C3", "Final", 1.0)
+        self._grade(sqlite_conn, "C3", "Final", 3.0)
+
+        self._rerun_011(sqlite_conn)
+
+        rows = sqlite_conn.execute(
+            "SELECT name, weight FROM course_assessments WHERE course_id = 'C3'"
+        ).fetchall()
+        assert [(row[0], row[1]) for row in rows] == [("Final", 3.0)]
+
+    def test_a_blank_name_cannot_be_stored(self, sqlite_conn: sqlite3.Connection) -> None:
+        self._seed_course(sqlite_conn, "C4")
+        with pytest.raises(sqlite3.IntegrityError):
+            sqlite_conn.execute(
+                "INSERT INTO course_assessments (course_id, name) VALUES ('C4', '  ')"
+            )
+
+    def test_a_name_is_unique_within_a_course(self, sqlite_conn: sqlite3.Connection) -> None:
+        self._seed_course(sqlite_conn, "C5")
+        sqlite_conn.execute("INSERT INTO course_assessments (course_id, name) VALUES ('C5', 'F')")
+        with pytest.raises(sqlite3.IntegrityError):
+            sqlite_conn.execute(
+                "INSERT INTO course_assessments (course_id, name) VALUES ('C5', 'F')"
+            )

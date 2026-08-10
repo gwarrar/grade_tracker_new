@@ -64,6 +64,12 @@ _COURSE_SELECT = (
     "   FROM (SELECT requires_course_id FROM course_prerequisites"
     "         WHERE course_id = c.course_id ORDER BY requires_course_id)), '[]')"
     "   AS prerequisite_ids_json,"
+    # Same shape as the prerequisites above and for the same reason: fetched per row
+    # this would be one follow-up query per course on a list of two hundred.
+    " COALESCE((SELECT json_group_array(json_object('name', name, 'weight', weight))"
+    "   FROM (SELECT name, weight FROM course_assessments"
+    "         WHERE course_id = c.course_id ORDER BY position, name)), '[]')"
+    "   AS assessments_json,"
     " u.full_name AS teacher_name,"
     " (SELECT COUNT(*) FROM enrollments e"
     "   WHERE e.course_id = c.course_id AND e.status = 'active') AS enrolled_count,"
@@ -509,6 +515,7 @@ class DirectoryService:
         self._assert_teaches(teacher_id)
 
         prerequisite_ids = [str(value) for value in payload.get("prerequisite_ids", [])]
+        assessments = [dict(entry) for entry in payload.get("assessments", [])]
 
         course = Course(
             course_id=str(payload["course_id"]),
@@ -529,12 +536,14 @@ class DirectoryService:
             "end_date": _date_text(payload.get("end_date")),
             "status": payload.get("status", "active"),
             "prerequisite_ids": prerequisite_ids,
+            "assessments": assessments,
         }
         with transaction(self._conn):
             self._store.add_course(course)
             self._update_course_metadata(course.course_id, metadata)
             self._validate_prerequisites(course.course_id, prerequisite_ids)
             self._replace_prerequisites(course.course_id, prerequisite_ids)
+            self._replace_assessments(course.course_id, assessments)
             audit.record(
                 self._conn,
                 actor_user_id=self._principal.user_id,
@@ -588,6 +597,7 @@ class DirectoryService:
             "end_date": _date_text(changes.get("end_date", current["end_date"])),
             "status": changes.get("status", current["status"]),
             "prerequisite_ids": prerequisite_ids,
+            "assessments": changes.get("assessments", current["assessments"]),
         }
 
         # Only an administrator may hand a course to somebody else -- otherwise a
@@ -606,6 +616,13 @@ class DirectoryService:
             if "prerequisite_ids" in changes:
                 self._validate_prerequisites(course_id, prerequisite_ids)
                 self._replace_prerequisites(course_id, prerequisite_ids)
+            # Only when sent. Omission means unchanged, and rewriting the scheme on
+            # every unrelated edit would delete it for any client that patches one
+            # field at a time.
+            if "assessments" in changes:
+                self._replace_assessments(
+                    course_id, [dict(entry) for entry in changes["assessments"]]
+                )
             audit.record(
                 self._conn,
                 actor_user_id=self._principal.user_id,
@@ -969,6 +986,58 @@ class DirectoryService:
                 missing=missing,
             )
 
+    def _validate_assessments(self, assessments: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Validate and normalise a course's complete assessment scheme.
+
+        Args:
+            assessments: ``{"name": str, "weight": float}`` in display order.
+
+        Returns:
+            The same entries, names stripped and `position` assigned from the order
+            they arrived in — the caller's order is the scheme's order.
+
+        Raises:
+            ValidationError: If a name is blank, two names collide once stripped, or
+                a weight is not positive.
+        """
+        cleaned: list[dict[str, Any]] = []
+        for position, entry in enumerate(assessments):
+            name = str(entry.get("name", "")).strip()
+            if not name:
+                raise ValidationError("An assessment needs a name.", field="assessments")
+
+            weight = float(entry.get("weight", 1.0))
+            if weight <= 0:
+                raise ValidationError(
+                    "An assessment's weight must be greater than zero.",
+                    field="assessments",
+                    name=name,
+                    weight=weight,
+                )
+            cleaned.append({"name": name, "weight": weight, "position": position})
+
+        # Compared after stripping, because "Final" and "Final " would otherwise pass
+        # here and then collide on the primary key -- which is the same duplicate the
+        # report has been silently splitting on all along.
+        names = [entry["name"] for entry in cleaned]
+        if len(set(names)) != len(names):
+            raise ValidationError(
+                "Assessment names must be unique within a course.",
+                field="assessments",
+                names=sorted(names),
+            )
+        return cleaned
+
+    def _replace_assessments(self, course_id: str, assessments: list[dict[str, Any]]) -> None:
+        """Replace a course's scheme inside the caller's transaction."""
+        cleaned = self._validate_assessments(assessments)
+        self._conn.execute("DELETE FROM course_assessments WHERE course_id = ?", (course_id,))
+        self._conn.executemany(
+            "INSERT INTO course_assessments (course_id, name, weight, position)"
+            " VALUES (?, ?, ?, ?)",
+            ((course_id, entry["name"], entry["weight"], entry["position"]) for entry in cleaned),
+        )
+
     def _replace_prerequisites(self, course_id: str, prerequisite_ids: list[str]) -> None:
         """Replace a course's prerequisite set inside the caller's transaction."""
         try:
@@ -1045,9 +1114,10 @@ def _student_dict(row: Any) -> dict[str, Any]:
 
 
 def _course_dict(row: Any) -> dict[str, Any]:
-    """Convert a course row and decode its aggregated prerequisite ids."""
+    """Convert a course row and decode its aggregated prerequisites and scheme."""
     payload = dict(row)
     payload["prerequisite_ids"] = json.loads(payload.pop("prerequisite_ids_json"))
+    payload["assessments"] = json.loads(payload.pop("assessments_json"))
     return payload
 
 

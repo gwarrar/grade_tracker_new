@@ -11,8 +11,8 @@
  * default — so the organisation's colours applied only once somebody explicitly
  * toggled light or dark, and silently did not otherwise. Explicit light and dark
  * happened to work on source order, which is a tie-break, not a design. Doubling
- * doubling `:root` raises every rule above the tokens it is meant to override, so placement
- * of the tag stops mattering.
+ * doubling `:root` raises every rule above the tokens it is meant to override, so
+ * placement of the tag stops mattering.
  *
  * **Print.** `globals.css` resets the surfaces to paper for `@media print`, and it
  * would lose to the raised specificity here. The background rules are therefore
@@ -22,7 +22,7 @@
  * what that stylesheet is for.
  */
 
-import { readableTextOn, type ModePair } from "./contrast";
+import { readableTextOn, SURFACE_MIX, type ModePair } from "./contrast";
 
 export interface BrandingColors {
   primary: ModePair;
@@ -40,22 +40,31 @@ function brandBlock(color: string, accent: string): string {
 }
 
 /**
- * The page backdrop and the step away from it that rows and chips sit on.
+ * The page backdrop, the step away from it that rows sit on, and the surfaces above.
  *
- * `--bg-subtle` is derived rather than configured because it is a *relative*
- * token — hover rows, the active nav item, keyboard chips. Left at a fixed grey it
- * would clash the moment the page is tinted, and asking for a second colour to
- * solve that is asking the wrong person.
+ * All derived rather than configured. `--bg-subtle` is a *relative* token — hover
+ * rows, the active nav item, keyboard chips — and left at a fixed grey it clashes the
+ * moment the page is tinted. Mixing toward `--text` is what makes one expression
+ * correct in both modes: `--text` is near-black in light and near-white in dark, so
+ * the same rule darkens a light background and lightens a dark one, which is the
+ * direction the shipped `#fbfbfa → #f4f4f2` and `#08080a → #101013` pairs go.
  *
- * Mixing toward `--text` is what makes one expression correct in both modes:
- * `--text` is near-black in light and near-white in dark, so the same rule darkens
- * a light background and lightens a dark one — the direction the shipped
- * `#fbfbfa → #f4f4f2` and `#08080a → #101013` pairs already go.
+ * The surfaces mix toward **white in both themes**, because that is the direction the
+ * shipped tokens go in both: `#fbfbfa → #ffffff` in light, and
+ * `#08080a → #121216 → #1a1a20 → #1e1e25` in dark. A card is a step up from the page
+ * either way, so one rule serves both and there is no mode-dependent branch to get
+ * backwards.
+ *
+ * They were left out of the first version of this, which meant an organisation could
+ * tint its page and watch every table and card stay the product's own colour.
  */
 function backgroundBlock(color: string): string {
   return [
     `  --bg: ${color};`,
     `  --bg-subtle: color-mix(in oklab, ${color} 96%, var(--text));`,
+    `  --surface: color-mix(in oklab, ${color} ${SURFACE_MIX.surface}%, white);`,
+    `  --surface-raised: color-mix(in oklab, ${color} ${SURFACE_MIX.raised}%, white);`,
+    `  --surface-overlay: color-mix(in oklab, ${color} ${SURFACE_MIX.overlay}%, white);`,
   ].join("\n");
 }
 

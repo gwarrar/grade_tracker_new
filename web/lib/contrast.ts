@@ -56,6 +56,20 @@ const TEXT_ON_LIGHT = ["#14140f", "#5c5c54"];
 const TEXT_ON_DARK = ["#f2f2ef", "#a3a39c"];
 
 /**
+ * How much of the page colour each surface keeps, the rest being white.
+ *
+ * Cards, panels and modals are derived from the configured background rather than
+ * chosen, so these are the numbers `branding-css.ts` writes into `color-mix` and the
+ * numbers this module has to judge against. They live here, the lower of the two
+ * modules, because two copies that drift mean the gate approves a colour the browser
+ * never renders.
+ */
+export const SURFACE_MIX = { surface: 94, raised: 90, overlay: 87 } as const;
+
+/** The palest of them, and therefore the worst case for text in dark mode. */
+const SURFACE_OVERLAY_MIX = SURFACE_MIX.overlay;
+
+/**
  * Parse a hex colour into RGB components.
  *
  * @param hex - `#rgb` or `#rrggbb`, with or without the hash.
@@ -211,14 +225,20 @@ export function suggestDarkVariant(
  * Driving the text colour from the background instead would rescue `--text` and
  * abandon the muted, subtle, border and semantic tokens, which are tuned as a ramp.
  *
+ * The **surfaces are judged too**, not only the page. Cards, tables and modals are
+ * derived from the background as steps toward white, so in dark mode they are paler
+ * than the backdrop while the text stays light — which makes the topmost surface the
+ * worst case and exactly the one a page-only check cannot see.
+ *
  * @param light - The light-mode background.
  * @param dark - The dark-mode background.
- * @returns Both results, and whether the pair keeps body copy readable.
+ * @returns Both results, and whether the pair keeps body copy readable everywhere it
+ *   is rendered.
  */
 export function checkBackground(light: string, dark: string): DualModeResult {
   const worst = (background: string, texts: string[]): ContrastResult =>
-    texts
-      .map((text) => checkContrast(text, background))
+    [background, palestSurface(background)]
+      .flatMap((surface) => texts.map((text) => checkContrast(text, surface)))
       .reduce((a, b) => (a.ratio <= b.ratio ? a : b));
 
   const lightResult = worst(light, TEXT_ON_LIGHT);
@@ -228,6 +248,28 @@ export function checkBackground(light: string, dark: string): DualModeResult {
     dark: darkResult,
     usable: lightResult.passesAA && darkResult.passesAA,
   };
+}
+
+/**
+ * The lightest surface a background produces — the modal overlay.
+ *
+ * Approximates the browser's `color-mix(in oklab, …)` with a straight sRGB blend.
+ * Deliberately approximate: oklab lightens a touch less than sRGB at these small
+ * proportions, so this reads slightly paler than what renders and the gate refuses
+ * marginally early. That is the right direction for a readability check, and cheaper
+ * than carrying an oklab implementation for a number that only has to be
+ * conservative.
+ *
+ * @param background - The configured page colour.
+ * @returns The approximate overlay colour, or the input if it cannot be parsed.
+ */
+function palestSurface(background: string): string {
+  const rgb = parseHex(background);
+  if (!rgb) return background;
+
+  const kept = SURFACE_OVERLAY_MIX / 100;
+  const blended = rgb.map((channel) => Math.round(channel * kept + 255 * (1 - kept)));
+  return `#${blended.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
 }
 
 /**

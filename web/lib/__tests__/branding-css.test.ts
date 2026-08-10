@@ -73,6 +73,34 @@ describe("brandingCss", () => {
     expect(screen).not.toContain("--brand-primary:");
   });
 
+  it("derives the card surfaces from the background too", () => {
+    // Left out of the first version, which meant an organisation could tint its page
+    // and watch every table, card and modal keep the product's own colour.
+    for (const token of ["--surface", "--surface-raised", "--surface-overlay"]) {
+      expect(css).toContain(`${token}: color-mix(in oklab, ${COLORS.background.light}`);
+    }
+  });
+
+  it("lightens the surfaces in both themes", () => {
+    // Toward white either way: that is the direction the shipped tokens go in light
+    // (#fbfbfa to #ffffff) and in dark (#08080a upward). A card is a step above the
+    // page in both, so a mode-dependent rule would only be one more thing to invert.
+    const surfaces = [...css.matchAll(/--surface[a-z-]*: color-mix\([^;]+;/g)].map((m) => m[0]);
+    expect(surfaces.length).toBeGreaterThan(0);
+    for (const rule of surfaces) {
+      expect(rule).toContain("white)");
+    }
+  });
+
+  it("keeps the surfaces out of print with the rest of the background", () => {
+    const screen = screenBlock(css);
+    const surfaces = [...css.matchAll(/--surface[a-z-]*:/g)];
+    expect(surfaces.length).toBeGreaterThan(0);
+    for (const match of surfaces) {
+      expect(match.index).toBeGreaterThan(css.length - screen.length - 1);
+    }
+  });
+
   it("derives the subtle step from the configured background", () => {
     // Fixed grey hover rows on a tinted page is the failure this avoids. Mixing
     // toward --text is what makes one expression right in both modes.

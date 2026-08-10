@@ -15,6 +15,7 @@ import {
   checkBothModes,
   readableTextOn,
   suggestDarkVariant,
+  SURFACE_MIX,
 } from "@/lib/contrast";
 import {
   validateGradingScale,
@@ -453,10 +454,12 @@ function ColorPreview({ colors }: { colors: Branding["colors"] }) {
   return (
     <div className="mt-4 grid gap-4 sm:grid-cols-2" aria-label={t("preview")}>
       {(["light", "dark"] as const).map((mode) => {
-        // Taken from the form rather than hardcoded to the shipped values. With
-        // the background configurable, a fixed preview would show a page nobody is
-        // going to see — and this is where the decision that cards keep their own
-        // colour becomes visible before saving rather than after.
+        // Taken from the form rather than hardcoded to the shipped values: with the
+        // background configurable, a fixed preview shows a page nobody will see.
+        //
+        // The card inside uses the same mix `branding-css.ts` writes, so what this
+        // shows is what renders. Without it the preview was a flat rectangle and the
+        // question "do my tables change too?" could only be answered by saving.
         const style: PreviewStyle = {
           "--preview-primary": colors.primary[mode],
           "--preview-accent": colors.accent[mode],
@@ -467,6 +470,14 @@ function ColorPreview({ colors }: { colors: Branding["colors"] }) {
           <div key={mode} className="rounded-xl border border-line p-5" style={style}>
             <p className="text-xs uppercase tracking-wide opacity-60">{t(mode)}</p>
             <p className="mt-3 text-lg font-semibold">{t("previewHeading")}</p>
+            <div
+              className="mt-3 rounded-lg border border-current/10 p-3 text-sm"
+              style={{
+                backgroundColor: `color-mix(in oklab, ${colors.background[mode]} ${SURFACE_MIX.surface}%, white)`,
+              }}
+            >
+              {t("previewCard")}
+            </div>
             <div className="mt-4 flex gap-2">
               <span
                 className="rounded-lg px-3 py-2 text-sm font-medium"

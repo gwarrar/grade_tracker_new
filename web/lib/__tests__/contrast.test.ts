@@ -143,6 +143,22 @@ describe("checkBackground", () => {
     expect(checkBackground("#fbfbfa", "#9a9aa0").usable).toBe(false);
   });
 
+  it("judges the card surfaces, not only the page", () => {
+    // Cards are derived from the background as steps toward white, so in dark mode
+    // they are paler than the backdrop while the text stays light. The topmost
+    // surface is the worst case, and exactly the one a page-only check misses.
+    //
+    // Both assertions matter. #2a2a2e clears AA on the page for body *and* muted
+    // text, so a page-only gate accepts it; muted text on the modal it produces
+    // comes out at 3.71 and does not. Without the first assertion this test would
+    // still pass if the page check were the one doing the rejecting, and would then
+    // be proving nothing about surfaces at all.
+    expect(checkContrast("#f2f2ef", "#2a2a2e").passesAA).toBe(true);
+    expect(checkContrast("#a3a39c", "#2a2a2e").passesAA).toBe(true);
+
+    expect(checkBackground("#fbfbfa", "#2a2a2e").usable).toBe(false);
+  });
+
   it("is decided by the worse of body and muted text", () => {
     // Muted text fails first, so a background that passes only `--text` must still
     // be refused — half-legible is not a state worth shipping.

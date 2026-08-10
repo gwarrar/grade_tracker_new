@@ -453,7 +453,8 @@
       "saved": "Änderungen gespeichert.",
       "background": "Seitenhintergrund",
       "points": "Notenpunkte",
-      "pointsHint": "Optional"
+      "pointsHint": "Optional",
+      "previewCard": "Karten und Tabellen"
     },
     "users": {
       "title": "Konten",

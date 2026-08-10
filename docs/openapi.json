@@ -127,6 +127,35 @@
         "title": "AssessmentRow",
         "type": "object"
       },
+      "AssessmentSchema": {
+        "description": "One piece of assessed work a course marks, and what it is worth.\n\nDefined on the course rather than typed per mark. `grades.title` was free text\nand `grades.weight` a float on every row, which made a course-level fact behave\nlike a per-row one -- and `course_assessments_report` groups by exact string\nequality, so \"Midterm\" and \"midterm\" already split one assessment into two.\n\nA grade still stores its own name and weight. This says what the course *offers*;\nchanging it does not reweight marks already awarded.",
+        "properties": {
+          "name": {
+            "examples": [
+              "Midterm"
+            ],
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "weight": {
+            "default": 1.0,
+            "description": "How much this counts against the course's other assessments. A final worth 3 counts three times a quiz worth 1. Not to be confused with a course's `credits`, which weighs whole courses against each other in the GPA.",
+            "examples": [
+              2.5
+            ],
+            "exclusiveMinimum": 0.0,
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "AssessmentSchema",
+        "type": "object"
+      },
       "AuditEntryResponse": {
         "description": "One entry from an entity's change history.",
         "properties": {
@@ -758,6 +787,13 @@
       "CourseCreateRequest": {
         "description": "A new course.",
         "properties": {
+          "assessments": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentSchema"
+            },
+            "title": "Assessments",
+            "type": "array"
+          },
           "course_id": {
             "examples": [
               "CS301"
@@ -997,6 +1033,14 @@
       "CourseResponse": {
         "description": "A course, with enrolment counts.",
         "properties": {
+          "assessments": {
+            "description": "What this course marks, in display order. Empty means free text.",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentSchema"
+            },
+            "title": "Assessments",
+            "type": "array"
+          },
           "course_id": {
             "description": "Institution-assigned code.",
             "examples": [
@@ -1343,6 +1387,13 @@
       "CourseUpdateRequest": {
         "description": "Changes to a course. Omitted fields are left alone.",
         "properties": {
+          "assessments": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentSchema"
+            },
+            "title": "Assessments",
+            "type": "array"
+          },
           "credits": {
             "anyOf": [
               {

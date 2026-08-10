@@ -453,7 +453,8 @@
       "saved": "Modifications enregistrées.",
       "background": "Arrière-plan de la page",
       "points": "Points de note",
-      "pointsHint": "Facultatif"
+      "pointsHint": "Facultatif",
+      "previewCard": "Cartes et tableaux"
     },
     "users": {
       "title": "Comptes",
