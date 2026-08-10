@@ -299,11 +299,7 @@ class GradeBook:
         Returns:
             ``(student, average_percentage)`` pairs, highest first.
         """
-        ranked: list[tuple[Student, float]] = []
-        for student_id, student in self.students.items():
-            grades = self.store.get_student_grades(student_id)
-            if grades:
-                ranked.append((student, weighted_mean([(g.percentage, g.weight) for g in grades])))
+        ranked = self._student_averages()
         ranked.sort(key=lambda pair: pair[1], reverse=True)
         return ranked[:n]
 
@@ -317,16 +313,39 @@ class GradeBook:
             ``(student, average_percentage)`` pairs, lowest first — worst case first
             is what an intervention list is read for.
         """
-        at_risk: list[tuple[Student, float]] = []
-        for student_id, student in self.students.items():
-            grades = self.store.get_student_grades(student_id)
-            if not grades:
-                continue  # no data is not the same as poor performance
-            average = weighted_mean([(g.percentage, g.weight) for g in grades])
-            if average < threshold:
-                at_risk.append((student, average))
+        at_risk = [pair for pair in self._student_averages() if pair[1] < threshold]
         at_risk.sort(key=lambda pair: pair[1])
         return at_risk
+
+    def _student_averages(self) -> list[tuple[Student, float]]:
+        """Every graded student's weighted average, in one pass.
+
+        Both rankings used to walk `self.students` and call `get_student_grades` per
+        student, which is a query each. A summary report calls both, so one request
+        issued 2*(2N+1) queries for N students -- and neither pass reused the other's
+        work, on top of `calculate_statistics` having already loaded every grade.
+
+        Grouping one `get_all_grades()` here makes it a single read. Students with no
+        grades never appear, which is what both callers already wanted: no data is
+        not the same as poor performance, and ranking an unassessed student as zero
+        would put them at the top of an intervention list.
+
+        Returns:
+            ``(student, average_percentage)`` for every student holding a grade,
+            unordered -- each caller sorts for its own purpose.
+        """
+        by_student: dict[str, list[tuple[float, float]]] = {}
+        for grade in self.grades:
+            by_student.setdefault(grade.student.student_id, []).append(
+                (grade.percentage, grade.weight)
+            )
+
+        students = self.students
+        return [
+            (students[student_id], weighted_mean(values))
+            for student_id, values in by_student.items()
+            if student_id in students and values
+        ]
 
     def graded_student_count(self, course_id: str) -> int:
         """Return how many **distinct students** hold a grade in a course.

@@ -89,7 +89,13 @@ addopts = "-q --strict-markers"
 pythonpath = ["src"]
 
 [tool.coverage.run]
-source = ["src/notenverwaltung", "src/services", "src/llm"]
+# `src/api` was missing rather than excluded, which is a quieter way to go
+# unmeasured: every router, `deps.py` and `problems.py` are executed by the API
+# tests, so they looked covered, but the 85% floor provably did not apply to them
+# and a new router could be added with no test at all and lower nothing. They are
+# the request/response contracts and the role guards -- the least appropriate
+# thing in the tree to leave outside the gate. It measured 93% when added.
+source = ["src/notenverwaltung", "src/services", "src/llm", "src/api"]
 branch = true
 
 [tool.coverage.report]

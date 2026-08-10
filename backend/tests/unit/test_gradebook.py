@@ -5,6 +5,7 @@ Runs against both stores via the parametrised `gradebook` fixture.
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -17,7 +18,7 @@ from notenverwaltung.exceptions import (
 )
 from notenverwaltung.gradebook import GradeBook
 from notenverwaltung.models import Course, Student
-from notenverwaltung.storage import InMemoryGradeStore
+from notenverwaltung.storage import InMemoryGradeStore, SqliteGradeStore
 
 
 class TestAverages:
@@ -257,3 +258,47 @@ class TestStatistics:
             GradeBook(InMemoryGradeStore()).calculate_statistics()["overall_average_percentage"]
             is None
         )
+
+
+class TestRankingQueryCost:
+    """Both rankings walked every student issuing a query each, and a summary report
+    calls both — so one request cost 2*(2N+1) queries for N students, with neither
+    pass reusing the other's work.
+
+    Counted rather than timed. A timing assertion on a three-student fixture measures
+    nothing; the query count is the thing that grew with the register.
+    """
+
+    def test_ranking_reads_the_grades_once(self, sqlite_conn: sqlite3.Connection) -> None:
+        book = GradeBook(SqliteGradeStore(sqlite_conn))
+        book.add_course(Course("C1", "Course", max_grade=100.0))
+        for index in range(6):
+            student_id = f"S{index:03d}"
+            book.add_student(Student(student_id, "First", f"Last{index}", f"s{index}@test.local"))
+            sqlite_conn.execute(
+                "INSERT INTO enrollments (student_id, course_id) VALUES (?, 'C1')", (student_id,)
+            )
+            book.record_grade(student_id, "C1", 50 + index * 5, "2026-01-15")
+
+        statements: list[str] = []
+        sqlite_conn.set_trace_callback(statements.append)
+        try:
+            book.top_students()
+            book.students_at_risk()
+        finally:
+            sqlite_conn.set_trace_callback(None)
+
+        # Two rankings, and the count must not scale with the six students. Each pass
+        # reads the grades and the students once; the old shape issued a query per
+        # student per pass on top of that.
+        selects = [sql for sql in statements if sql.lstrip().upper().startswith("SELECT")]
+        assert len(selects) <= 6, selects
+
+    def test_the_rankings_still_agree_with_the_averages(self, gradebook: GradeBook) -> None:
+        """The refactor must not change a single number. Anna averages 87.5%, Ben 45%,
+        and Clara has no grades at all — she appears in neither list."""
+        top = gradebook.top_students()
+        at_risk = gradebook.students_at_risk()
+
+        assert [(s.student_id, round(avg, 1)) for s, avg in top] == [("S001", 87.5), ("S002", 45.0)]
+        assert [(s.student_id, round(avg, 1)) for s, avg in at_risk] == [("S002", 45.0)]
