@@ -76,9 +76,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here on purpose. It is pinned by `packageManager` in
+      # web/package.json, and action-setup reads that. Two sources drifted apart
+      # once already -- node_modules built by pnpm 11 against a pnpm 10 on PATH,
+      # after which every `pnpm add` refused to run -- and specifying both here
+      # makes action-setup fail outright when they disagree.
+      # `package_json_file` because there is no package.json at the repository
+      # root: `defaults.run.working-directory` applies to `run:` steps only, not
+      # to an action, so this step would otherwise look in the wrong place.
       - uses: pnpm/action-setup@v4
         with:
-          version: 10
+          package_json_file: web/package.json
 
       - uses: actions/setup-node@v4
         with:

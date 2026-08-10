@@ -26,6 +26,11 @@ export function Modal({
   }, [open]);
 
   return (
+    // Backdrop dismissal below. The keyboard equivalent is not missing, it is
+    // Escape, which `onCancel` already handles; a keydown listener here would be a
+    // second and worse path to the same thing. The rule cannot see that a <dialog>
+    // opened with showModal() is interactive by construction.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <dialog
       ref={dialogRef}
       className="no-print"

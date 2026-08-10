@@ -73,6 +73,10 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
       <form onSubmit={onSubmit} className="mt-4 flex gap-2">
         <input
           name="question"
+          // The panel opens only on an explicit click, and asking a question is the
+          // single thing it is for: focus follows the action the user just took
+          // rather than jumping unbidden.
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
           placeholder={t("askPlaceholder")}
           className="flex-1 rounded-lg border border-line bg-bg px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"

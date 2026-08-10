@@ -66,6 +66,9 @@ export function LoginForm() {
           type="email"
           required
           autoComplete="username"
+          // The sign-in page holds this form and nothing else, so there is no
+          // content a screen-reader user would be skipped past.
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
           className="mt-1.5 w-full rounded-lg border border-line bg-bg px-3 py-2 text-text outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30"
         />

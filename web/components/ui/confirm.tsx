@@ -43,6 +43,10 @@ export function Confirm({
       onClose={pending ? () => {} : onCancel}
       footer={
         <div className="flex justify-end gap-2">
+          {/* A modal dialog must move focus inside itself, and the safe option is
+              the one to land on: this is the destructive confirm, so Cancel takes
+              it. */}
+          {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
           <button type="button" autoFocus disabled={pending} className="btn btn-ghost" onClick={onCancel}>
             {cancelLabel}
           </button>
