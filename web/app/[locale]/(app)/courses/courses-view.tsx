@@ -207,8 +207,10 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
               {t(`error.${allCourses.error instanceof ApiError ? allCourses.error.code : "NETWORK_ERROR"}` as "error.unknown")}
             </FormError>
           )}
+          {/* Same reason as the roster in `bulk-grades.tsx`: the dialog caps and
+              scrolls itself, so capping again here just nests two scrollbars. */}
           {allCourses.isSuccess ? (
-            <form onSubmit={createCourse} className="max-h-[70vh] space-y-4 overflow-y-auto pe-1">
+            <form onSubmit={createCourse} className="space-y-4">
               <CourseFields courses={allCourses.data.items} me={me} locale={locale} includeId />
               {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
               <div className="flex justify-end gap-2 pt-2">

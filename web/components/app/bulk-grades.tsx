@@ -211,8 +211,11 @@ export function BulkGrades({
             <p className="text-sm text-subtle">{t("grade.noStudents")}</p>
           )}
 
+          {/* The roster has no scroller of its own. The UA stylesheet already gives
+              <dialog> `max-height: calc(100% - 6px - 2em)` and `overflow: auto`, so
+              a second one here only nests a scrollbar inside a scrollbar. */}
           {roster.length > 0 && (
-            <div className="max-h-80 overflow-y-auto rounded-xl border border-line">
+            <div className="rounded-xl border border-line">
               <table className="data-table w-full text-sm">
                 <caption className="sr-only">{t("grade.bulkTitle")}</caption>
                 <thead>

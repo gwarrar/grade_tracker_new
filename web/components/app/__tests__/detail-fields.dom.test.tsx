@@ -45,6 +45,23 @@ describe("FieldHelp", () => {
     expect(trigger).toHaveAccessibleDescription(HELP);
   });
 
+  it("positions the tip against the viewport, not its scrolling ancestors", async () => {
+    const user = userEvent.setup();
+    show();
+
+    await user.tab();
+
+    // Every caller sits inside a <dialog>, which the UA stylesheet gives
+    // `overflow: auto`; an absolutely positioned tip is clipped by it. Only the
+    // wiring is checked here — jsdom zeroes every getBoundingClientRect, so
+    // whether the tip actually clears the dialog edge is a browser question.
+    const tip = screen.getByRole("tooltip", { hidden: true });
+
+    expect(tip.className.split(/\s+/)).toContain("fixed");
+    expect(tip.style.top).not.toBe("");
+    expect(tip.style.left).not.toBe("");
+  });
+
   it("hides the tip by opacity, never by display", () => {
     show();
 

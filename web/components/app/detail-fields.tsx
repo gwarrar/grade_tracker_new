@@ -9,7 +9,11 @@
  */
 
 import { useTranslations } from "next-intl";
-import { useId, type ReactNode } from "react";
+import { useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+
+/** Tip width and the gap it keeps from the trigger and the viewport edges, in px. */
+const TIP_WIDTH = 256;
+const TIP_GAP = 8;
 
 /**
  * An explanation available on demand, beside a field's label.
@@ -17,21 +21,64 @@ import { useId, type ReactNode } from "react";
  * Distinct from `hint`, which renders a permanent line: that is right for a
  * warning everybody must read and wrong for a definition somebody needs once.
  *
- * Revealed on hover **and** on focus. Focus is not optional — hover-only help is
- * unreachable by keyboard and invisible on a touchscreen, and this exists
- * precisely for the person who does not already know.
+ * Three properties look like styling and are not:
  *
- * Hidden by opacity rather than `hidden`, which matters more than it looks: a
- * `display: none` element is absent from the accessibility tree, so an
- * `aria-describedby` pointing into one resolves to nothing and the button ends
- * up with no description at all. The tip stays rendered; only its paint changes.
+ * **Revealed on hover *and* on focus.** Hover-only help is unreachable by
+ * keyboard and invisible on a touchscreen, which would exclude precisely the
+ * person this exists for.
+ *
+ * **Hidden by opacity, never by `display`.** A `display: none` element is absent
+ * from the accessibility tree, so `aria-describedby` would resolve to nothing and
+ * the description would vanish while looking identical on screen.
+ *
+ * **Positioned `fixed`, not `absolute`.** Every caller sits inside a `<dialog>`,
+ * which the UA stylesheet gives `overflow: auto` — and some sit inside a second
+ * scroller within it. An absolutely positioned tip is clipped by the nearest such
+ * ancestor, and a 16rem tip centred on a button in a 9rem grid column starts
+ * outside the dialog before any vertical question arises. A fixed element's
+ * containing block is the viewport, so no ancestor `overflow` can reach it, and
+ * it stays a DOM descendant of the dialog so it still paints in the top layer.
+ * Fixing it here rather than per container is what stops the next scroller from
+ * reintroducing it.
  */
 export function FieldHelp({ help }: { help: string }) {
   const t = useTranslations();
   const tipId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const tipRef = useRef<HTMLSpanElement>(null);
+  // Empty until first revealed, not `{top: 0, left: 0}`: the tip is invisible
+  // either way, and a placeholder coordinate would let a test that never fires the
+  // handler still read a position back.
+  const [place, setPlace] = useState<CSSProperties>({});
+
+  /**
+   * Put the tip under the trigger, flipping above when that would leave the
+   * viewport and clamping sideways so neither edge is cut off.
+   *
+   * ponytail: measured at reveal only, so scrolling with a tip open leaves it
+   * behind. The tip is `pointer-events-none`, so moving the pointer dismisses it
+   * and the case barely arises. CSS anchor positioning deletes this function
+   * outright once Firefox ships it.
+   */
+  function position() {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const height = tipRef.current?.offsetHeight ?? 0;
+    const below = rect.bottom + TIP_GAP;
+    setPlace({
+      top: below + height > window.innerHeight ? rect.top - height - TIP_GAP : below,
+      left: Math.min(
+        Math.max(rect.left + rect.width / 2 - TIP_WIDTH / 2, TIP_GAP),
+        window.innerWidth - TIP_WIDTH - TIP_GAP,
+      ),
+    });
+  }
+
   return (
-    <span className="group relative inline-flex">
+    <span className="group inline-flex" onMouseEnter={position} onFocus={position}>
       <button
+        ref={triggerRef}
         type="button"
         aria-label={t("action.help")}
         aria-describedby={tipId}
@@ -40,9 +87,11 @@ export function FieldHelp({ help }: { help: string }) {
         ?
       </button>
       <span
+        ref={tipRef}
         id={tipId}
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-md border border-line bg-surface-overlay px-3 py-2 text-xs font-normal text-text opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        style={{ ...place, width: TIP_WIDTH }}
+        className="pointer-events-none fixed z-20 rounded-md border border-line bg-surface-overlay px-3 py-2 text-xs font-normal text-text opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
       >
         {help}
       </span>

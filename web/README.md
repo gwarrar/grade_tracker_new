@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Grade Tracker — Frontend
 
-## Getting Started
+Next.js (App Router, Turbopack), React 19, TypeScript, Tailwind 4, next-intl,
+TanStack Query, vitest.
 
-First, run the development server:
+**Read `AGENTS.md` before writing code.** This is not the Next.js most references
+describe; check `node_modules/next/dist/docs/` for the version actually installed.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Running it
+
+Use the root launcher — `.\dev.cmd` from the project root starts both halves. See
+the root `README.md` for the rest.
+
+**Always `corepack pnpm`, never bare `pnpm`.** `package.json` pins `pnpm@11.18.0`
+and `.npmrc` sets a shared `store-dir`. A globally installed `pnpm` is usually
+older and refuses to work against a `node_modules` that 11 built; the error names
+a store mismatch rather than a version, which makes it easy to misread.
+
+**Never run `pnpm build` while the dev server is up.** Both write `.next` and
+Turbopack's cache does not survive two writers — it stops emitting chunks
+mid-build, every route then answers 500, and no ordinary restart clears it.
+`.\dev.cmd fresh` is the recovery.
+
+```powershell
+corepack pnpm typecheck
+corepack pnpm lint
+corepack pnpm test
+corepack pnpm gen:api     # after the backend's OpenAPI document changes
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Layout
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Path | Holds |
+|---|---|
+| `app/[locale]/` | Routes. One `*-view.tsx` client component per screen, kept whole rather than split into a component tree nobody can follow. |
+| `components/app/` | Pieces shared across screens. `detail-fields.tsx` is the form primitives every panel is built from. |
+| `components/ui/` | Generic: `Modal`, `Confirm`. |
+| `lib/` | Pure functions — formatting, contrast, permissions, the API client. Almost all of the test suite lives against these. |
+| `messages/` | `en` / `de` / `fr`. All three must carry every key; `message-keys.test.ts` fails otherwise. |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`lib/api-schema.d.ts` is generated from `docs/openapi.json`. Do not edit it —
+change the backend and re-run `gen:api`.
 
-## Learn More
+## Testing
 
-To learn more about Next.js, take a look at the following resources:
+vitest runs in `node` by default. A test needing a DOM opts in **per file**:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```ts
+/**
+ * @vitest-environment jsdom
+ */
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+vitest 4 removed `environmentMatchGlobs`, so there is no glob-based alternative.
 
-## Deploy on Vercel
+### The jsdom trap, which has produced false positives twice
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**jsdom applies no CSS and returns zeroed rects.** Tailwind classes have no
+computed effect and every `getBoundingClientRect()` is `0`. So:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `getComputedStyle(el).display` is never `"none"` however the class reads.
+- `toBeVisible()` and `toHaveAccessibleDescription()` pass against an element that
+  a browser would hide entirely.
+
+Both were probed against a deliberately reintroduced bug and both stayed green.
+When the decision *is* the class — `opacity-0` rather than `hidden`, `fixed`
+rather than `absolute` — assert the class list and say in the test why. It reads
+like the wrong instinct, which is exactly why it needs the comment.
+
+**A test that cannot fail is worse than no test**, because it reports safety that
+is not there. When a test is written for a specific bug, break the code and watch
+it go red before trusting it.
