@@ -237,6 +237,19 @@ transaction, recorded in `schema_migrations`:
 | `001_core.sql` | `organization` (singleton), `i18n_overrides`, `users`, `sessions`, `students`, `courses`, `enrollments`, `grades`, `audit_log` |
 | `002_ai.sql` | `ai_providers`, `ai_feature_models`, `ai_usage`, `ai_insights` |
 | `003_documents.sql` | `documents` — empty on purpose; the first rung of the search escalation path |
+| `004_ai_params.sql` | `ai_providers.params_json` |
+| `005_directory.sql` | `course_prerequisites`; the descriptive columns on `courses` and `students` |
+| `006_notes.sql` | `notes` |
+| `007_audit_guard.sql` | Triggers making `audit_log` append-only in the database, not only in the service |
+| `008_student_accounts.sql` | `students.user_id`, and the forced first password change |
+| `009_org_background.sql` | The per-theme background on `organization` |
+| `010_grade_points.sql` | Grade points on the banding scale — a data rewrite, not a schema change; the scale is JSON in `organization.grading_scale_json` |
+| `011_course_assessments.sql` | `course_assessments`, backfilled from the marks each course had already recorded |
+
+`course_assessments` is worth one line here because its shape is a decision rather
+than a detail: it names what a course marks and what each piece is worth, and it is
+deliberately **not** a foreign key on `grades`. Reweighting a course must not
+re-average marks already awarded under the old scheme. `docs/DECISIONS.md` §16.
 
 The SQL is deliberately portable: no `AUTOINCREMENT`, no `INSERT OR REPLACE`, no
 SQLite date functions, timestamps as ISO-8601 `TEXT`. Timestamps are written

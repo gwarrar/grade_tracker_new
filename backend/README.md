@@ -38,5 +38,29 @@ uv run ruff format --check
 uv run pyright
 ```
 
+## Migrations
+
+Numbered `.sql` files in `migrations/`, applied in filename order, each in its own
+transaction, recorded in `schema_migrations`. Additive only, and portable SQL —
+`../docs/ARCHITECTURE.md` §6 lists them and `../docs/DECISIONS.md` §1 says why.
+
+**Testing one has a trap.** The `sqlite_conn` fixture already applies every
+migration when it builds the connection, so a test that inserts rows and then
+calls `apply_migrations` is testing a no-op — and a backfill assertion against it
+passes for the wrong reason. Two tests did exactly that before it was noticed. To
+exercise a migration for real, undo it first:
+
+```python
+conn.execute("DROP TABLE course_assessments")
+conn.execute("DELETE FROM schema_migrations WHERE version = '011_course_assessments'")
+apply_migrations(conn)
+```
+
+A second trap, for data migrations: a `WHERE` clause matching a JSON string will
+miss rows the application has already rewritten, because `json.dumps` uses
+different separators from the seed literal. Match both spellings, or match on
+something that is not a serialized document. Migration 010 shipped broken for this
+reason and had to be widened.
+
 See `../docs/ARCHITECTURE.md` for the request lifecycle and authorization model, and
 `../docs/DECISIONS.md` for why each choice was made and what would reverse it.

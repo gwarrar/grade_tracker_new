@@ -345,3 +345,131 @@ known user, address alone lets one school behind one NAT lock itself out.
 **Reversal trigger:** a second process. The in-memory throttle is per-process, so
 two workers mean two independent lockout tables and an attacker gets double the
 attempts.
+
+---
+
+## 16. Course assessments are a table, not a column on `grades`
+
+`grades.title` was free text and `grades.weight` a float typed per mark, which made
+a course-level fact behave like a per-row one. Three things had already grown
+around the gap: the seed script carried a hard-coded list of `(title, weight)`
+pairs, every seeded course used the same three, and `course_assessments_report`
+groups by **exact string equality** — so "Midterm" and "midterm " were two
+assessments in the report and nobody was told.
+
+`course_assessments` says what a course *offers*. What it deliberately does not do
+is constrain `grades`: no foreign key, no column change, `grades` untouched.
+
+- **History must not move.** Reweighting a Final from 2.5 to 3 would otherwise
+  re-average every mark already awarded under the old scheme. A transcript that
+  changes because somebody edited a course setting is worse than a duplicate
+  string.
+- **Nothing else has to cope.** The CSV importer keeps accepting free text, the
+  report keeps grouping by title, `grades.title` keeps its sort and search. 918
+  existing tests passed untouched, which is the evidence the change stayed where
+  it was meant to.
+
+Migration 011 backfills each course from the marks it has already recorded, taking
+`MAX(weight)` where one title carried several — deterministic, and better than
+inventing a rule for data that should not have diverged.
+
+**Reversal trigger:** a requirement that reweighting a course *should* re-average
+marks already given. At that point history moving is the feature, and the foreign
+key is the right shape.
+
+---
+
+## 17. The branding background derives the card colours, and the gate checks the palest one
+
+An administrator sets one background; `--surface`, `--surface-raised` and
+`--surface-overlay` are mixed from it rather than staying fixed. Toward white in
+**both** themes, because that is the direction the shipped tokens already go in
+both — light `#fbfbfa → #ffffff`, dark `#08080a` upward — so one rule serves both
+and there is no mode-dependent branch to get backwards.
+
+The contrast gate had to follow, and this is the part that is not obvious. It
+judged text against the page only. In dark mode the derived surfaces are *lighter*
+than the page while the text stays light, which makes the topmost surface the
+worst case — and precisely the one a page-only check cannot see. It now judges
+both.
+
+The percentages live in `web/lib/contrast.ts`, the lower of the two modules, not
+in `branding-css.ts`: two copies would drift, and a drifted gate approves a colour
+the browser never renders.
+
+The check lerps in sRGB while the browser mixes in oklab, so it approximates —
+reading slightly paler than what renders and refusing marginally early. That is
+the right direction for a readability gate, and cheaper than carrying an oklab
+implementation for a number that only has to be conservative.
+
+**Reversal trigger:** a design that wants cards to *contrast* with the background
+rather than extend it — at which point the surfaces are their own setting, not a
+derivation.
+
+---
+
+## 18. One screen for entering marks; `POST /grades` stays
+
+"Add grade" and "Enter marks" wrote identical rows. The single-grade dialog asked
+for a course, a student, a title, a date and a weight *per mark*, which for a
+midterm meant typing the same four things thirty times and searching for each
+student by name. The roster states the assessment once and is the form.
+
+The only thing the dialog could do that the roster cannot is attach a note, and a
+note is already editable afterwards by opening the grade.
+
+The endpoint stays and is not dead code: the CSV importer routes through the same
+service call, and the API tests use it. What was duplicated was the *screen*.
+
+Removing it opened one gap, closed in the same commit: the edit form omitted
+`date` even though `amend` had always accepted it. With entry no longer offering a
+per-mark date, a wrong date has to be fixable.
+
+**Reversal trigger:** a workflow where marks genuinely arrive one at a time for
+different students on different dates — a resit desk, say. Even then the honest
+shape is a resit screen, not a second general-purpose form.
+
+---
+
+## 19. Field help: hover *and* focus, opacity not `display`, `fixed` not `absolute`
+
+Three properties of `FieldHelp` look like styling and are not. Each was a live
+defect before it was a rule.
+
+- **Hover *and* focus.** Hover-only help is unreachable by keyboard and invisible
+  on a touchscreen — it would exclude exactly the person it exists for.
+- **Hidden by opacity, never `display`.** A `display: none` element is absent from
+  the accessibility tree, so `aria-describedby` resolves to nothing and the
+  description silently disappears while looking identical on screen.
+- **Positioned `fixed`.** Every caller sits inside a `<dialog>`, which the UA
+  stylesheet gives `overflow: auto`, and some sit inside a second scroller within
+  it. An absolutely positioned tip is clipped by the nearest such ancestor. A
+  fixed element's containing block is the viewport, so no ancestor `overflow` can
+  reach it, and it stays a DOM descendant of the dialog so it still paints in the
+  top layer. Fixing it in the component rather than per container is what stops
+  the next scroller reintroducing it.
+
+The coordinates are measured at reveal, so scrolling with a tip open leaves it
+behind; `pointer-events-none` means moving the pointer dismisses it.
+
+**Reversal trigger:** CSS anchor positioning reaching every browser this targets.
+It deletes the measuring function outright.
+
+---
+
+## 20. A teacher sees institution-wide rankings in the summary report
+
+The summary report shows every student's name and average to any staff member,
+including students a teacher does not teach. Decided rather than defaulted: staff
+here are expected to compare across the school.
+
+Worth stating explicitly because the surrounding code goes the other way. Every
+other read applies `student_scope` / `course_scope`, and `ReportingService._ranked`
+applies `grade_scope` — routing the summary through it would have been the obvious
+single-query fix and would have quietly narrowed teacher visibility. It was left
+alone on purpose; an authorization change does not belong inside a performance
+commit.
+
+**Reversal trigger:** a teacher who should not see a student they do not teach —
+a safeguarding case, a shared building with two institutions, or a data-protection
+review. The fix is then routing `summary_report` through `_ranked`.

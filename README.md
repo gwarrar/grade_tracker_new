@@ -4,14 +4,15 @@ Grade Tracker is a FastAPI and Next.js application for academic records, reporti
 
 ## Project documentation
 
-- [Secure SaaS and LMS implementation plan](PROJECT_IMPLEMENTATION_PLAN.md)
+- [Roadmap](docs/ROADMAP.md) — what is being built next
 - [Architecture](docs/ARCHITECTURE.md)
-- [Architecture decisions](docs/DECISIONS.md)
+- [Architecture decisions](docs/DECISIONS.md) — each with what would reverse it
 - [Backend guide](backend/README.md)
 - [Frontend guide](web/README.md)
 - [OpenAPI document](docs/openapi.json)
+- [Secure SaaS and LMS implementation plan](PROJECT_IMPLEMENTATION_PLAN.md) — **on hold**
 
-The implementation plan is the source of truth for roadmap order, security, backup and recovery, performance budgets, hybrid video storage, SaaS tenancy, billing, AI, and LMS scope.
+`docs/ROADMAP.md` is the current backlog. The SaaS and LMS implementation plan is on hold with no start date: it remains the reference for security posture, backup and recovery, performance budgets, hybrid video storage, tenancy, billing and LMS scope *when that work begins*, but nothing in it is being worked on now, and reading it as the backlog sends you to the wrong work.
 
 ## Local development
 
@@ -20,7 +21,18 @@ Prerequisites:
 - Python 3.12
 - [uv](https://docs.astral.sh/uv/)
 - Node.js 22
-- pnpm 10
+- pnpm 11, via Corepack — **run it as `corepack pnpm`, not `pnpm`**
+
+`web/package.json` pins `pnpm@11.18.0` and `web/.npmrc` sets a shared `store-dir`.
+A `pnpm` installed globally is usually an older one, and it will refuse to work
+against a `node_modules` that pnpm 11 built — the error names a store mismatch,
+not a version, which is why it is worth stating here. `corepack pnpm` always
+resolves to the pinned version. If Corepack has not been enabled on this machine:
+
+```powershell
+corepack enable
+corepack prepare pnpm@11.18.0 --activate
+```
 
 Create the root environment file once:
 
@@ -30,7 +42,7 @@ Copy-Item .env.example .env
 
 Edit `.env`, replace `SECRET_KEY`, and configure an AI provider key only if AI features are being tested. Never commit `.env`.
 
-Install dependencies once (`uv sync` in `backend`, `pnpm install` in `web`), then run both servers with one command:
+Install dependencies once (`uv sync` in `backend`, `corepack pnpm install` in `web`), then run both servers with one command:
 
 ```powershell
 .\dev.cmd            # migrate, seed if empty, start both, wait until they answer
@@ -69,8 +81,8 @@ Start the frontend in a second PowerShell terminal:
 
 ```powershell
 Set-Location web
-pnpm install
-pnpm dev
+corepack pnpm install
+corepack pnpm dev
 ```
 
 Open:
@@ -94,9 +106,9 @@ Frontend:
 
 ```powershell
 Set-Location web
-pnpm test
-pnpm lint
-pnpm typecheck
-pnpm build
+corepack pnpm test
+corepack pnpm lint
+corepack pnpm typecheck
+corepack pnpm build     # not while the dev server is up — see above
 ```
 
