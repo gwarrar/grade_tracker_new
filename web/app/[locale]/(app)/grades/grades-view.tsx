@@ -22,13 +22,11 @@ import { useState, type FormEvent } from "react";
 import { AssistantPanel } from "@/components/app/assistant";
 import { BulkGrades } from "@/components/app/bulk-grades";
 import { AuditEntryLine } from "@/components/app/audit";
-import { Field, FormError, Input, PanelHeader, Select, Textarea } from "@/components/app/detail-fields";
+import { Field, FormError, Input, PanelHeader } from "@/components/app/detail-fields";
 import { MasterDetail } from "@/components/app/master-detail";
 import { Pager } from "@/components/app/pager";
 import { Confirm } from "@/components/ui/confirm";
-import { Modal } from "@/components/ui/modal";
 import { api, ApiError, type Response } from "@/lib/api";
-import type { paths } from "@/lib/api-schema";
 import { formatDate, formatNumber, formatPercent, parseLocaleNumber } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import type { Me } from "@/lib/session";
@@ -37,9 +35,7 @@ import { useDebounced, useSelection, useUrlParam } from "@/lib/use-selection";
 type Grade = Response<"/grades/{grade_id}", "get">;
 type Page = Response<"/grades", "get">;
 type Courses = Response<"/courses", "get">;
-type Register = Response<"/courses/{course_id}/enrollments", "get">;
 type History = Response<"/grades/{grade_id}/history", "get">;
-type GradeCreate = paths["/grades"]["post"]["requestBody"]["content"]["application/json"];
 
 const PAGE_SIZE = 50;
 
@@ -68,17 +64,9 @@ export function GradesView({
   const [selectedId, select] = useSelection();
   const [search, setSearch] = useState("");
   const [asking, setAsking] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [bulk, setBulk] = useState(false);
-  const [createCode, setCreateCode] = useState<string | null>(null);
-  const [invalidScore, setInvalidScore] = useState(false);
-  const [invalidWeight, setInvalidWeight] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [selectedCourseId, setSelectedCourseId] = useState("");
-  const [studentSearch, setStudentSearch] = useState("");
   const query = useDebounced(search.trim());
-  const studentQuery = useDebounced(studentSearch.trim());
-  const studentSearchUnsettled = studentQuery !== studentSearch.trim();
 
   // Filters live in the URL, not in state: a filtered list is then linkable, Back
   // steps through filter changes, and a refresh keeps what you were looking at.
@@ -138,13 +126,6 @@ export function GradesView({
     enabled: selectedId !== null,
   });
 
-  const register = useQuery({
-    queryKey: ["course", selectedCourseId, "enrollments"],
-    queryFn: () => api<Register>(`/courses/${selectedCourseId}/enrollments`),
-    enabled: creating && selectedCourseId !== "" && can.writeGrade(me),
-    staleTime: 0,
-  });
-
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ["grades"] }),
@@ -160,65 +141,7 @@ export function GradesView({
       queryClient.invalidateQueries({ queryKey: ["palette"] }),
     ]);
 
-  const create = useMutation({
-    mutationFn: (body: GradeCreate) => api<Grade>("/grades", { method: "POST", body }),
-    onSuccess: (grade) => {
-      setCreating(false);
-      setCreateCode(null);
-      setInvalidScore(false);
-      setInvalidWeight(false);
-      setStudentSearch("");
-      setNotice(t("grade.created"));
-      select(String(grade.grade_id));
-      void refresh();
-    },
-    onError: (error) =>
-      setCreateCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
-  });
-
-  function createGrade(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const score = parseLocaleNumber(String(data.get("score") ?? ""), locale);
-    const weight = parseLocaleNumber(String(data.get("weight") ?? ""), locale);
-    const studentId = String(data.get("student_id") ?? "");
-    const validStudent = register.data?.some(
-      (entry) => entry.student_id === studentId && entry.status === "active",
-    );
-
-    setInvalidScore(score === null);
-    setInvalidWeight(weight === null);
-    if (score === null || weight === null || studentSearchUnsettled || !validStudent) {
-      setCreateCode("VALIDATION_ERROR");
-      return;
-    }
-
-    setCreateCode(null);
-    setNotice(null);
-    create.mutate({
-      course_id: String(data.get("course_id") ?? ""),
-      student_id: studentId,
-      title: String(data.get("title") ?? "").trim(),
-      score,
-      weight,
-      notes: String(data.get("notes") ?? "").trim(),
-      date: String(data.get("date") ?? ""),
-    });
-  }
-
   const rows = list.data?.items ?? [];
-  const selectedCourse = courses.data?.items.find(
-    (course) => course.course_id === selectedCourseId,
-  );
-  const matchingStudents =
-    !studentSearchUnsettled && studentQuery.length >= 2
-      ? (register.data ?? []).filter((entry) => {
-          const haystack = `${entry.student_id} ${entry.first_name ?? ""} ${entry.last_name ?? ""} ${entry.email ?? ""}`.toLocaleLowerCase(
-            locale,
-          );
-          return entry.status === "active" && haystack.includes(studentQuery.toLocaleLowerCase(locale));
-        })
-      : [];
 
   return (
     <>
@@ -237,27 +160,6 @@ export function GradesView({
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => {
-                setCreateCode(null);
-                setInvalidScore(false);
-                setInvalidWeight(false);
-                setStudentSearch("");
-                setNotice(null);
-                setSelectedCourseId(
-                  courses.data?.items.some((course) => course.course_id === courseId)
-                    ? courseId
-                    : courses.data?.items[0]?.course_id || "",
-                );
-                setCreating(true);
-              }}
-            >
-              {t("grade.add")}
-            </button>
-          )}
-          {can.writeGrade(me) && (
-            <button
-              type="button"
-              className="btn"
               onClick={() => {
                 setNotice(null);
                 setBulk(true);
@@ -293,7 +195,10 @@ export function GradesView({
 
       {bulk && courses.data && (
         <BulkGrades
-          courses={courses.data.items}
+          courses={courses.data.items.map((course) => ({
+            ...course,
+            assessments: course.assessments ?? [],
+          }))}
           initialCourseId={courseId}
           locale={locale}
           onClose={() => setBulk(false)}
@@ -308,173 +213,6 @@ export function GradesView({
         <p role="status" className="mb-4 rounded-lg bg-pass-bg px-3 py-2 text-sm text-pass">
           {notice}
         </p>
-      )}
-
-      {creating && (
-        <Modal
-          open
-          title={t("grade.createTitle")}
-          onClose={() => {
-            if (!create.isPending) {
-              setCreating(false);
-              setCreateCode(null);
-              setInvalidScore(false);
-              setInvalidWeight(false);
-            }
-          }}
-        >
-          {courses.isPending && <p className="text-sm text-subtle">{t("stats.loading")}</p>}
-          {courses.error && (
-            <FormError>
-              {t(
-                `error.${courses.error instanceof ApiError ? courses.error.code : "NETWORK_ERROR"}` as "error.unknown",
-              )}
-            </FormError>
-          )}
-          {courses.isSuccess && courses.data.items.length === 0 && (
-            <p role="status" className="text-sm text-subtle">
-              {t("grade.noCourses")}
-            </p>
-          )}
-          {courses.isSuccess && courses.data.items.length > 0 && (
-            <form onSubmit={createGrade} className="max-h-[70vh] space-y-4 overflow-y-auto pe-1">
-              <div>
-                <label htmlFor="grade-course" className="block text-sm text-muted">
-                  {t("course.one")}
-                </label>
-                <select
-                  id="grade-course"
-                  name="course_id"
-                  required
-                  className="field-input"
-                  defaultValue={selectedCourseId}
-                  onChange={(event) => {
-                    setSelectedCourseId(event.target.value);
-                    setStudentSearch("");
-                    setCreateCode(null);
-                  }}
-                >
-                  <option value="" disabled>
-                    {t("grade.chooseCourse")}
-                  </option>
-                  {courses.data.items.map((course) => (
-                    <option key={course.course_id} value={course.course_id}>
-                      {course.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {selectedCourseId && register.isFetching && (
-                <p className="text-sm text-subtle">{t("stats.loading")}</p>
-              )}
-              {register.error && (
-                <FormError>
-                  {t(
-                    `error.${register.error instanceof ApiError ? register.error.code : "NETWORK_ERROR"}` as "error.unknown",
-                  )}
-                </FormError>
-              )}
-              {register.isSuccess && !register.isFetching && (
-                <div>
-                  <label htmlFor="grade-student-search" className="block text-sm text-muted">
-                    {t("grade.searchStudents")}
-                  </label>
-                  <input
-                    id="grade-student-search"
-                    type="search"
-                    value={studentSearch}
-                    onChange={(event) => setStudentSearch(event.target.value)}
-                    className="field-input"
-                    aria-describedby="grade-student-search-hint"
-                  />
-                  <p id="grade-student-search-hint" className="mt-1 text-xs text-subtle">
-                    {t("grade.searchHint")}
-                  </p>
-                  {studentQuery.length >= 2 && matchingStudents.length > 0 && (
-                    <Select
-                      key={`${selectedCourseId}-${studentQuery}`}
-                      name="student_id"
-                      label={t("student.one")}
-                      value={matchingStudents[0].student_id}
-                    >
-                      {matchingStudents.map((student) => (
-                        <option key={student.student_id} value={student.student_id}>
-                          {student.student_id} — {student.first_name} {student.last_name}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                  {!studentSearchUnsettled &&
-                    studentQuery.length >= 2 &&
-                    matchingStudents.length === 0 && (
-                    <p role="status" className="mt-3 text-sm text-subtle">
-                      {t("grade.noStudents")}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <Input name="title" label={t("grade.title")} value="" />
-              <div>
-                <Input
-                  name="score"
-                  label={t("grade.score")}
-                  value=""
-                  inputMode="decimal"
-                  hint={
-                    selectedCourse
-                      ? `${t("grade.max")}: ${formatNumber(selectedCourse.max_grade, locale)}`
-                      : undefined
-                  }
-                />
-                {invalidScore && <FormError>{t("grade.invalidScore")}</FormError>}
-              </div>
-              <div>
-                <Input
-                  name="weight"
-                  label={t("grade.weight")}
-                  value={formatNumber(1, locale)}
-                  inputMode="decimal"
-                />
-                {invalidWeight && <FormError>{t("grade.invalidWeight")}</FormError>}
-              </div>
-              <Textarea name="notes" label={t("grade.notes")} value="" required={false} />
-              <Input name="date" label={t("grade.date")} value="" type="date" />
-              {createCode &&
-                (createCode !== "VALIDATION_ERROR" || (!invalidScore && !invalidWeight)) && (
-                <FormError>{t(`error.${createCode}` as "error.unknown")}</FormError>
-              )}
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  disabled={create.isPending}
-                  onClick={() => {
-                    setCreating(false);
-                    setCreateCode(null);
-                    setInvalidScore(false);
-                    setInvalidWeight(false);
-                  }}
-                >
-                  {t("action.cancel")}
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={
-                    create.isPending ||
-                    register.isFetching ||
-                    !register.isSuccess ||
-                    studentSearchUnsettled ||
-                    matchingStudents.length === 0
-                  }
-                >
-                  {t("action.save")}
-                </button>
-              </div>
-            </form>
-          )}
-        </Modal>
       )}
 
       {/* One row above the table rather than a collapsible drawer: with thousands of
@@ -558,9 +296,9 @@ export function GradesView({
       </fieldset>
 
       <MasterDetail
-        detailKey={creating ? null : selectedId}
+        detailKey={selectedId}
         detail={
-          !creating && selectedId && (
+          selectedId && (
             <GradeDetail
               key={selectedId}
               gradeId={selectedId}
@@ -743,6 +481,7 @@ function GradeDetail({
           score: body.score,
           percentage,
           title: String(body.title ?? previous.title),
+          date: String(body.date ?? previous.date),
         });
       }
       return { previous };
@@ -804,6 +543,7 @@ function GradeDetail({
       weight,
       title: String(data.get("title") ?? ""),
       notes: String(data.get("notes") ?? ""),
+      date: String(data.get("date") ?? ""),
     });
   }
 
@@ -918,7 +658,9 @@ function GradeDetail({
             label={t("grade.weight")}
             value={formatNumber(grade.weight, locale)}
             inputMode="decimal"
+            help={t("grade.weightHelp")}
           />
+          <Input name="date" label={t("grade.date")} value={grade.date} type="date" />
           <Input
             name="notes"
             label={t("grade.notes")}

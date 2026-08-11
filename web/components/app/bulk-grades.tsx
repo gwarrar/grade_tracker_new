@@ -20,7 +20,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
-import { FormError, Input } from "@/components/app/detail-fields";
+import { FieldHelp, FormError, Input } from "@/components/app/detail-fields";
 import { Modal } from "@/components/ui/modal";
 import { api, ApiError, type Response } from "@/lib/api";
 import type { paths } from "@/lib/api-schema";
@@ -34,6 +34,7 @@ interface Course {
   course_id: string;
   name: string;
   max_grade: number;
+  assessments: { name: string; weight: number }[];
 }
 
 export function BulkGrades({
@@ -55,6 +56,8 @@ export function BulkGrades({
   const [code, setCode] = useState<string | null>(null);
   const [invalid, setInvalid] = useState<string[]>([]);
   const [report, setReport] = useState<BulkReport | null>(null);
+  const [assessment, setAssessment] = useState("");
+  const [weight, setWeight] = useState(formatNumber(1, locale));
 
   const course = courses.find((candidate) => candidate.course_id === courseId);
 
@@ -139,6 +142,8 @@ export function BulkGrades({
               className="field-input"
               onChange={(event) => {
                 setCourseId(event.target.value);
+                setAssessment("");
+                setWeight(formatNumber(1, locale));
                 setInvalid([]);
                 setCode(null);
               }}
@@ -152,13 +157,52 @@ export function BulkGrades({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <Input name="title" label={t("grade.title")} value="" required={false} />
+            {course && course.assessments.length > 0 ? (
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <label htmlFor="title" className="block text-sm text-muted">
+                    {t("grade.title")}
+                  </label>
+                  <FieldHelp help={t("grade.titleHelp")} />
+                </div>
+                <select
+                  id="title"
+                  name="title"
+                  value={assessment}
+                  className="field-input"
+                  onChange={(event) => {
+                    const name = event.target.value;
+                    setAssessment(name);
+                    const selected = course.assessments.find((item) => item.name === name);
+                    setWeight(formatNumber(selected?.weight ?? 1, locale));
+                  }}
+                >
+                  <option value="">{t("grade.chooseAssessment")}</option>
+                  {course.assessments.map((item) => (
+                    <option key={item.name} value={item.name}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <Input
+                key={courseId}
+                name="title"
+                label={t("grade.title")}
+                value=""
+                required={false}
+                help={t("grade.titleHelp")}
+              />
+            )}
             <Input name="date" label={t("grade.date")} value="" type="date" />
             <Input
+              key={`${courseId}-${assessment}`}
               name="weight"
               label={t("grade.weight")}
-              value={formatNumber(1, locale)}
+              value={weight}
               inputMode="decimal"
+              help={t("grade.weightHelp")}
             />
           </div>
 

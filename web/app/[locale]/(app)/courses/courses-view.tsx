@@ -20,6 +20,7 @@ import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
 import { api, ApiError, type Response } from "@/lib/api";
 import type { paths } from "@/lib/api-schema";
+import { readCourseAssessments } from "@/lib/course-assessments";
 import { formatDate, formatNumber, parseLocaleNumber } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import type { Me } from "@/lib/session";
@@ -108,10 +109,12 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
     const maxStudents = Number(data.get("max_students"));
     const teacherText = String(data.get("teacher_id") ?? "").trim();
     const teacherId = teacherText ? Number(teacherText) : null;
+    const assessments = readCourseAssessments(data, locale);
     if (
       credits === null ||
       maxGrade === null ||
       passingGrade === null ||
+      assessments === null ||
       !Number.isInteger(maxStudents) ||
       maxStudents < 1 ||
       (teacherId !== null && (!Number.isInteger(teacherId) || teacherId < 1))
@@ -139,6 +142,7 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
       schedule: String(data.get("schedule") ?? "").trim() || null,
       description: String(data.get("description") ?? "").trim() || null,
       prerequisite_ids: data.getAll("prerequisite_ids").map(String),
+      assessments,
     });
   }
 
@@ -398,12 +402,24 @@ function CourseFields({
   const missingPrerequisites = (course?.prerequisite_ids ?? []).filter(
     (id) => !courses.some((candidate) => candidate.course_id === id),
   );
+  const [assessments, setAssessments] = useState(
+    (course?.assessments ?? []).map((assessment) => ({
+      name: assessment.name,
+      weight: formatNumber(assessment.weight, locale),
+    })),
+  );
   return (
     <>
       {includeId && <Input name="course_id" label={t("course.id")} value="" />}
       <Input name="name" label={t("course.name")} value={course?.name ?? ""} />
       <Input name="term" label={t("course.term")} value={course?.term ?? ""} required={false} />
-      <Input name="credits" label={t("course.credits")} value={course ? formatNumber(course.credits, locale) : "1"} inputMode="decimal" />
+      <Input
+        name="credits"
+        label={t("course.credits")}
+        value={course ? formatNumber(course.credits, locale) : "1"}
+        inputMode="decimal"
+        help={t("course.creditsHelp")}
+      />
       <Input name="max_students" label={t("course.maxStudents")} value={String(course?.max_students ?? 30)} type="number" inputMode="numeric" />
       <Input name="max_grade" label={t("course.maxGrade")} value={course ? formatNumber(course.max_grade, locale) : "100"} inputMode="decimal" />
       <Input name="passing_grade" label={t("course.passingGrade")} value={course ? formatNumber(course.passing_grade, locale) : "60"} inputMode="decimal" />
@@ -418,6 +434,74 @@ function CourseFields({
       <Input name="room" label={t("course.room")} value={course?.room ?? ""} required={false} />
       <Input name="schedule" label={t("course.schedule")} value={course?.schedule ?? ""} required={false} />
       <Textarea name="description" label={t("course.description")} value={course?.description ?? ""} required={false} />
+      <fieldset>
+        <legend className="text-sm font-medium text-text">{t("course.assessments")}</legend>
+        <p className="mt-1 text-xs text-subtle">{t("course.assessmentsHint")}</p>
+        <div className="mt-3 space-y-3">
+          {assessments.map((assessment, index) => (
+            <div
+              key={index}
+              className="grid gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+            >
+              <label className="text-sm text-muted">
+                {t("grade.title")}
+                <input
+                  name="assessment_names"
+                  value={assessment.name}
+                  className="field-input"
+                  onChange={(event) =>
+                    setAssessments((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, name: event.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="text-sm text-muted">
+                {t("grade.weight")}
+                <input
+                  name="assessment_weights"
+                  value={assessment.weight}
+                  inputMode="decimal"
+                  className="field-input numeric"
+                  onChange={(event) =>
+                    setAssessments((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, weight: event.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <button
+                type="button"
+                className="btn btn-ghost px-2 text-fail"
+                aria-label={t("action.remove")}
+                onClick={() =>
+                  setAssessments((current) =>
+                    current.filter((_, itemIndex) => itemIndex !== index),
+                  )
+                }
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="btn mt-3"
+          onClick={() =>
+            setAssessments((current) => [
+              ...current,
+              { name: "", weight: formatNumber(1, locale) },
+            ])
+          }
+        >
+          {t("course.addAssessment")}
+        </button>
+      </fieldset>
       <div>
         <label htmlFor="prerequisite_ids" className="block text-sm text-muted">{t("course.prerequisites")}</label>
         <select
@@ -564,10 +648,12 @@ function CourseDetail({
         ? Number(teacherText)
         : null
       : (course?.teacher_id ?? null);
+    const assessments = readCourseAssessments(data, locale);
     if (
       credits === null ||
       maxGrade === null ||
       passingGrade === null ||
+      assessments === null ||
       !Number.isInteger(maxStudents) ||
       maxStudents < 1 ||
       (teacherId !== null && (!Number.isInteger(teacherId) || teacherId < 1))
@@ -594,6 +680,7 @@ function CourseDetail({
       schedule: String(data.get("schedule") ?? "").trim() || null,
       description: String(data.get("description") ?? "").trim() || null,
       prerequisite_ids: data.getAll("prerequisite_ids").map(String),
+      assessments,
     });
   }
 

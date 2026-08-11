@@ -8,7 +8,47 @@
  * differ enough that a shared one would be mostly conditionals.
  */
 
-import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
+import { useId, type ReactNode } from "react";
+
+/**
+ * An explanation available on demand, beside a field's label.
+ *
+ * Distinct from `hint`, which renders a permanent line: that is right for a
+ * warning everybody must read and wrong for a definition somebody needs once.
+ *
+ * Revealed on hover **and** on focus. Focus is not optional — hover-only help is
+ * unreachable by keyboard and invisible on a touchscreen, and this exists
+ * precisely for the person who does not already know.
+ *
+ * Hidden by opacity rather than `hidden`, which matters more than it looks: a
+ * `display: none` element is absent from the accessibility tree, so an
+ * `aria-describedby` pointing into one resolves to nothing and the button ends
+ * up with no description at all. The tip stays rendered; only its paint changes.
+ */
+export function FieldHelp({ help }: { help: string }) {
+  const t = useTranslations();
+  const tipId = useId();
+  return (
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        aria-label={t("action.help")}
+        aria-describedby={tipId}
+        className="flex size-4 items-center justify-center rounded-full border border-line text-[10px] text-subtle hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        ?
+      </button>
+      <span
+        id={tipId}
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-md border border-line bg-surface-overlay px-3 py-2 text-xs font-normal text-text opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+      >
+        {help}
+      </span>
+    </span>
+  );
+}
 
 /** One read-only row inside a panel's `<dl>`. */
 export function Field({
@@ -50,6 +90,7 @@ export function Input({
   required = true,
   inputMode,
   hint,
+  help,
 }: {
   name: string;
   label: string;
@@ -58,13 +99,17 @@ export function Input({
   required?: boolean;
   inputMode?: "decimal" | "numeric" | "text";
   hint?: string;
+  help?: string;
 }) {
   const describedBy = hint ? `${name}-hint` : undefined;
   return (
     <div>
-      <label htmlFor={name} className="block text-sm text-muted">
-        {label}
-      </label>
+      <div className="flex items-center gap-1.5">
+        <label htmlFor={name} className="block text-sm text-muted">
+          {label}
+        </label>
+        {help && <FieldHelp help={help} />}
+      </div>
       <input
         id={name}
         name={name}
@@ -91,18 +136,23 @@ export function Select({
   value,
   required = true,
   children,
+  help,
 }: {
   name: string;
   label: string;
   value: string;
   required?: boolean;
   children: ReactNode;
+  help?: string;
 }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm text-muted">
-        {label}
-      </label>
+      <div className="flex items-center gap-1.5">
+        <label htmlFor={name} className="block text-sm text-muted">
+          {label}
+        </label>
+        {help && <FieldHelp help={help} />}
+      </div>
       <select id={name} name={name} defaultValue={value} required={required} className="field-input">
         {children}
       </select>
