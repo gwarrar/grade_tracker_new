@@ -157,6 +157,7 @@ def query_grades(context: ToolContext, arguments: dict[str, Any]) -> dict[str, A
     # there is nothing here a model could set to widen it.
     scope: Scope = grade_scope(context.principal, "g.student_id", "g.course_id")
     where = [scope.sql]
+    where.append("g.deleted_at IS NULL")
     params: list[Any] = list(scope.params)
 
     if (student := _string(arguments, "student_id", max_length=20)) is not None:
@@ -169,7 +170,7 @@ def query_grades(context: ToolContext, arguments: dict[str, Any]) -> dict[str, A
     passing = arguments.get("passing")
     if isinstance(passing, bool):
         comparison = ">=" if passing else "<"
-        where.append(f"(g.score * 100.0 / c.max_grade) {comparison} c.passing_grade")
+        where.append(f"g.score {comparison} c.passing_grade")
 
     limit = _limit(arguments)
     rows = context.conn.execute(
@@ -215,6 +216,7 @@ def get_statistics(context: ToolContext, arguments: dict[str, Any]) -> dict[str,
 
     scope = grade_scope(context.principal, "g.student_id", "g.course_id")
     where = [scope.sql]
+    where.append("g.deleted_at IS NULL")
     params: list[Any] = list(scope.params)
 
     if course is not None:
@@ -233,7 +235,7 @@ def get_statistics(context: ToolContext, arguments: dict[str, Any]) -> dict[str,
         "       ROUND(MAX(g.score * 100.0 / c.max_grade), 1) AS best_percentage,"
         "       ROUND(MIN(g.score * 100.0 / c.max_grade), 1) AS worst_percentage,"
         "       ROUND(100.0 * SUM("
-        "           CASE WHEN g.score * 100.0 / c.max_grade >= c.passing_grade"
+        "           CASE WHEN g.score >= c.passing_grade"
         "                THEN 1 ELSE 0 END"
         "       ) / NULLIF(COUNT(*), 0), 1) AS pass_rate"
         "  FROM grades g"

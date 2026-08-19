@@ -83,6 +83,19 @@ def _context(conn: sqlite3.Connection, principal: Principal) -> ToolContext:
     return ToolContext(conn=conn, principal=principal)
 
 
+def _insert_twenty_point_grade(conn: sqlite3.Connection) -> None:
+    """Add a 3/20 grade to a course whose passing score is 12."""
+    conn.execute(
+        "INSERT INTO courses (course_id, name, teacher_id, max_grade, passing_grade)"
+        " VALUES ('CS020', 'Twenty-point Course', 1, 20, 12)"
+    )
+    conn.execute("INSERT INTO enrollments (student_id, course_id) VALUES ('S001', 'CS020')")
+    conn.execute(
+        "INSERT INTO grades (student_id, course_id, title, score, date)"
+        " VALUES ('S001', 'CS020', 'Quiz', 3, '2026-03-10')"
+    )
+
+
 # ── Scope cannot be widened ──────────────────────────────────────────────────
 
 
@@ -286,6 +299,45 @@ def test_the_passing_filter_selects_by_threshold(conn: sqlite3.Connection) -> No
     failing = run(context, "query_grades", {"passing": False, "limit": MAX_ROWS})
 
     assert {row["student_id"] for row in failing["grades"]} == {"S002", "S003"}
+
+
+def test_passing_filter_compares_scores_on_a_non_100_scale(conn: sqlite3.Connection) -> None:
+    """A score of 3/20 fails against a passing score of 12, despite being 15%."""
+    _insert_twenty_point_grade(conn)
+    context = _context(conn, _principal(Role.ADMIN, user_id=3))
+
+    passing = run(context, "query_grades", {"course_id": "CS020", "passing": True})
+    failing = run(context, "query_grades", {"course_id": "CS020", "passing": False})
+
+    assert passing["grades"] == []
+    assert [row["score"] for row in failing["grades"]] == [3.0]
+
+
+def test_pass_rate_compares_scores_on_a_non_100_scale(conn: sqlite3.Connection) -> None:
+    """A score of 3/20 produces a zero pass rate when the passing score is 12."""
+    _insert_twenty_point_grade(conn)
+    context = _context(conn, _principal(Role.ADMIN, user_id=3))
+
+    stats = run(context, "get_statistics", {"course_id": "CS020"})
+
+    assert stats["grade_count"] == 1
+    assert stats["pass_rate"] == 0.0
+
+
+def test_soft_deleted_grades_are_invisible(conn: sqlite3.Connection) -> None:
+    """A retired mark cannot leak through row results or aggregate counts."""
+    context = _context(conn, _principal(Role.ADMIN, user_id=3))
+    conn.execute(
+        "INSERT INTO grades (grade_id, student_id, course_id, title, score, date)"
+        " VALUES (99, 'S001', 'CS101', 'Retired exam', 100, '2026-04-10')"
+    )
+    conn.execute("UPDATE grades SET deleted_at = '2026-04-11T00:00:00Z' WHERE grade_id = 99")
+
+    grades = run(context, "query_grades", {"course_id": "CS101", "limit": MAX_ROWS})
+    stats = run(context, "get_statistics", {"course_id": "CS101"})
+
+    assert 99 not in {row["grade_id"] for row in grades["grades"]}
+    assert stats["grade_count"] == 2
 
 
 def test_courses_can_be_searched_as_well_as_students(conn: sqlite3.Connection) -> None:
