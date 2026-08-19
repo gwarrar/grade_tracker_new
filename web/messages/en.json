@@ -284,23 +284,6 @@
       "cta": "Open the app",
       "secondary": "See how it works"
     },
-    "palette": {
-      "hint": "Ask anything about your gradebook"
-    },
-    "demos": {
-      "average": {
-        "query": "average for CS101 this term",
-        "result": "CS101 — 42 students, 128 assessments"
-      },
-      "risk": {
-        "query": "who is at risk in Databases?",
-        "result": "4 students below the pass mark"
-      },
-      "trend": {
-        "query": "has the year-two cohort improved?",
-        "result": "Up 6.4 points since October"
-      }
-    },
     "features": {
       "title": "Built for the people who actually enter the grades",
       "scoped": {

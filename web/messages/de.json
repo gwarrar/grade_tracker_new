@@ -284,23 +284,6 @@
       "cta": "Anwendung öffnen",
       "secondary": "So funktioniert es"
     },
-    "palette": {
-      "hint": "Fragen Sie alles zu Ihren Noten"
-    },
-    "demos": {
-      "average": {
-        "query": "Durchschnitt in CS101 in diesem Semester",
-        "result": "CS101 — 42 Studierende, 128 Leistungen"
-      },
-      "risk": {
-        "query": "Wer ist in Datenbanken gefährdet?",
-        "result": "4 Studierende unter der Bestehensgrenze"
-      },
-      "trend": {
-        "query": "Hat sich der zweite Jahrgang verbessert?",
-        "result": "6,4 Punkte höher als im Oktober"
-      }
-    },
     "features": {
       "title": "Gemacht für die, die die Noten wirklich eintragen",
       "scoped": {

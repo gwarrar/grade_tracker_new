@@ -284,23 +284,6 @@
       "cta": "Ouvrir l’application",
       "secondary": "Voir le fonctionnement"
     },
-    "palette": {
-      "hint": "Posez n’importe quelle question sur vos notes"
-    },
-    "demos": {
-      "average": {
-        "query": "moyenne en CS101 ce semestre",
-        "result": "CS101 — 42 étudiants, 128 évaluations"
-      },
-      "risk": {
-        "query": "qui est en difficulté en Bases de données ?",
-        "result": "4 étudiants sous la barre d’admission"
-      },
-      "trend": {
-        "query": "la deuxième année a-t-elle progressé ?",
-        "result": "6,4 points de plus qu’en octobre"
-      }
-    },
     "features": {
       "title": "Conçu pour celles et ceux qui saisissent vraiment les notes",
       "scoped": {

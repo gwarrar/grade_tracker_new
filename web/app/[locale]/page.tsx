@@ -2,8 +2,8 @@
  * Marketing landing page.
  *
  * A server component. The only client JavaScript here is the navigation (which
- * needs a scroll listener), the palette demo, and the reveal wrappers — everything
- * else is rendered on the server and shipped as HTML.
+ * needs a scroll listener) and the reveal wrappers — everything else is rendered
+ * on the server and shipped as HTML.
  *
  * The grading scale advertised in the band strip is read from the organisation
  * record rather than hardcoded, so the page always shows the scale actually in
@@ -17,7 +17,6 @@ import { getBranding } from "@/components/branding/branding";
 import { Reveal } from "@/components/landing/reveal";
 import { SiteNav } from "@/components/landing/site-nav";
 import { Starfield } from "@/components/landing/starfield";
-import { TypingDemo } from "@/components/landing/typing-demo";
 import { Link } from "@/i18n/navigation";
 import { API_BASE } from "@/lib/api";
 import { locales } from "@/i18n/routing";
@@ -51,13 +50,6 @@ export default async function Landing({ params }: Props) {
   setRequestLocale(locale);
 
   const [t, branding] = await Promise.all([getTranslations(), getBranding()]);
-
-  // Keyed by the same names as the message catalogue, so adding a fourth demo is a
-  // catalogue edit plus one entry here — no component change.
-  const demos = (["average", "risk", "trend"] as const).map((key) => ({
-    query: t(`landing.demos.${key}.query`),
-    result: t(`landing.demos.${key}.result`),
-  }));
 
   const features = (["scoped", "fast", "ai"] as const).map((key) => ({
     key,
@@ -99,7 +91,7 @@ export default async function Landing({ params }: Props) {
 
         <main>
           {/* ── Hero ─────────────────────────────────────────────────────────── */}
-          <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-24 pt-16 lg:grid-cols-2 lg:gap-16 lg:pt-24">
+          <section className="mx-auto max-w-3xl px-6 pb-24 pt-16 lg:pt-24">
             <div>
               <Reveal>
                 <p className="numeric text-xs uppercase tracking-[0.18em] text-subtle">
@@ -137,9 +129,6 @@ export default async function Landing({ params }: Props) {
               </Reveal>
             </div>
 
-            <Reveal delay={0.24}>
-              <TypingDemo demos={demos} hint={t("landing.palette.hint")} />
-            </Reveal>
           </section>
 
           {/* ── The grading scale actually in force ──────────────────────────── */}

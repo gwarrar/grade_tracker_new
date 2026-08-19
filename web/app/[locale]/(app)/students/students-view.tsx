@@ -75,19 +75,10 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
     enabled: can.createCourse(me),
   });
 
-  const refresh = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["students"] }),
-      queryClient.invalidateQueries({ queryKey: ["student"] }),
-      queryClient.invalidateQueries({ queryKey: ["report"] }),
-      queryClient.invalidateQueries({ queryKey: ["reports"] }),
-      queryClient.invalidateQueries({ queryKey: ["courses"] }),
-      queryClient.invalidateQueries({ queryKey: ["course"] }),
-      queryClient.invalidateQueries({ queryKey: ["grades"] }),
-      queryClient.invalidateQueries({ queryKey: ["grade"] }),
-      queryClient.invalidateQueries({ queryKey: ["analytics"] }),
-      queryClient.invalidateQueries({ queryKey: ["palette"] }),
-    ]);
+  // One call, not a hand-kept list: these three views each maintained their own
+  // and they had already drifted apart — only this one invalidated grade history,
+  // so editing a student left it stale on the other two.
+  const refresh = () => queryClient.invalidateQueries();
 
   const create = useMutation({
     mutationFn: (body: StudentCreate) => api<Created>("/students", { method: "POST", body }),
