@@ -11,7 +11,12 @@ Choices that were never in doubt are not here.
 ## 1. SQLite, not Postgres
 
 **Stdlib `sqlite3` against one local file, in WAL mode, behind the `GradeStore`
-ABC.**
+class.**
+
+*Amended 2026-08-19: this said "behind the `GradeStore` ABC" until the abstract
+base was deleted. It had one shipping implementation and one test double, which
+is not a seam — it is a second place to edit. The portability rules below are
+what actually keep the swap cheap, and they are unaffected.*
 
 A school gradebook is read-heavy: a handful of teachers writing occasionally,
 everyone else reading. WAL gives unlimited concurrent readers and one writer at a
@@ -28,7 +33,8 @@ Both are about *topology*, not volume. Neither is true while this runs locally.
 
 To keep the swap cheap, four rules are enforced now, at no cost:
 
-1. Every query lives behind `GradeStore`. No SQL above the storage layer —
+1. SQL lives in the storage layer — `GradeStore` for entity statements,
+   `queries.py` for listing and pagination. None above it:
    `tests/unit/test_architecture.py` fails the build otherwise.
 2. Portable SQL only: no `AUTOINCREMENT` (plain `INTEGER PRIMARY KEY`), no
    `INSERT OR REPLACE`, no SQLite date functions, timestamps as ISO-8601 `TEXT`.
@@ -37,8 +43,10 @@ To keep the swap cheap, four rules are enforced now, at no cost:
 4. `?` placeholders throughout, so a one-line adapter converts to `%s` for
    `psycopg`.
 
-Switching becomes: write `PostgresGradeStore`, translate the migrations, flip an
-env var. Roughly a day, deferred until it buys something.
+Switching becomes: reimplement `GradeStore` and `queries.py` against `psycopg`,
+translate the migrations, flip an env var. Roughly a day, deferred until it buys
+something. Note that an ABC would not have made this cheaper — the interface is
+the method set, and Python does not need a base class to state one.
 
 ---
 
@@ -115,9 +123,13 @@ places to forget. But it is the right design regardless of i18n: an assertion on
 `code == "COURSE_FULL"` is stable, and an assertion on an English sentence breaks
 when someone improves the wording.
 
-The same reasoning removed prose from reports. `TextReportGenerator` returns
-structured data; the frontend renders the sentences. The `ReportGenerator` ABC
-and its polymorphism are untouched — only the leaf formatters changed.
+The same reasoning removed prose from reports: the builders return structured
+data and the frontend renders the sentences.
+
+*Amended 2026-08-19: this named `TextReportGenerator`, which has since been
+deleted along with `JsonReportGenerator`. Neither ever rendered for a caller —
+the API returns the dataclasses as JSON directly. `CsvReportGenerator` is the one
+remaining implementation, for the reason in the exception below.*
 
 **The one exception:** CSV export headers are localized server-side, via
 `?locale=`. A downloaded file has no frontend to render it.
@@ -179,8 +191,12 @@ The escalation path, in order, with no new infrastructure until the last rung:
 | Semantic search over documents | **`sqlite-vec`** | one extension file, still one database |
 | Millions of vectors | a real vector DB | not this product |
 
-`003_documents.sql` creates the `documents` table empty, so rung 2 is a migration
-rather than a refactor.
+*Amended 2026-08-19: `003_documents.sql` created the `documents` table empty so
+that rung 2 would be a migration rather than a refactor. It was deleted — nothing
+in `src/` or `tests/` ever referenced the table, and an empty table defended a
+rung nobody has reached. Reaching it now costs one new migration, which is the
+same work the empty table was pre-paying. Databases created before the deletion
+still carry the table; it is harmless and unused.*
 
 ---
 

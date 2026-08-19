@@ -227,16 +227,21 @@ not localhost, `Max-Age` from `session_ttl_hours` (default 168).
 
 ## 6. Storage
 
-Stdlib `sqlite3` behind the `GradeStore` ABC. No ORM.
+Stdlib `sqlite3`, no ORM. `GradeStore` holds the per-entity statements;
+`queries.py` beside it builds listing and pagination from a `Scope`, so a
+caller's visibility is part of the query rather than a filter applied after it.
+Those two are the only places SQL exists.
 
 Migrations are numbered `.sql` files applied in filename order, each in its own
-transaction, recorded in `schema_migrations`:
+transaction, recorded in `schema_migrations`. `003_documents.sql` is absent by
+design — it created a table for a search feature that was never built, and was
+deleted on 2026-08-19; databases created before then still carry the unused
+table. Numbering was left alone so recorded versions keep matching filenames:
 
 | File | Creates |
 |---|---|
 | `001_core.sql` | `organization` (singleton), `i18n_overrides`, `users`, `sessions`, `students`, `courses`, `enrollments`, `grades`, `audit_log` |
 | `002_ai.sql` | `ai_providers`, `ai_feature_models`, `ai_usage`, `ai_insights` |
-| `003_documents.sql` | `documents` — empty on purpose; the first rung of the search escalation path |
 | `004_ai_params.sql` | `ai_providers.params_json` |
 | `005_directory.sql` | `course_prerequisites`; the descriptive columns on `courses` and `students` |
 | `006_notes.sql` | `notes` |

@@ -12,7 +12,7 @@ api/routers  →  services  →  storage  →  models
 ```
 
 - **`notenverwaltung/models`** — dataclasses with validation. No I/O.
-- **`notenverwaltung/storage`** — the `GradeStore` ABC and its SQLite / in-memory implementations. The only place SQL exists.
+- **`notenverwaltung/storage`** — `GradeStore` (entity SQL) and `queries.py` (listing, pagination, scope composition). The only place SQL exists.
 - **`services`** — use cases. Owns transactions and audit-log writes.
 - **`api`** — HTTP. Parses, delegates, serializes. No business logic, no SQL.
 - **`llm`** — the `LLMProvider` ABC and a provider-agnostic agent loop.
