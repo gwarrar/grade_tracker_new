@@ -312,9 +312,9 @@ class ImportService:
     ) -> ImportReport:
         """Run one import, collecting per-row failures.
 
-        The shape mirrors :meth:`notenverwaltung.gradebook.GradeBook.import_csv`:
-        each row is its own try, and a rejected row is reported with its line number
-        and a machine-readable code while the rest carry on.
+        Each row is its own try, and a rejected row is reported with its line number
+        and a machine-readable code while the rest carry on — a teacher pasting three
+        hundred rows wants the good ones recorded, not the file refused.
 
         Args:
             kind: ``students``, ``teachers``, ``courses`` or ``grades``.

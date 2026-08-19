@@ -1,4 +1,9 @@
-"""SQLite implementation of :class:`~notenverwaltung.storage.base.GradeStore`."""
+"""The SQLite store: the one place in the codebase that holds entity SQL.
+
+List and search queries live beside it in :mod:`notenverwaltung.storage.queries`,
+which composes them from a :class:`~notenverwaltung.storage.scope.Scope` rather
+than going through this class.
+"""
 
 from __future__ import annotations
 
@@ -14,7 +19,6 @@ from notenverwaltung.exceptions import (
 from notenverwaltung.models.course import Course
 from notenverwaltung.models.grade import Grade
 from notenverwaltung.models.student import Student
-from notenverwaltung.storage.base import GradeStore
 
 # The column lists below are interpolated into the queries in this module. Ruff flags
 # that as S608 (SQL injection) and is right to in general -- but these are module-level
@@ -57,7 +61,7 @@ _NOW = "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')"
 everywhere — mixed timestamp formats in one column sort incorrectly."""
 
 
-class SqliteGradeStore(GradeStore):
+class GradeStore:
     """Stores the grade book in SQLite.
 
     The connection is injected rather than created here, so the caller controls
@@ -118,7 +122,14 @@ class SqliteGradeStore(GradeStore):
 
     # ── Students ─────────────────────────────────────────────────────────────
     def add_student(self, student: Student) -> None:
-        """Insert a student. See :meth:`GradeStore.add_student`."""
+        """Insert a student.
+
+        Args:
+            student: The student to store.
+
+        Raises:
+            DuplicateEntryError: If ``student.student_id`` is already taken.
+        """
         try:
             self._conn.execute(
                 _INSERT_STUDENT,
@@ -137,7 +148,17 @@ class SqliteGradeStore(GradeStore):
             ) from exc
 
     def get_student(self, student_id: str) -> Student:
-        """Fetch one student. See :meth:`GradeStore.get_student`."""
+        """Fetch one student.
+
+        Args:
+            student_id: The identifier to look up.
+
+        Returns:
+            The matching student.
+
+        Raises:
+            StudentNotFoundError: If no student has that id.
+        """
         row = self._conn.execute(_SELECT_STUDENT, (student_id,)).fetchone()
         if row is None:
             raise StudentNotFoundError(f"No student with id {student_id!r}.", student_id=student_id)
@@ -148,7 +169,14 @@ class SqliteGradeStore(GradeStore):
         return [self._to_student(r) for r in self._conn.execute(_SELECT_STUDENTS)]
 
     def update_student(self, student: Student) -> None:
-        """Overwrite a student's mutable fields. See :meth:`GradeStore.update_student`."""
+        """Overwrite a student's mutable fields, matched on ``student_id``.
+
+        Args:
+            student: The desired state.
+
+        Raises:
+            StudentNotFoundError: If no student has that id.
+        """
         cursor = self._conn.execute(
             "UPDATE students SET first_name = ?, last_name = ?, email = ?, user_id = ?,"  # noqa: S608
             f" updated_at = {_NOW} WHERE student_id = ?",
@@ -166,14 +194,28 @@ class SqliteGradeStore(GradeStore):
             )
 
     def delete_student(self, student_id: str) -> None:
-        """Remove a student. See :meth:`GradeStore.delete_student`."""
+        """Remove a student and, by cascade, their grades and enrolments.
+
+        Args:
+            student_id: The identifier to remove.
+
+        Raises:
+            StudentNotFoundError: If no student has that id.
+        """
         cursor = self._conn.execute("DELETE FROM students WHERE student_id = ?", (student_id,))
         if cursor.rowcount == 0:
             raise StudentNotFoundError(f"No student with id {student_id!r}.", student_id=student_id)
 
     # ── Courses ──────────────────────────────────────────────────────────────
     def add_course(self, course: Course) -> None:
-        """Insert a course. See :meth:`GradeStore.add_course`."""
+        """Insert a course.
+
+        Args:
+            course: The course to store.
+
+        Raises:
+            DuplicateEntryError: If ``course.course_id`` is already taken.
+        """
         try:
             self._conn.execute(
                 _INSERT_COURSE,
@@ -195,7 +237,17 @@ class SqliteGradeStore(GradeStore):
             ) from exc
 
     def get_course(self, course_id: str) -> Course:
-        """Fetch one course. See :meth:`GradeStore.get_course`."""
+        """Fetch one course.
+
+        Args:
+            course_id: The identifier to look up.
+
+        Returns:
+            The matching course.
+
+        Raises:
+            CourseNotFoundError: If no course has that id.
+        """
         row = self._conn.execute(_SELECT_COURSE, (course_id,)).fetchone()
         if row is None:
             raise CourseNotFoundError(f"No course with id {course_id!r}.", course_id=course_id)
@@ -206,7 +258,14 @@ class SqliteGradeStore(GradeStore):
         return [self._to_course(r) for r in self._conn.execute(_SELECT_COURSES)]
 
     def update_course(self, course: Course) -> None:
-        """Overwrite a course's mutable fields. See :meth:`GradeStore.update_course`."""
+        """Overwrite a course's mutable fields, matched on ``course_id``.
+
+        Args:
+            course: The desired state.
+
+        Raises:
+            CourseNotFoundError: If no course has that id.
+        """
         cursor = self._conn.execute(
             "UPDATE courses SET name = ?, max_grade = ?, passing_grade = ?, max_students = ?,"  # noqa: S608
             f" teacher_id = ?, term = ?, credits = ?, updated_at = {_NOW} WHERE course_id = ?",
@@ -227,7 +286,14 @@ class SqliteGradeStore(GradeStore):
             )
 
     def delete_course(self, course_id: str) -> None:
-        """Remove a course. See :meth:`GradeStore.delete_course`."""
+        """Remove a course and, by cascade, its grades and enrolments.
+
+        Args:
+            course_id: The identifier to remove.
+
+        Raises:
+            CourseNotFoundError: If no course has that id.
+        """
         cursor = self._conn.execute("DELETE FROM courses WHERE course_id = ?", (course_id,))
         if cursor.rowcount == 0:
             raise CourseNotFoundError(f"No course with id {course_id!r}.", course_id=course_id)
@@ -236,7 +302,12 @@ class SqliteGradeStore(GradeStore):
     def record_grade(self, grade: Grade) -> Grade:
         """Insert a grade and return it with its assigned id.
 
-        See :meth:`GradeStore.record_grade`.
+        Args:
+            grade: The grade to store. Its ``grade_id`` must be ``None``.
+
+        Returns:
+            The same grade with ``grade_id`` populated, so the caller can address it
+            for later edits without a follow-up query.
 
         Raises:
             StudentNotFoundError: If the referenced student does not exist.
@@ -289,14 +360,32 @@ class SqliteGradeStore(GradeStore):
         )
 
     def get_grade(self, grade_id: int) -> Grade:
-        """Fetch one grade. See :meth:`GradeStore.get_grade`."""
+        """Fetch one grade.
+
+        Args:
+            grade_id: The identifier to look up.
+
+        Returns:
+            The matching grade.
+
+        Raises:
+            GradeNotFoundError: If no live grade has that id.
+        """
         row = self._conn.execute(f"{_GRADE_SELECT} AND g.grade_id = ?", (grade_id,)).fetchone()
         if row is None:
             raise GradeNotFoundError(f"No grade with id {grade_id}.", grade_id=grade_id)
         return self._to_grade(row)
 
     def update_grade(self, grade: Grade) -> None:
-        """Overwrite a grade's mutable fields. See :meth:`GradeStore.update_grade`."""
+        """Overwrite a grade's mutable fields, matched on ``grade_id``.
+
+        Args:
+            grade: The desired state. ``grade_id`` must be set.
+
+        Raises:
+            GradeNotFoundError: If no live grade has that id.
+            ValidationError: If ``grade.grade_id`` is ``None``.
+        """
         if grade.grade_id is None:
             raise ValidationError("Cannot update a grade that has not been saved yet.")
 
@@ -309,7 +398,18 @@ class SqliteGradeStore(GradeStore):
             raise GradeNotFoundError(f"No grade with id {grade.grade_id}.", grade_id=grade.grade_id)
 
     def delete_grade(self, grade_id: int) -> None:
-        """Soft-delete a grade. See :meth:`GradeStore.delete_grade`."""
+        """Soft-delete a grade.
+
+                Grades are never physically removed: an altered mark is exactly the kind of
+                change a student may later dispute, so the row is retained and excluded from
+                reads instead.
+
+        Args:
+            grade_id: The identifier to retire.
+
+        Raises:
+            GradeNotFoundError: If no live grade has that id.
+        """
         cursor = self._conn.execute(
             f"UPDATE grades SET deleted_at = {_NOW} WHERE grade_id = ? AND deleted_at IS NULL",  # noqa: S608
             (grade_id,),

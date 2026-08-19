@@ -11,7 +11,7 @@ from fastapi import Depends, Request
 from api.config import Settings, get_settings
 from notenverwaltung.exceptions import ForbiddenError, NotAuthenticatedError
 from notenverwaltung.models import Role
-from notenverwaltung.storage import SqliteGradeStore, connect
+from notenverwaltung.storage import connect
 from services.auth import AuthService, LoginThrottle
 from services.scoping import Principal
 
@@ -55,18 +55,6 @@ def get_db(
 
 
 DbConn = Annotated[sqlite3.Connection, Depends(get_db)]
-
-
-def get_store(conn: DbConn) -> SqliteGradeStore:
-    """Return a grade store bound to this request's connection.
-
-    Args:
-        conn: The request's connection.
-
-    Returns:
-        The store.
-    """
-    return SqliteGradeStore(conn)
 
 
 def get_auth(

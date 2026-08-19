@@ -11,7 +11,7 @@ from typing import Any
 
 from notenverwaltung.exceptions import ForbiddenError, GradeNotFoundError, ValidationError
 from notenverwaltung.models import Grade
-from notenverwaltung.storage import SqliteGradeStore, transaction
+from notenverwaltung.storage import GradeStore, transaction
 from notenverwaltung.storage.queries import Page, SortSpec, exists, paginate
 from notenverwaltung.storage.scope import Scope
 from services import audit
@@ -87,7 +87,7 @@ class GradingService:
         """
         self._conn = conn
         self._principal = principal
-        self._store = SqliteGradeStore(conn)
+        self._store = GradeStore(conn)
         # Loaded once per request rather than per row: every listed grade needs a
         # letter, and the scale is one row that cannot change mid-request.
         self._scale = load_grading_scale(conn)

@@ -18,7 +18,7 @@ has no frontend to render it. It takes a locale argument for its headers.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import Any
 
 from notenverwaltung.gradebook import GradeBook, weighted_mean
@@ -406,40 +406,3 @@ class ReportGenerator(ABC):
         Returns:
             The rendered document.
         """
-
-    def write(self, content: str, filepath: str) -> None:
-        """Write rendered content to a file.
-
-        Args:
-            content: Output from one of the ``render_*`` methods.
-            filepath: Destination path.
-        """
-        from pathlib import Path
-
-        Path(filepath).write_text(content, encoding="utf-8")
-
-
-class JsonReportGenerator(ReportGenerator):
-    """Emits the structured report verbatim as JSON.
-
-    This is what the API returns: the frontend receives numbers and identifiers and
-    renders them in the user's language.
-    """
-
-    def _dump(self, report: object) -> str:
-        """Serialise a report dataclass to indented JSON."""
-        import json
-
-        return json.dumps(asdict(report), indent=2, ensure_ascii=False)  # type: ignore[call-overload]
-
-    def render_student(self, report: StudentReport) -> str:
-        """Render a student report as JSON."""
-        return self._dump(report)
-
-    def render_course(self, report: CourseReport) -> str:
-        """Render a course report as JSON."""
-        return self._dump(report)
-
-    def render_summary(self, report: SummaryReport) -> str:
-        """Render a summary report as JSON."""
-        return self._dump(report)

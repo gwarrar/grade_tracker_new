@@ -9,13 +9,7 @@ import pytest
 
 from notenverwaltung.gradebook import GradeBook
 from notenverwaltung.models import Course, Student
-from notenverwaltung.storage import (
-    GradeStore,
-    InMemoryGradeStore,
-    SqliteGradeStore,
-    apply_migrations,
-    connect,
-)
+from notenverwaltung.storage import GradeStore, apply_migrations, connect
 
 
 @pytest.fixture
@@ -27,21 +21,17 @@ def sqlite_conn() -> Iterator[sqlite3.Connection]:
     conn.close()
 
 
-@pytest.fixture(params=["memory", "sqlite"])
-def store(request: pytest.FixtureRequest) -> Iterator[GradeStore]:
-    """Every GradeStore implementation, one test run each.
+@pytest.fixture
+def store() -> Iterator[GradeStore]:
+    """A store over a migrated in-memory database.
 
-    Parametrising here is what enforces the promise the ABC makes: the two backends
-    are interchangeable. A behaviour that holds for one and not the other fails the
-    build rather than surfacing later as an environment-dependent bug.
+    On SQLite, `:memory:` is the real engine rather than a stand-in, so these tests
+    exercise the same SQL, constraints and cascades that production runs.
     """
-    if request.param == "memory":
-        yield InMemoryGradeStore()
-    else:
-        conn = connect(":memory:")
-        apply_migrations(conn)
-        yield SqliteGradeStore(conn)
-        conn.close()
+    conn = connect(":memory:")
+    apply_migrations(conn)
+    yield GradeStore(conn)
+    conn.close()
 
 
 @pytest.fixture
@@ -67,7 +57,7 @@ def sample_courses() -> list[Course]:
 def gradebook(
     store: GradeStore, sample_students: list[Student], sample_courses: list[Course]
 ) -> GradeBook:
-    """A populated grade book, on whichever store is under test.
+    """A populated grade book.
 
     Anna: 85/100 (85%) and 18/20 (90%)  → average 87.5%
     Ben:  45/100 (45%)                  → average 45%, at risk

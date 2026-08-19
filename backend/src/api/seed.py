@@ -19,7 +19,7 @@ from datetime import date, timedelta
 
 from api.config import get_settings
 from notenverwaltung.models import Course, Grade, Role, Student, User
-from notenverwaltung.storage import SqliteGradeStore, apply_migrations, connect, transaction
+from notenverwaltung.storage import GradeStore, apply_migrations, connect, transaction
 from services.security import hash_password
 
 _SEED = 20260728
@@ -194,7 +194,7 @@ def seed(conn: sqlite3.Connection, *, student_count: int = 40) -> dict[str, int]
         Counts per entity, for reporting.
     """
     rng = random.Random(_SEED)  # noqa: S311 - demo data, not cryptography
-    store = SqliteGradeStore(conn)
+    store = GradeStore(conn)
 
     user_ids = _make_users(conn, rng)
     teachers = [

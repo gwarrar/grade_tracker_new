@@ -30,14 +30,13 @@ _SAVEPOINTS = count(1)
 """Monotonically increasing savepoint names, so nesting never reuses a name."""
 
 
-def connect(database: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
+def connect(database: str | Path) -> sqlite3.Connection:
     """Open a correctly configured SQLite connection.
 
     This is the only place in the codebase that calls :func:`sqlite3.connect`.
 
     Args:
         database: Path to the database file, or ``":memory:"`` for a transient one.
-        read_only: Reserved for future read-replica use. Currently advisory.
 
     Returns:
         A connection with row access by name, foreign keys enforced, and

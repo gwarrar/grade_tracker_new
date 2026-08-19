@@ -18,7 +18,7 @@ from notenverwaltung.gradebook import GradeBook, weighted_mean
 from notenverwaltung.models import Role
 from notenverwaltung.reports import CsvReportGenerator, ReportBuilder
 from notenverwaltung.reports.base import grade_point_average
-from notenverwaltung.storage import SqliteGradeStore
+from notenverwaltung.storage import GradeStore
 from notenverwaltung.storage.scope import Scope
 from services.organization import load_grading_scale, load_organization
 from services.scoping import Principal, course_scope, grade_scope, student_scope
@@ -126,7 +126,7 @@ class ReportingService:
         """
         self._conn = conn
         self._principal = principal
-        self._book = GradeBook(SqliteGradeStore(conn), load_grading_scale(conn))
+        self._book = GradeBook(GradeStore(conn), load_grading_scale(conn))
         self._builder = ReportBuilder(self._book)
 
     def student_report(self, student_id: str) -> dict[str, Any]:

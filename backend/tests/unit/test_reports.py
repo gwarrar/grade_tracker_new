@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import json
+from dataclasses import asdict
 
 import pytest
 
@@ -10,12 +10,8 @@ from notenverwaltung.exceptions import CourseNotFoundError, StudentNotFoundError
 from notenverwaltung.gradebook import GradeBook
 from notenverwaltung.grading_scale import GradeBand, GradingScale
 from notenverwaltung.models import Course
-from notenverwaltung.reports import (
-    CsvReportGenerator,
-    JsonReportGenerator,
-    ReportBuilder,
-    TextReportGenerator,
-)
+from notenverwaltung.reports import CsvReportGenerator, ReportBuilder
+from notenverwaltung.storage import GradeStore
 
 
 @pytest.fixture
@@ -37,7 +33,7 @@ class TestStudentReport:
         Every string in the payload must be data — a name, an id, an ISO date, a band
         label — never a sentence.
         """
-        payload = json.loads(JsonReportGenerator().render_student(builder.student_report("S001")))
+        payload = asdict(builder.student_report("S001"))
         assert set(payload) == {
             "student_id",
             "student_name",
@@ -95,28 +91,12 @@ class TestSummaryReport:
 
 
 class TestRenderers:
-    """Every generator consumes the same dataclasses — that is the polymorphism."""
+    """CSV is the one format rendered server-side.
 
-    def test_all_generators_accept_the_same_report(self, builder: ReportBuilder) -> None:
-        report = builder.student_report("S001")
-        for generator in (TextReportGenerator(), CsvReportGenerator(), JsonReportGenerator()):
-            assert generator.render_student(report)
-
-    def test_text_includes_the_key_figures(self, builder: ReportBuilder) -> None:
-        output = TextReportGenerator().render_student(builder.student_report("S001"))
-        assert "Anna Schmidt" in output
-        assert "87.5%" in output
-
-    def test_text_labels_are_overridable(self, builder: ReportBuilder) -> None:
-        output = TextReportGenerator({"average": "Durchschnitt"}).render_student(
-            builder.student_report("S001")
-        )
-        assert "Durchschnitt" in output
-
-    def test_text_handles_an_empty_report(self, builder: ReportBuilder) -> None:
-        assert "No grades recorded." in TextReportGenerator().render_student(
-            builder.student_report("S003")
-        )
+    A downloaded file has no frontend to translate it, so headers and delimiter are
+    the renderer's problem. Every other format is JSON over the API, shaped by the
+    dataclasses themselves.
+    """
 
     def test_csv_headers_are_translatable(self, builder: ReportBuilder) -> None:
         """A downloaded file has no frontend, so this one format translates server-side."""
@@ -136,52 +116,16 @@ class TestRenderers:
         output = CsvReportGenerator().render_course(builder.course_report("CS101"))
         assert len(output.strip().splitlines()) == 3  # header + 2 grades
 
-    def test_json_is_valid_and_complete(self, builder: ReportBuilder) -> None:
-        payload = json.loads(JsonReportGenerator().render_summary(builder.summary_report()))
-        assert payload["student_count"] == 3
-
-    def test_text_course_report(self, builder: ReportBuilder) -> None:
-        output = TextReportGenerator().render_course(builder.course_report("CS101"))
-        assert "Intro to Programming" in output
-        assert "Anna Schmidt" in output
-        assert "50.0%" in output  # pass rate
-        assert "B:1" in output  # distribution
-
-    def test_text_course_report_handles_no_grades(self, gradebook: GradeBook) -> None:
-        gradebook.add_course(Course("CS999", "Empty"))
-        output = TextReportGenerator().render_course(
-            ReportBuilder(gradebook).course_report("CS999")
-        )
-        assert "No grades recorded." in output
-
-    def test_text_summary_report(self, builder: ReportBuilder) -> None:
-        output = TextReportGenerator().render_summary(builder.summary_report())
-        assert "3 students, 2 courses, 3 grades" in output
-        assert "Top students:" in output
-        assert "At risk (< 60%):" in output
-
-    def test_text_summary_omits_empty_sections(self) -> None:
-        """An institution with no data should not render an empty 'At risk' heading."""
-        from notenverwaltung.storage import InMemoryGradeStore
-
-        output = TextReportGenerator().render_summary(
-            ReportBuilder(GradeBook(InMemoryGradeStore())).summary_report()
-        )
-        assert "Top students:" not in output
-        assert "At risk" not in output
-
     def test_csv_summary_report(self, builder: ReportBuilder) -> None:
         output = CsvReportGenerator().render_summary(builder.summary_report())
         assert "students,3" in output
         assert "band_A,1" in output
         assert "S001" in output  # ranking section
 
-    def test_csv_summary_average_is_blank_when_ungraded(self) -> None:
+    def test_csv_summary_average_is_blank_when_ungraded(self, store: GradeStore) -> None:
         """Blank, not 0 — a spreadsheet formula over a 0 would report a false average."""
-        from notenverwaltung.storage import InMemoryGradeStore
-
         output = CsvReportGenerator().render_summary(
-            ReportBuilder(GradeBook(InMemoryGradeStore())).summary_report()
+            ReportBuilder(GradeBook(store)).summary_report()
         )
         assert "average_percentage," in output
 

@@ -26,7 +26,7 @@ from notenverwaltung.exceptions import (
 )
 from notenverwaltung.models import Course, Enrollment, EnrollmentStatus, Student
 from notenverwaltung.models.user import Role
-from notenverwaltung.storage import SqliteGradeStore, transaction
+from notenverwaltung.storage import GradeStore, transaction
 from notenverwaltung.storage.queries import Page, SortSpec, exists, paginate
 from notenverwaltung.storage.scope import Scope
 from services import audit
@@ -102,7 +102,7 @@ class DirectoryService:
         """
         self._conn = conn
         self._principal = principal
-        self._store = SqliteGradeStore(conn)
+        self._store = GradeStore(conn)
 
     # ── Students ─────────────────────────────────────────────────────────────
     def list_students(

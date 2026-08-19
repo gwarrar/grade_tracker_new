@@ -1,8 +1,11 @@
-"""Conformance suite: every GradeStore implementation must pass all of it.
+"""What the store guarantees: identity, cascades, soft deletion and ordering.
 
-The `store` fixture is parametrised over the in-memory and SQLite backends, so each
-test here runs twice. That is the whole justification for the ABC — if the two
-diverge, the build fails rather than a bug appearing only in production.
+These ran twice for a while, over an in-memory backend as well as SQLite, to prove
+an ABC's two implementations agreed. The in-memory one shipped to nobody and the
+ABC went with it — but the assertions never were about interchangeability. They
+pin the behaviour every layer above depends on: that a duplicate id is refused,
+that deleting a student takes their grades, that a retired grade stops appearing
+while its row stays put.
 """
 
 from __future__ import annotations
