@@ -354,7 +354,7 @@ function StudentFields({
   );
 }
 
-function StudentDetail({
+export function StudentDetail({
   student,
   loading,
   error,
@@ -415,6 +415,12 @@ function StudentDetail({
     queryFn: () => api<Accounts>("/admin/users"),
     enabled: editing && can.manageUsers(me),
   });
+
+  // True while the student's own account is absent from the list — before it
+  // loads, and if the request fails outright.
+  const linkedMissing =
+    student?.user_id != null &&
+    !(accounts.data ?? []).some((account) => account.id === student.user_id);
 
   const save = useMutation({
     mutationFn: (body: Omit<StudentUpdate, "is_active">) =>
@@ -683,6 +689,15 @@ function StudentDetail({
             value={student.user_id == null ? "" : String(student.user_id)}
           >
             <option value="">{t("student.noAccount")}</option>
+            {/* The current link, rendered whether or not the account list has
+                arrived. `Select` is uncontrolled, so the browser resolves the
+                default at mount: with an empty list the only option is "no
+                account", and the form then saves that — unlinking an account
+                nobody touched. Same reason `TeacherPicker` carries an orphaned
+                option in courses-view. */}
+            {linkedMissing && (
+              <option value={String(student.user_id)}>{student.email}</option>
+            )}
             {(accounts.data ?? [])
               // Student accounts only, and skip any already attached to a different
               // record — one account cannot be two students.
