@@ -541,7 +541,12 @@ class GradingService:
         organisation's scale, which is per-installation configuration.
         """
         max_grade = row["max_grade"] or 1
-        percentage = row["score"] / max_grade * 100
+        # Multiply first, exactly as `_PERCENTAGE` does. Floating point is not
+        # associative: out of 9, a score of 8.1 is 89.99999999999999 dividing first
+        # and 90.0 multiplying first. The row rendered "90.0% — B" while `?letter=B`
+        # excluded it and `?letter=A` returned it, because the filter is the SQL
+        # expression and the letter was this one.
+        percentage = row["score"] * 100.0 / max_grade
         return {
             "grade_id": row["grade_id"],
             "student_id": row["student_id"],

@@ -588,6 +588,7 @@ class DirectoryService:
             term=changes.get("term", before.term),
             credits=float(changes.get("credits", before.credits)),
         )
+        self._assert_max_grade_fits_recorded_marks(course_id, updated.max_grade)
         metadata = {
             "description": changes.get("description", current["description"]),
             "room": changes.get("room", current["room"]),
@@ -1071,6 +1072,42 @@ class DirectoryService:
                 course_id,
             ),
         )
+
+    def _assert_max_grade_fits_recorded_marks(self, course_id: str, max_grade: float) -> None:
+        """Refuse a maximum that some already-recorded mark exceeds.
+
+        Nothing in the schema bounds ``score`` by ``max_grade`` — only
+        :class:`~notenverwaltung.models.Grade` does, on construction, and the store
+        constructs one for every row it reads. So lowering the maximum under an
+        existing mark does not fail here; it fails later, on every read, for good.
+        The transcript, the course report, the summary and both exports return 422
+        from then on, with no way back through the interface. Meanwhile the paths
+        that read raw SQL keep working and report the mark as 170%.
+
+        Rescaling the stored marks is the other possible answer and is a different
+        decision: it rewrites results that were awarded. Refusing is reversible —
+        the administrator amends the marks first, or leaves the maximum alone.
+
+        Args:
+            course_id: The course being changed.
+            max_grade: The proposed maximum.
+
+        Raises:
+            ValidationError: If any live grade on the course exceeds it.
+        """
+        row = self._conn.execute(
+            "SELECT COUNT(*) AS n, MAX(score) AS highest FROM grades"
+            " WHERE course_id = ? AND deleted_at IS NULL AND score > ?",
+            (course_id, max_grade),
+        ).fetchone()
+        if row["n"]:
+            raise ValidationError(
+                f"{row['n']} recorded mark(s) exceed a maximum of {max_grade}.",
+                field="max_grade",
+                value=max_grade,
+                affected=row["n"],
+                highest_score=row["highest"],
+            )
 
     def _assert_can_write(self, course: dict[str, Any]) -> None:
         """Verify the caller may modify a course.

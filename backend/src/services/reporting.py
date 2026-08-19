@@ -310,11 +310,7 @@ class ReportingService:
         Returns:
             ``student_id``, ``name`` and ``average_percentage``, worst first.
         """
-        return [
-            student
-            for student in self._ranked(descending=False, active_only=True)
-            if student["average_percentage"] < threshold
-        ]
+        return self._ranked(descending=False, active_only=True, below=threshold)
 
     def teacher_report(self, user_id: int) -> dict[str, Any]:
         """Build a per-teacher rollup with a course breakdown.
@@ -489,7 +485,7 @@ class ReportingService:
             )
 
         rows = self._conn.execute(
-            "SELECT g.title, g.score, c.max_grade, c.passing_grade"
+            "SELECT g.title, g.score, g.weight, c.max_grade, c.passing_grade"
             "  FROM grades g JOIN courses c ON c.course_id = g.course_id"
             " WHERE g.course_id = ? AND g.deleted_at IS NULL"
             " ORDER BY g.title",
@@ -503,8 +499,15 @@ class ReportingService:
                 row["title"],
                 {"scores": [], "percentages": [], "passing": 0},
             )
-            group["scores"].append(row["score"])
-            group["percentages"].append(row["score"] / (row["max_grade"] or 1) * 100)
+            # Weights carried alongside, because migration 011 allows one title to
+            # hold a different weight per row and every other average in the product
+            # respects them. Averaging these unweighted printed a different number
+            # for the same assessment than the course report did, with nothing
+            # saying which was authoritative.
+            group["scores"].append((row["score"], row["weight"]))
+            group["percentages"].append(
+                (row["score"] / (row["max_grade"] or 1) * 100, row["weight"])
+            )
             if row["score"] >= row["passing_grade"]:
                 group["passing"] += 1
 
@@ -512,16 +515,17 @@ class ReportingService:
         for title, group in by_title.items():
             count = len(group["scores"])
             distribution = dict.fromkeys(bands, 0)
-            for percentage in group["percentages"]:
+            for percentage, _ in group["percentages"]:
                 distribution[self._book.scale.label_for(percentage)] += 1
+            raw_scores = [score for score, _ in group["scores"]]
             assessments.append(
                 {
                     "title": title,
                     "count": count,
-                    "average_score": round(sum(group["scores"]) / count, 2),
-                    "average_percentage": round(sum(group["percentages"]) / count, 2),
-                    "min_score": min(group["scores"]),
-                    "max_score": max(group["scores"]),
+                    "average_score": round(weighted_mean(group["scores"]), 2),
+                    "average_percentage": round(weighted_mean(group["percentages"]), 2),
+                    "min_score": min(raw_scores),
+                    "max_score": max(raw_scores),
                     "pass_rate": round(group["passing"] / count * 100, 2),
                     "distribution": distribution,
                 }
@@ -813,8 +817,23 @@ class ReportingService:
         )
         return {row[0] for row in rows}
 
-    def _ranked(self, *, descending: bool, active_only: bool = False) -> list[dict[str, Any]]:
-        """Rank students by weighted average percentage, within scope."""
+    def _ranked(
+        self, *, descending: bool, active_only: bool = False, below: float | None = None
+    ) -> list[dict[str, Any]]:
+        """Rank students by weighted average percentage, within scope.
+
+        Args:
+            descending: Best first when true, worst first when false.
+            active_only: Exclude deactivated students.
+            below: Keep only students averaging under this. Applied here, against
+                the exact mean, because the published figure is rounded to two
+                places and a student on 59.99667 rounds to 60.0 — dropping them off
+                an intervention list while the report beside it, which compares
+                before rounding, still names them.
+
+        Returns:
+            ``student_id``, ``name`` and ``average_percentage``, in rank order.
+        """
         g_scope = grade_scope(self._principal, "g.student_id", "g.course_id")
         active_filter = " AND s.is_active = 1" if active_only else ""
         rows = self._conn.execute(
@@ -832,14 +851,15 @@ class ReportingService:
             entry = by_student.setdefault(row["student_id"], (name, []))
             entry[1].append((row["score"] / (row["max_grade"] or 1) * 100, row["weight"]))
 
-        ranked = [
-            {
-                "student_id": student_id,
-                "name": name,
-                "average_percentage": round(weighted_mean(values), 2),
-            }
+        means = [
+            (student_id, name, weighted_mean(values))
             for student_id, (name, values) in by_student.items()
             if values
+        ]
+        ranked = [
+            {"student_id": student_id, "name": name, "average_percentage": round(mean, 2)}
+            for student_id, name, mean in means
+            if below is None or mean < below
         ]
         ranked.sort(key=lambda entry: entry["average_percentage"], reverse=descending)
         return ranked

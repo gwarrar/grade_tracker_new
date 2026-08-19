@@ -11,6 +11,7 @@ from __future__ import annotations
 import io
 import json
 import sqlite3
+from datetime import date, datetime
 from typing import Any, ClassVar
 
 from fastapi.testclient import TestClient
@@ -445,3 +446,60 @@ def test_an_unknown_kind_is_refused_rather_than_imported(as_admin: Any) -> None:
 
     assert response.status_code == 422
     assert response.json()["code"] == "VALIDATION_ERROR"
+
+
+class TestRealDateCells:
+    """Excel writes a date column as a date, not as text.
+
+    openpyxl hands those back as `datetime`, and `str(datetime(2026, 1, 15))` is
+    `'2026-01-15 00:00:00'`, which matches none of the accepted formats. Every row
+    of a file with a real date column was rejected — `imported: 0, skipped: 300` —
+    while the CSV path worked, so it read as a corrupt file rather than a bug. The
+    existing .xlsx tests all pass dates as strings, which is why they never saw it.
+    """
+
+    def test_a_date_typed_cell_imports(self, as_teacher: Any) -> None:
+        """The cell a spreadsheet actually produces."""
+        blob = _workbook(
+            ("S001", "CS101", 91, datetime(2026, 3, 1)),
+            ("S001", "CS101", 88, date(2026, 3, 2)),
+            headers=("student_id", "course_id", "score", "date"),
+        )
+
+        response = as_teacher.post(
+            "/import/grades",
+            files={
+                "file": (
+                    "grades.xlsx",
+                    blob,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+            },
+            data={"mapping": json.dumps(GRADES_MAPPING)},
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["imported"] == 2, body
+        assert body["skipped"] == 0
+
+    def test_the_date_survives_as_an_iso_day(self, as_teacher: Any) -> None:
+        """Not a timestamp: the stored value is the day, in the form the API returns."""
+        blob = _workbook(
+            ("S001", "CS101", 91, datetime(2026, 3, 1, 14, 30)),
+            headers=("student_id", "course_id", "score", "date"),
+        )
+        as_teacher.post(
+            "/import/grades",
+            files={
+                "file": (
+                    "grades.xlsx",
+                    blob,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+            },
+            data={"mapping": json.dumps(GRADES_MAPPING)},
+        )
+
+        rows = as_teacher.get("/grades", params={"course_id": "CS101"}).json()["items"]
+        assert "2026-03-01" in [row["date"] for row in rows]

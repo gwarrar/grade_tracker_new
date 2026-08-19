@@ -352,3 +352,46 @@ class TestCsvExports:
             "/reports/distribution/distribution/export.csv",
         ):
             assert as_student.get(url).status_code == 403
+
+
+class TestAtRiskRounding:
+    """The intervention list must not drop a student to a rounding rule.
+
+    `_ranked` publishes `average_percentage` rounded to two places, and the filter
+    used to compare that rounded figure. A student on 59.99667 rounds to 60.0 and
+    was therefore not "below 60" — while `/reports/summary`, which compares before
+    rounding, still listed them. Two endpoints, one student, opposite answers, and
+    the wrong one was the list somebody acts on.
+    """
+
+    def test_a_student_just_under_the_threshold_is_listed(
+        self, seeded_db: sqlite3.Connection, as_admin: TestClient
+    ) -> None:
+        """60, 60 and 59.99 average 59.99667: below 60, displayed as 60.0."""
+        seeded_db.execute("DELETE FROM grades")
+        seeded_db.execute(
+            "INSERT INTO grades (student_id, course_id, score, weight, date) VALUES"
+            " ('S001','CS101',60,1,'2026-01-01'),"
+            " ('S001','CS101',60,1,'2026-01-02'),"
+            " ('S001','CS101',59.99,1,'2026-01-03')"
+        )
+        seeded_db.commit()
+
+        listed = as_admin.get("/analytics/at-risk").json()
+
+        assert [row["student_id"] for row in listed] == ["S001"]
+        # Still displayed rounded -- the fix is to the comparison, not the figure.
+        assert listed[0]["average_percentage"] == 60.0
+
+    def test_a_student_exactly_on_the_threshold_is_not(
+        self, seeded_db: sqlite3.Connection, as_admin: TestClient
+    ) -> None:
+        """The counterweight. Below means below, and 60 is not at risk."""
+        seeded_db.execute("DELETE FROM grades")
+        seeded_db.execute(
+            "INSERT INTO grades (student_id, course_id, score, weight, date)"
+            " VALUES ('S001','CS101',60,1,'2026-01-01')"
+        )
+        seeded_db.commit()
+
+        assert as_admin.get("/analytics/at-risk").json() == []

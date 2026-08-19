@@ -231,7 +231,15 @@ def get_statistics(context: ToolContext, arguments: dict[str, Any]) -> dict[str,
         "       COUNT(DISTINCT g.student_id) AS student_count,"
         # Percentages, not raw scores. Averaging 80/100 with 8/10 as raw numbers
         # gives 44, which is the bug this codebase already had once.
-        "       ROUND(AVG(g.score * 100.0 / c.max_grade), 1) AS average_percentage,"
+        #
+        # Weighted, for the same reason every report is. A plain AVG here answered
+        # the question differently from the transcript beside it: a midterm at 50%
+        # weighted 1 and a final at 90% weighted 3 is 80% on the report and was 70%
+        # to the assistant. `services/ai.py` feeds this figure into the insight
+        # prompt, so the narrative was reasoning from a number the teacher's own
+        # report contradicted.
+        "       ROUND(SUM(g.score * 100.0 / c.max_grade * g.weight)"
+        "             / NULLIF(SUM(g.weight), 0), 1) AS average_percentage,"
         "       ROUND(MAX(g.score * 100.0 / c.max_grade), 1) AS best_percentage,"
         "       ROUND(MIN(g.score * 100.0 / c.max_grade), 1) AS worst_percentage,"
         "       ROUND(100.0 * SUM("

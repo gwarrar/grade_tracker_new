@@ -210,3 +210,38 @@ class TestNarrowingFilters:
         rows = as_student.get("/grades", params={"student_id": "S002", "size": 100}).json()["items"]
 
         assert rows == []
+
+
+class TestPercentageAgreesWithItsFilter:
+    """A grade must be findable under the letter it displays.
+
+    `_PERCENTAGE` computes `score * 100.0 / max_grade` in SQL and drives the sort
+    and both ends of the letter filter; `_row_to_dict` computed `score / max_grade
+    * 100` in Python and drove the letter shown on the row. Floating point is not
+    associative, so at a band edge the two disagreed: out of 9, a score of 8.1 is
+    90.0 one way and 89.99999999999999 the other.
+    """
+
+    def test_a_row_is_returned_by_a_filter_for_its_own_letter(
+        self, seeded_db: sqlite3.Connection, as_admin: TestClient
+    ) -> None:
+        """8.1 out of 9 sits exactly on the A/B boundary, from one side or the other."""
+        seeded_db.execute(
+            "INSERT INTO courses (course_id, name, teacher_id, max_grade, passing_grade)"
+            " VALUES ('NINE', 'Out of nine', 1, 9, 5)"
+        )
+        seeded_db.execute("INSERT INTO enrollments (student_id, course_id) VALUES ('S001','NINE')")
+        seeded_db.execute(
+            "INSERT INTO grades (student_id, course_id, score, date)"
+            " VALUES ('S001', 'NINE', 8.1, '2026-01-15')"
+        )
+        seeded_db.commit()
+
+        row = next(
+            item for item in as_admin.get("/grades", params={"course_id": "NINE"}).json()["items"]
+        )
+        filtered = as_admin.get(
+            "/grades", params={"course_id": "NINE", "letter": row["letter"]}
+        ).json()["items"]
+
+        assert [item["grade_id"] for item in filtered] == [row["grade_id"]]

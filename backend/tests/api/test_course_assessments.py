@@ -155,3 +155,49 @@ class TestGradesAreUntouched:
 
         after = as_admin.get("/grades", params={"course_id": "CS101"}).json()["items"]
         assert [row["weight"] for row in after] == [row["weight"] for row in before]
+
+
+class TestMaxGradeAgainstRecordedMarks:
+    """Lowering a course's maximum under an existing mark used to brick the course.
+
+    Nothing in the schema bounds `score` by `max_grade`; only the `Grade` model
+    does, on construction, and the store constructs one for every row it reads. So
+    the write succeeded and every *read* failed from then on — the transcript, the
+    course report, the summary and both exports, permanently, with no way back
+    through the interface. The raw-SQL paths meanwhile reported the mark as 170%.
+    """
+
+    def test_a_maximum_below_a_recorded_mark_is_refused(self, as_admin: TestClient) -> None:
+        """The write is where this can still be stopped.
+
+        70 rather than 50: the seeded course passes at 60, and the `Course` model
+        already refuses a maximum below its own passing mark. That guard happens to
+        cover part of this and is not the same rule -- it says nothing about the
+        marks already awarded, which is the gap.
+        """
+        response = as_admin.patch("/courses/CS101", json={"max_grade": 70})
+
+        assert response.status_code == 422, response.text
+        body = response.json()
+        assert body["code"] == "VALIDATION_ERROR"
+        assert body["context"]["affected"] == 1
+        assert body["context"]["highest_score"] == 85
+
+    def test_the_transcript_still_reads_afterwards(self, as_admin: TestClient) -> None:
+        """The point of refusing: the course is still readable."""
+        as_admin.patch("/courses/CS101", json={"max_grade": 70})
+
+        assert as_admin.get("/reports/student/S001").status_code == 200
+        assert as_admin.get("/reports/course/CS101").status_code == 200
+
+    def test_a_maximum_above_every_mark_is_allowed(self, as_admin: TestClient) -> None:
+        """The counterweight. Raising it, or lowering it within range, still works."""
+        assert as_admin.patch("/courses/CS101", json={"max_grade": 120}).status_code == 200
+        assert as_admin.patch("/courses/CS101", json={"max_grade": 85}).status_code == 200
+
+    def test_a_soft_deleted_mark_does_not_block_it(self, as_admin: TestClient) -> None:
+        """A retired mark is not a mark. It must not hold the maximum hostage."""
+        grades = as_admin.get("/grades", params={"course_id": "CS101"}).json()["items"]
+        as_admin.delete(f"/grades/{grades[0]['grade_id']}")
+
+        assert as_admin.patch("/courses/CS101", json={"max_grade": 70}).status_code == 200

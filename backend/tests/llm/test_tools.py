@@ -347,3 +347,28 @@ def test_courses_can_be_searched_as_well_as_students(conn: sqlite3.Connection) -
     result = run(context, "search_entities", {"query": "Data", "kind": "course"})
 
     assert [row["course_id"] for row in result["results"]] == ["CS101"]
+
+
+def test_the_average_is_weighted_like_every_report(conn: sqlite3.Connection) -> None:
+    """A plain AVG answered the question differently from the transcript beside it.
+
+    Midterm 50% at weight 1 and a final 90% at weight 3 is 80%, which is what the
+    course report says. Unweighted it is 70% — and `services/ai.py` feeds this same
+    figure into the insight prompt, so the narrative reasoned from a number the
+    teacher's own report contradicted.
+    """
+    conn.execute(
+        "INSERT INTO courses (course_id, name, teacher_id, max_grade, passing_grade)"
+        " VALUES ('CS050', 'Weighted', 1, 100, 50)"
+    )
+    conn.execute("INSERT INTO enrollments (student_id, course_id) VALUES ('S001','CS050')")
+    conn.execute(
+        "INSERT INTO grades (student_id, course_id, title, score, weight, date) VALUES"
+        " ('S001','CS050','Midterm', 50, 1, '2026-03-01'),"
+        " ('S001','CS050','Final',   90, 3, '2026-03-02')"
+    )
+    context = _context(conn, _principal(Role.ADMIN, user_id=3))
+
+    stats = run(context, "get_statistics", {"course_id": "CS050"})
+
+    assert stats["average_percentage"] == 80.0

@@ -31,7 +31,7 @@ import io
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import openpyxl
@@ -51,6 +51,32 @@ from services.users import UserService
 
 SAMPLE_ROWS = 5
 """How many data rows a preview carries back for disambiguation."""
+
+
+def _cell_text(cell: Any) -> str:
+    """Render one spreadsheet cell as the text the importer expects.
+
+    openpyxl hands back a ``datetime`` for any date-formatted cell, and
+    ``str(datetime(2026, 1, 15))`` is ``'2026-01-15 00:00:00'`` — which matches none
+    of the accepted date formats, so every row carrying a real date column was
+    rejected as invalid. A teacher exporting marks from Excel got
+    ``imported: 0, skipped: 300`` and no indication that the file was fine.
+
+    Args:
+        cell: The value openpyxl produced.
+
+    Returns:
+        The cell as text, with dates in ISO form.
+    """
+    if cell is None:
+        return ""
+    if isinstance(cell, datetime):
+        # A time component means a timestamp column; the date is the part that
+        # matters and the rest would fail the same parse the bug was about.
+        return cell.date().isoformat()
+    if isinstance(cell, date):
+        return cell.isoformat()
+    return str(cell)
 
 
 class _UnmappedFieldError(GradeBookError):
@@ -294,10 +320,7 @@ class ImportService:
             if not any(headers):
                 raise ValidationError("The workbook has no header row.", field="file")
             rows = [
-                {
-                    headers[index]: "" if cell is None else str(cell)
-                    for index, cell in enumerate(row)
-                }
+                {headers[index]: _cell_text(cell) for index, cell in enumerate(row)}
                 for row in iterator
                 if any(cell is not None for cell in row)
             ]
