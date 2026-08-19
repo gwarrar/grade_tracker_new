@@ -563,7 +563,7 @@ export function StudentDetail({
           </div>
 
           <div className="mt-6 flex flex-wrap gap-2">
-            <Link href={`/reports/student/${student.student_id}`} className="btn btn-ghost">
+            <Link href={`/reports/student/${encodeURIComponent(student.student_id)}`} className="btn btn-ghost">
               {t("student.report")}
             </Link>
             {editable && (

@@ -502,6 +502,17 @@ function ColorPreview({ colors }: { colors: Branding["colors"] }) {
   );
 }
 
+/** One editable band, plus the identity React needs to follow it through a swap. */
+type Row = GradeBand & { uid: number };
+
+let nextUid = 0;
+
+/** Attach a fresh identity to a band arriving from the API or from the add button. */
+function withUid(band: GradeBand): Row {
+  nextUid += 1;
+  return { ...band, uid: nextUid };
+}
+
 function GradingScaleEditor({
   branding,
   onChange,
@@ -512,7 +523,9 @@ function GradingScaleEditor({
   const t = useTranslations("admin.branding");
   const tAction = useTranslations("action");
   const tError = useTranslations("error");
-  const [bands, setBands] = useState<GradeBand[]>(branding.grading_scale);
+  // A row carries an identity the API does not: `uid` exists only so React can
+  // follow a band through a reorder. It is stripped before the scale is sent.
+  const [bands, setBands] = useState<Row[]>(() => branding.grading_scale.map(withUid));
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const [code, setCode] = useState<string | null>(null);
@@ -543,9 +556,14 @@ function GradingScaleEditor({
     try {
       const stored = await api<Branding>("/org/grading-scale", {
         method: "PUT",
-        body: bands,
+        // `uid` is local identity for React, not part of the scale.
+        body: bands.map((row) => ({
+          min_percentage: row.min_percentage,
+          label: row.label,
+          points: row.points,
+        })),
       });
-      setBands(stored.grading_scale);
+      setBands(stored.grading_scale.map(withUid));
       onChange(stored);
       setSaved(true);
     } catch (error) {
@@ -564,7 +582,12 @@ function GradingScaleEditor({
       <div className="mt-4 space-y-3">
         {bands.map((band, index) => (
           <div
-            key={index}
+            // Not the index. React reuses the node at a position, so after a swap
+            // the arrow under the pointer belonged to the band that moved the other
+            // way and the list oscillated -- a band could never travel more than one
+            // place. `uid` is assigned on load and on add, and rides along with the
+            // row through every reorder.
+            key={band.uid}
             className="grid gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
           >
             <label className="text-sm text-muted">
@@ -573,7 +596,16 @@ function GradingScaleEditor({
                 type="number"
                 value={band.min_percentage}
                 className="field-input numeric"
-                onChange={(event) => change(index, { min_percentage: Number(event.target.value) })}
+                // NaN, not `Number("")`, which is 0: clearing the field used to
+                // rewrite it to 0 under the cursor, and 0 is a legitimate threshold
+                // so nothing downstream could tell it was an accident. NaN fails
+                // `Number.isFinite` in `validateGradingScale`, which reports it.
+                onChange={(event) =>
+                  change(index, {
+                    min_percentage:
+                      event.target.value === "" ? Number.NaN : Number(event.target.value),
+                  })
+                }
               />
             </label>
             <label className="text-sm text-muted">
@@ -644,7 +676,11 @@ function GradingScaleEditor({
         onClick={() => {
           setBands((current) => [
             // `points: null`, not 0 — a new band is unpriced until somebody prices it.
-            { min_percentage: (current[0]?.min_percentage ?? -10) + 10, label: "", points: null },
+            withUid({
+              min_percentage: (current[0]?.min_percentage ?? -10) + 10,
+              label: "",
+              points: null,
+            }),
             ...current,
           ]);
           setSaved(false);

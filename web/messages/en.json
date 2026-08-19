@@ -389,7 +389,9 @@
         "import": "Import assistant"
       },
       "featureLabel": "Feature",
-      "baseUrlHint": "The OpenAI-compatible root, which `/chat/completions` is appended to. Ollama serves it under /v1, so use http://127.0.0.1:11434/v1 — its native API on the bare port speaks a different protocol."
+      "baseUrlHint": "The OpenAI-compatible root, which `/chat/completions` is appended to. Ollama serves it under /v1, so use http://127.0.0.1:11434/v1 — its native API on the bare port speaks a different protocol.",
+      "deleteTitle": "Delete this provider?",
+      "deleteDescription": "Its configuration — model, endpoint and key variable — is removed. Any feature routed to it stops working until you route it elsewhere."
     },
     "branding": {
       "title": "Branding",
@@ -431,7 +433,8 @@
         "zero": "The final band must start at zero.",
         "duplicate": "Each threshold must be unique.",
         "percentage": "Thresholds must be percentages from 0 to 100.",
-        "label": "Each grading band needs a displayed label."
+        "label": "Each grading band needs a displayed label.",
+        "duplicateLabel": "Two bands share a label. Each band needs its own, or the distribution charts merge them."
       },
       "confirmTitle": "Replace the grading scale?",
       "confirmDescription": "This changes every displayed letter grade across the application.",
@@ -458,7 +461,11 @@
       "created": "Account created",
       "linkedStudent": "Student record",
       "mustChange": "Password not yet changed",
-      "allRoles": "All roles"
+      "allRoles": "All roles",
+      "resetTitle": "Reset this password?",
+      "resetDescription": "A new one-time password is generated and shown once. The current password stops working immediately and every session is signed out.",
+      "deactivateTitle": "Deactivate this account?",
+      "deactivateDescription": "They are signed out everywhere and cannot sign in again until the account is reactivated."
     },
     "audit": {
       "title": "Activity",
@@ -640,6 +647,7 @@
     "download": "Download as CSV",
     "name": "Name",
     "email": "Email",
-    "password": "Password"
+    "password": "Password",
+    "copyFailed": "Copy failed — select the password and copy it by hand."
   }
 }

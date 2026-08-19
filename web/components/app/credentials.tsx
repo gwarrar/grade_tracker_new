@@ -42,6 +42,7 @@ export function CredentialsCard({
   const t = useTranslations("credentials");
   const tAction = useTranslations("action");
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   if (rows.length === 0) return null;
 
@@ -90,14 +91,23 @@ export function CredentialsCard({
         <button
           type="button"
           onClick={() => {
-            void navigator.clipboard.writeText(
-              rows.length === 1 ? rows[0].password : csv(),
+            // `navigator.clipboard` is undefined outside a secure context, and a
+            // school LAN deployment on plain http is exactly that. Unguarded this
+            // threw in the handler and copied nothing, silently -- on the one card
+            // whose whole purpose is that the password is never shown again.
+            const text = rows.length === 1 ? rows[0].password : csv();
+            if (!navigator.clipboard) {
+              setCopyFailed(true);
+              return;
+            }
+            navigator.clipboard.writeText(text).then(
+              () => setCopied(true),
+              () => setCopyFailed(true),
             );
-            setCopied(true);
           }}
           className="rounded-lg border border-warn/40 px-2.5 py-1 text-xs text-warn transition-opacity hover:opacity-80"
         >
-          {copied ? t("copied") : t("copy")}
+          {copyFailed ? t("copyFailed") : copied ? t("copied") : t("copy")}
         </button>
         {rows.length > 1 && (
           <button

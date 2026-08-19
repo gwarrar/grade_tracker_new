@@ -389,7 +389,9 @@
         "import": "Import-Assistent"
       },
       "featureLabel": "Funktion",
-      "baseUrlHint": "Die OpenAI-kompatible Basis, an die `/chat/completions` angehängt wird. Ollama stellt sie unter /v1 bereit, also http://127.0.0.1:11434/v1 verwenden — die native API auf dem blanken Port spricht ein anderes Protokoll."
+      "baseUrlHint": "Die OpenAI-kompatible Basis, an die `/chat/completions` angehängt wird. Ollama stellt sie unter /v1 bereit, also http://127.0.0.1:11434/v1 verwenden — die native API auf dem blanken Port spricht ein anderes Protokoll.",
+      "deleteTitle": "Diesen Anbieter löschen?",
+      "deleteDescription": "Seine Konfiguration – Modell, Endpunkt und Schlüsselvariable – wird entfernt. Jede darauf verwiesene Funktion arbeitet erst wieder, wenn Sie sie neu zuweisen."
     },
     "branding": {
       "title": "Erscheinungsbild",
@@ -431,7 +433,8 @@
         "zero": "Das letzte Band muss bei null beginnen.",
         "duplicate": "Jeder Grenzwert darf nur einmal vorkommen.",
         "percentage": "Grenzwerte müssen Prozentwerte zwischen 0 und 100 sein.",
-        "label": "Jedes Notenband benötigt eine angezeigte Bezeichnung."
+        "label": "Jedes Notenband benötigt eine angezeigte Bezeichnung.",
+        "duplicateLabel": "Zwei Stufen haben dieselbe Bezeichnung. Jede braucht eine eigene, sonst werden sie in den Verteilungen zusammengefasst."
       },
       "confirmTitle": "Notensystem ersetzen?",
       "confirmDescription": "Dadurch ändert sich jede in der Anwendung angezeigte Buchstabennote.",
@@ -458,7 +461,11 @@
       "created": "Konto angelegt",
       "linkedStudent": "Studierendensatz",
       "mustChange": "Passwort noch nicht geändert",
-      "allRoles": "Alle Rollen"
+      "allRoles": "Alle Rollen",
+      "resetTitle": "Dieses Passwort zurücksetzen?",
+      "resetDescription": "Ein neues Einmalpasswort wird erzeugt und einmalig angezeigt. Das bisherige gilt sofort nicht mehr, und alle Sitzungen werden beendet.",
+      "deactivateTitle": "Dieses Konto deaktivieren?",
+      "deactivateDescription": "Die Person wird überall abgemeldet und kann sich erst nach erneuter Aktivierung wieder anmelden."
     },
     "audit": {
       "title": "Aktivität",
@@ -640,6 +647,7 @@
     "download": "Als CSV herunterladen",
     "name": "Name",
     "email": "E-Mail",
-    "password": "Passwort"
+    "password": "Passwort",
+    "copyFailed": "Kopieren fehlgeschlagen – Passwort markieren und von Hand kopieren."
   }
 }

@@ -109,3 +109,36 @@ describe("grade points", () => {
     ).toBe("points");
   });
 });
+
+describe("duplicate labels", () => {
+  it("are rejected, because the distribution charts key on the label", () => {
+    // A pass/fail-with-distinction scale reaches this by accident. `Distribution`
+    // reads `distribution[label]` and keys its rows on it, so two "P" bands render
+    // twice from one bucket, double the total, and halve every percentage shown.
+    expect(
+      validateGradingScale([
+        { min_percentage: 90, label: "P", points: null },
+        { min_percentage: 50, label: "P", points: null },
+        { min_percentage: 0, label: "F", points: null },
+      ]),
+    ).toBe("duplicateLabel");
+  });
+
+  it("are compared after trimming, so trailing space is not a distinction", () => {
+    expect(
+      validateGradingScale([
+        { min_percentage: 50, label: "P ", points: null },
+        { min_percentage: 0, label: "P", points: null },
+      ]),
+    ).toBe("duplicateLabel");
+  });
+
+  it("does not reject a scale whose labels merely differ", () => {
+    expect(
+      validateGradingScale([
+        { min_percentage: 50, label: "P", points: null },
+        { min_percentage: 0, label: "F", points: null },
+      ]),
+    ).toBeNull();
+  });
+});

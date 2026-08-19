@@ -18,6 +18,7 @@ export type GradingScaleError =
   | "order"
   | "zero"
   | "duplicate"
+  | "duplicateLabel"
   | "percentage"
   | "label"
   | "points";
@@ -48,6 +49,14 @@ export function validateGradingScale(bands: GradeBand[]): GradingScaleError | nu
   ) {
     return "points";
   }
+
+  // Labels are the key every distribution is bucketed by: `Distribution` reads
+  // `distribution[label]` and keys its rows on it, so two bands called "P" render
+  // twice from one bucket, double the total, and halve every percentage in the
+  // chart. The grades filter renders two identical options with a duplicate key.
+  // A pass/fail-with-distinction scale reaches this by accident.
+  const labels = bands.map((band) => band.label.trim());
+  if (new Set(labels).size !== labels.length) return "duplicateLabel";
 
   const thresholds = bands.map((band) => band.min_percentage);
   if (new Set(thresholds).size !== thresholds.length) return "duplicate";

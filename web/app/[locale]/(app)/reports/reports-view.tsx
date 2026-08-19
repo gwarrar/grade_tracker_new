@@ -22,7 +22,7 @@ import { Distribution } from "@/components/app/distribution";
 import { StatTile } from "@/components/app/stat-tile";
 import { StudentRecord } from "@/components/app/student-record";
 import { Link } from "@/i18n/navigation";
-import { API_BASE, api, type Response } from "@/lib/api";
+import { API_BASE, ApiError, api, type Response } from "@/lib/api";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { useDebounced, useUrlParam } from "@/lib/use-selection";
 
@@ -165,7 +165,7 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
   // isFetching, not isPending: a disabled query never fetches, so it stays pending
   // forever. Six of these seven are disabled at any moment -- only the chosen report
   // is enabled -- so reading isPending left "Loading…" on screen permanently.
-  const pending = [
+  const active = [
     summary,
     studentReport,
     studentCourses,
@@ -175,7 +175,15 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
     assessments,
     enrollment,
     distribution,
-  ].some((query) => query.isFetching);
+  ];
+
+  const pending = active.some((query) => query.isFetching);
+
+  // Every section here renders on `.data &&`, so a failure rendered nothing at all
+  // and "this teacher does not exist" looked exactly like "this teacher has no
+  // courses". On the one screen that is read-only, an empty card is not a neutral
+  // outcome: it is a wrong answer that nobody can tell is wrong.
+  const failure = active.find((query) => query.isError)?.error;
 
   const courseOptions = (
     <>
@@ -233,7 +241,7 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
               />
               {/* The dedicated page carries the print stylesheet, which is how a
                   transcript becomes a PDF without a server-side renderer. */}
-              <Link href={`/reports/student/${studentId}`} className="btn btn-ghost">
+              <Link href={`/reports/student/${encodeURIComponent(studentId)}`} className="btn btn-ghost">
                 {t("report.print")}
               </Link>
             </>
@@ -764,6 +772,14 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
       )}
 
       {pending && <p className="text-center text-sm text-subtle">{t("stats.loading")}</p>}
+
+      {!pending && failure && (
+        <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-center text-sm text-fail">
+          {t(
+            `error.${failure instanceof ApiError ? failure.code : "NETWORK_ERROR"}` as "error.unknown",
+          )}
+        </p>
+      )}
     </div>
   );
 }

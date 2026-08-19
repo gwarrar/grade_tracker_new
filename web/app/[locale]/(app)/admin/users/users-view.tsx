@@ -17,6 +17,7 @@ import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { CredentialsCard, type Credential } from "@/components/app/credentials";
+import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
 import { atLeast, type Me, type Role } from "@/lib/session";
@@ -43,6 +44,12 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
   const [adding, setAdding] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [secret, setSecret] = useState<Credential | null>(null);
+  // Resetting a password and deactivating an account are both immediate and both
+  // irreversible from the operator's side, and they sit adjacent in a dense row.
+  // `students-view` already confirms the same class of action; these did not.
+  const [pending, setPending] = useState<{ kind: "reset" | "deactivate"; user: User } | null>(
+    null,
+  );
   const [roleFilter, setRoleFilter] = useState<Role | "">("");
   const query = useDebounced(search.trim());
 
@@ -131,6 +138,24 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
 
   return (
     <div className="space-y-6">
+      <Confirm
+        open={pending !== null}
+        title={pending?.kind === "reset" ? t("resetTitle") : t("deactivateTitle")}
+        description={
+          pending?.kind === "reset" ? t("resetDescription") : t("deactivateDescription")
+        }
+        confirmLabel={pending?.kind === "reset" ? t("resetPassword") : t("deactivate")}
+        cancelLabel={tAction("cancel")}
+        onConfirm={() => {
+          if (pending?.kind === "reset") reset.mutate(pending.user);
+          if (pending?.kind === "deactivate") {
+            setActive.mutate({ id: pending.user.id, active: false });
+          }
+          setPending(null);
+        }}
+        onCancel={() => setPending(null)}
+      />
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-text">{t("title")}</h1>
@@ -334,7 +359,7 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
                       <button
                         type="button"
                         disabled={locked}
-                        onClick={() => reset.mutate(user)}
+                        onClick={() => setPending({ kind: "reset", user })}
                         className="rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:text-text disabled:opacity-40"
                       >
                         {t("resetPassword")}
@@ -343,7 +368,9 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
                         type="button"
                         disabled={locked}
                         onClick={() =>
-                          setActive.mutate({ id: user.id, active: !user.is_active })
+                          user.is_active
+                            ? setPending({ kind: "deactivate", user })
+                            : setActive.mutate({ id: user.id, active: true })
                         }
                         className="rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:text-text disabled:opacity-40"
                       >

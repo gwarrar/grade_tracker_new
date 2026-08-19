@@ -17,6 +17,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useId, useState, type FormEvent } from "react";
 
+import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
 
@@ -55,6 +56,7 @@ function Providers() {
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [code, setCode] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Provider | null>(null);
 
   const providers = useQuery({
     queryKey: ["admin", "ai", "providers"],
@@ -75,15 +77,20 @@ function Providers() {
     onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
   });
 
+  // Both carry an onError. Without one a failed request did nothing observable at
+  // all: the pill did not move, no message appeared, and the click read as not
+  // having registered.
   const toggle = useMutation({
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api(`/admin/ai/providers/${id}`, { method: "PATCH", body: { is_enabled: enabled } }),
     onSuccess: refresh,
+    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => api(`/admin/ai/providers/${id}`, { method: "DELETE" }),
     onSuccess: refresh,
+    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
   });
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -187,13 +194,30 @@ function Providers() {
         </form>
       )}
 
+      {/* Every other destructive action in the application confirms first --
+          retiring a mark, deleting a course, removing an enrolment. This one sat
+          as a bare x beside the enable toggle, one misclick from discarding a
+          provider's whole configuration with no undo. */}
+      <Confirm
+        open={deleting !== null}
+        title={t("deleteTitle")}
+        description={t("deleteDescription")}
+        confirmLabel={tAction("delete")}
+        cancelLabel={tAction("cancel")}
+        onConfirm={() => {
+          if (deleting) remove.mutate(deleting.id);
+          setDeleting(null);
+        }}
+        onCancel={() => setDeleting(null)}
+      />
+
       <ul className="mt-4 space-y-3">
         {rows.map((provider) => (
           <ProviderCard
             key={provider.id}
             provider={provider}
             onToggle={(enabled) => toggle.mutate({ id: provider.id, enabled })}
-            onDelete={() => remove.mutate(provider.id)}
+            onDelete={() => setDeleting(provider)}
           />
         ))}
         {providers.isPending && <li className="text-sm text-subtle">…</li>}
@@ -363,6 +387,7 @@ function ProviderCard({
 
 function Routing() {
   const t = useTranslations("admin.ai");
+  const tError = useTranslations("error");
   const queryClient = useQueryClient();
 
   const providers = useQuery({
@@ -375,10 +400,17 @@ function Routing() {
     queryFn: () => api<Route[]>("/admin/ai/routing"),
   });
 
+  const [routingCode, setRoutingCode] = useState<string | null>(null);
+
   const save = useMutation({
     mutationFn: ({ feature, body }: { feature: string; body: Record<string, unknown> }) =>
       api(`/admin/ai/routing/${feature}`, { method: "PUT", body }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "ai", "routing"] }),
+    onSuccess: () => {
+      setRoutingCode(null);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "ai", "routing"] });
+    },
+    onError: (error) =>
+      setRoutingCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
   });
 
   const byFeature = new Map((routing.data ?? []).map((route) => [route.feature, route]));
@@ -388,6 +420,12 @@ function Routing() {
     <section>
       <h2 className="text-lg font-medium text-text">{t("routing")}</h2>
       <p className="mt-1 text-sm text-muted">{t("routingIntro")}</p>
+
+      {routingCode && (
+        <p role="alert" className="mt-3 rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
+          {tError(routingCode as "unknown")}
+        </p>
+      )}
 
       <div className="mt-4 space-y-3">
         {FEATURES.map((feature) => {
@@ -409,7 +447,11 @@ function Routing() {
                     save.mutate({
                       feature,
                       body: {
-                        provider_id: Number(event.target.value),
+                        // `Number("")` is 0, and 0 is not a provider id. Choosing
+                        // "—" to clear a route sent it, the API refused it, and
+                        // with no onError the select snapped back — which reads as
+                        // a control that does not work.
+                        provider_id: event.target.value === "" ? null : Number(event.target.value),
                         model: current?.model ?? "",
                         effort: current?.effort ?? "medium",
                       },

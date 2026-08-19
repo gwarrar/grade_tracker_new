@@ -389,7 +389,9 @@
         "import": "Assistant d’import"
       },
       "featureLabel": "Fonction",
-      "baseUrlHint": "La racine compatible OpenAI, à laquelle `/chat/completions` est ajouté. Ollama la sert sous /v1 : utilisez http://127.0.0.1:11434/v1 — son API native sur le port nu parle un autre protocole."
+      "baseUrlHint": "La racine compatible OpenAI, à laquelle `/chat/completions` est ajouté. Ollama la sert sous /v1 : utilisez http://127.0.0.1:11434/v1 — son API native sur le port nu parle un autre protocole.",
+      "deleteTitle": "Supprimer ce fournisseur ?",
+      "deleteDescription": "Sa configuration – modèle, point de terminaison et variable de clé – est supprimée. Toute fonctionnalité qui lui est associée cessera de fonctionner jusqu'à sa réaffectation."
     },
     "branding": {
       "title": "Identité visuelle",
@@ -431,7 +433,8 @@
         "zero": "La dernière tranche doit commencer à zéro.",
         "duplicate": "Chaque seuil doit être unique.",
         "percentage": "Les seuils doivent être des pourcentages compris entre 0 et 100.",
-        "label": "Chaque tranche de notation doit avoir une mention affichée."
+        "label": "Chaque tranche de notation doit avoir une mention affichée.",
+        "duplicateLabel": "Deux paliers portent le même libellé. Chacun doit avoir le sien, sinon les répartitions les fusionnent."
       },
       "confirmTitle": "Remplacer le barème de notation ?",
       "confirmDescription": "Cette action modifie chaque mention affichée dans l’application.",
@@ -458,7 +461,11 @@
       "created": "Compte créé",
       "linkedStudent": "Fiche étudiant",
       "mustChange": "Mot de passe non modifié",
-      "allRoles": "Tous les rôles"
+      "allRoles": "Tous les rôles",
+      "resetTitle": "Réinitialiser ce mot de passe ?",
+      "resetDescription": "Un nouveau mot de passe à usage unique est généré et affiché une seule fois. L'ancien cesse immédiatement de fonctionner et toutes les sessions sont fermées.",
+      "deactivateTitle": "Désactiver ce compte ?",
+      "deactivateDescription": "La personne est déconnectée partout et ne pourra pas se reconnecter tant que le compte n'est pas réactivé."
     },
     "audit": {
       "title": "Activité",
@@ -640,6 +647,7 @@
     "download": "Télécharger en CSV",
     "name": "Nom",
     "email": "Courriel",
-    "password": "Mot de passe"
+    "password": "Mot de passe",
+    "copyFailed": "Échec de la copie – sélectionnez le mot de passe et copiez-le à la main."
   }
 }
