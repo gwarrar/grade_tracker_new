@@ -20,6 +20,7 @@ satisfy half a test.
 from __future__ import annotations
 
 import os
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -159,3 +160,68 @@ class TestDotenvReachesEnviron:
         load_dotenv(Path(__file__).parent / "does-not-exist.env")
 
         assert os.environ["GT_PRECEDENCE_PROBE"] == "from-environment"
+
+
+class TestReportExportScope:
+    """The CSV export must not see further than the JSON report beside it.
+
+    Both routes reach the same builder. The JSON ones trimmed the result to the
+    caller's scope afterwards and the export did not, so the download was a way
+    around scoping rather than a second rendering of the same thing. The seed puts
+    S001 in the first teacher's course only, so each test adds the row that makes
+    the leak visible -- without it the report has nothing to hide.
+    """
+
+    def test_a_student_exporting_a_course_gets_only_their_own_marks(
+        self, seeded_db: sqlite3.Connection, as_student: TestClient
+    ) -> None:
+        """The register is the classmates' marks; a student may read one row of it."""
+        seeded_db.execute("INSERT INTO enrollments (student_id, course_id) VALUES ('S002','CS101')")
+        seeded_db.execute(
+            "INSERT INTO grades (student_id, course_id, score, date)"
+            " VALUES ('S002', 'CS101', 42, '2026-02-01')"
+        )
+        seeded_db.commit()
+
+        response = as_student.get("/reports/course/CS101/export.csv")
+
+        assert response.status_code == 200, response.text
+        assert "S001" in response.text
+        assert "S002" not in response.text
+        assert "Mueller" not in response.text
+        assert "42" not in response.text
+
+    def test_a_teacher_exporting_a_student_sees_only_their_own_courses(
+        self, seeded_db: sqlite3.Connection, as_teacher: TestClient
+    ) -> None:
+        """A student's transcript spans courses; a teacher may read their part of it."""
+        seeded_db.execute("INSERT INTO enrollments (student_id, course_id) VALUES ('S001','CS999')")
+        seeded_db.execute(
+            "INSERT INTO grades (student_id, course_id, score, date)"
+            " VALUES ('S001', 'CS999', 91, '2026-02-01')"
+        )
+        seeded_db.commit()
+
+        response = as_teacher.get("/reports/student/S001/export.csv")
+
+        assert response.status_code == 200, response.text
+        assert "CS101" in response.text
+        assert "CS999" not in response.text
+        assert "91" not in response.text
+
+    def test_the_json_route_and_the_export_agree(
+        self, seeded_db: sqlite3.Connection, as_teacher: TestClient
+    ) -> None:
+        """The counterweight: one filter, so the two doors cannot drift apart again."""
+        seeded_db.execute("INSERT INTO enrollments (student_id, course_id) VALUES ('S001','CS999')")
+        seeded_db.execute(
+            "INSERT INTO grades (student_id, course_id, score, date)"
+            " VALUES ('S001', 'CS999', 91, '2026-02-01')"
+        )
+        seeded_db.commit()
+
+        payload = as_teacher.get("/reports/student/S001").json()
+        exported = as_teacher.get("/reports/student/S001/export.csv").text
+
+        assert [g["course_id"] for g in payload["grades"]] == ["CS101"]
+        assert exported.count("CS101") == len(payload["grades"])

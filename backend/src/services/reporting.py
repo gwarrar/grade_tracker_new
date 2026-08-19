@@ -11,13 +11,19 @@ from __future__ import annotations
 import csv
 import io
 import sqlite3
+from dataclasses import replace
 from typing import Any
 
 from notenverwaltung.exceptions import ForbiddenError, ValidationError
 from notenverwaltung.gradebook import GradeBook, weighted_mean
 from notenverwaltung.models import Role
 from notenverwaltung.reports import CsvReportGenerator, ReportBuilder
-from notenverwaltung.reports.base import grade_point_average
+from notenverwaltung.reports.base import (
+    CourseReport,
+    GradeLine,
+    StudentReport,
+    grade_point_average,
+)
 from notenverwaltung.storage import GradeStore
 from notenverwaltung.storage.scope import Scope
 from services.organization import load_grading_scale, load_organization
@@ -141,27 +147,49 @@ class ReportingService:
         Raises:
             StudentNotFoundError: If they are outside the caller's scope.
         """
+        return _as_dict(self.visible_student_report(student_id))
+
+    def visible_student_report(self, student_id: str) -> StudentReport:
+        """Build a student's report, trimmed to what the caller may read.
+
+        Returns the dataclass rather than a dictionary so that every consumer —
+        the JSON route and the CSV export alike — shares one filter. The export
+        used to render straight from the builder, which handed a teacher every
+        mark the student holds and a student every mark their classmates hold.
+
+        Args:
+            student_id: Which student.
+
+        Returns:
+            The report, with out-of-scope courses and their grades removed.
+
+        Raises:
+            StudentNotFoundError: If they are outside the caller's scope.
+        """
         self._assert_visible_student(student_id)
         report = self._builder.student_report(student_id)
-        payload = _as_dict(report)
         # A student's own report is theirs in full. A teacher's copy is trimmed to
         # the grades from their own courses -- the report must not become a way to
         # read marks a scoped list endpoint would have hidden.
-        if not self._principal.is_admin and self._principal.role != "student":
-            visible = self._visible_course_ids()
-            payload["grades"] = [g for g in payload["grades"] if g["course_id"] in visible]
-            payload["average_percentage"] = _recompute(payload["grades"])
-            # The GPA has to be trimmed on the same pass. Left alone it would be a
-            # single number summarising every course the student takes, handed to a
-            # teacher who was just refused the marks it was computed from -- the
-            # exact leak the filtering above exists to close, in one field instead
-            # of a list.
-            payload["courses"] = [c for c in payload["courses"] if c["course_id"] in visible]
-            payload["gpa"] = grade_point_average(
-                [(c["points"], c["credits"]) for c in payload["courses"]]
-            )
-            payload["courses_graded"] = len(payload["courses"])
-        return payload
+        if self._principal.is_admin or self._principal.role == "student":
+            return report
+
+        visible = self._visible_course_ids()
+        grades = [g for g in report.grades if g.course_id in visible]
+        # The GPA has to be trimmed on the same pass. Left alone it would be a
+        # single number summarising every course the student takes, handed to a
+        # teacher who was just refused the marks it was computed from -- the
+        # exact leak the filtering above exists to close, in one field instead
+        # of a list.
+        courses = [c for c in report.courses if c.course_id in visible]
+        return replace(
+            report,
+            grades=grades,
+            courses=courses,
+            average_percentage=_recompute(grades),
+            gpa=grade_point_average([(c.points, c.credits) for c in courses]),
+            courses_graded=len(courses),
+        )
 
     def course_report(self, course_id: str) -> dict[str, Any]:
         """Build a course's report.
@@ -175,14 +203,29 @@ class ReportingService:
         Raises:
             CourseNotFoundError: If it is outside the caller's scope.
         """
+        return _as_dict(self.visible_course_report(course_id))
+
+    def visible_course_report(self, course_id: str) -> CourseReport:
+        """Build a course's report, trimmed to what the caller may read.
+
+        Args:
+            course_id: Which course.
+
+        Returns:
+            The report, with other students' grades removed for a student caller.
+
+        Raises:
+            CourseNotFoundError: If it is outside the caller's scope.
+        """
         self._assert_visible_course(course_id)
-        payload = _as_dict(self._builder.course_report(course_id))
+        report = self._builder.course_report(course_id)
         # A student may see the course they sit in, but not their classmates' marks.
-        if self._principal.role == "student":
-            payload["grades"] = [
-                g for g in payload["grades"] if g["student_id"] == self._principal.student_id
-            ]
-        return payload
+        if self._principal.role != "student":
+            return report
+        return replace(
+            report,
+            grades=[g for g in report.grades if g.student_id == self._principal.student_id],
+        )
 
     def summary_report(self, at_risk_threshold: float = 60.0) -> dict[str, Any]:
         """Build the institution-wide summary.
@@ -615,12 +658,14 @@ class ReportingService:
             ValidationError: If ``kind`` is unknown or ``bucket`` is invalid.
         """
         generator = CsvReportGenerator(headers=headers, delimiter=delimiter, labels=labels)
+        # Through the same filters the JSON routes use, not the raw builder. Reading
+        # from the builder here made the export a way around scoping: a student could
+        # download the whole register, and a teacher every mark a student holds in
+        # courses they do not teach.
         if kind == "student":
-            self._assert_visible_student(entity_id)
-            return generator.render_student(self._builder.student_report(entity_id))
+            return generator.render_student(self.visible_student_report(entity_id))
         if kind == "course":
-            self._assert_visible_course(entity_id)
-            return generator.render_course(self._builder.course_report(entity_id))
+            return generator.render_course(self.visible_course_report(entity_id))
         if kind == "summary":
             self._assert_may_read_summary()
             return generator.render_summary(self._builder.summary_report())
@@ -816,11 +861,11 @@ def _as_dict(report: Any) -> dict[str, Any]:
     return asdict(report)
 
 
-def _recompute(grades: list[dict[str, Any]]) -> float | None:
+def _recompute(grades: list[GradeLine]) -> float | None:
     """Recompute a weighted average after grades were filtered out of a report."""
     if not grades:
         return None
-    return round(weighted_mean([(g["percentage"], g["weight"]) for g in grades]), 2)
+    return round(weighted_mean([(g.percentage, g.weight) for g in grades]), 2)
 
 
 def _course_totals(stats: dict[str, Any]) -> dict[str, Any]:
