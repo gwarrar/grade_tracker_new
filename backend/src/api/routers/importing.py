@@ -228,7 +228,7 @@ Importing = Annotated[ImportService, Depends(_service)]
         },
     },
 )
-async def preview_import(
+def preview_import(
     kind: ImportKind,
     file: Annotated[UploadFile, File(description="CSV, TSV or .xlsx file.")],
     service: Importing,
@@ -253,7 +253,7 @@ async def preview_import(
     Raises:
         PayloadTooLargeError: If the file exceeds the configured ceiling.
     """
-    content = await file.read(settings.max_upload_bytes + 1)
+    content = file.file.read(settings.max_upload_bytes + 1)
     if len(content) > settings.max_upload_bytes:
         raise PayloadTooLargeError(
             "Import exceeds the configured size limit.", limit=settings.max_upload_bytes
@@ -292,7 +292,7 @@ async def preview_import(
         422: {"description": "`VALIDATION_ERROR` — unreadable file, unknown kind, or bad mapping."},
     },
 )
-async def import_file(
+def import_file(
     kind: ImportKind,
     file: Annotated[UploadFile, File(description="CSV, TSV or .xlsx file.")],
     service: Importing,
@@ -316,7 +316,7 @@ async def import_file(
     Raises:
         PayloadTooLargeError: If the file exceeds the configured ceiling.
     """
-    content = await file.read(settings.max_upload_bytes + 1)
+    content = file.file.read(settings.max_upload_bytes + 1)
     if len(content) > settings.max_upload_bytes:
         raise PayloadTooLargeError(
             "Import exceeds the configured size limit.", limit=settings.max_upload_bytes

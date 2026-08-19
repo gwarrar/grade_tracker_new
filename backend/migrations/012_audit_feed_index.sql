@@ -1,0 +1,13 @@
+-- The admin audit feed sorts by `at DESC` with no filter, and neither existing
+-- index leads with `at` -- idx_audit_entity starts with `entity`, idx_audit_actor
+-- with `actor_user_id`. So the default view was a full scan plus a temporary
+-- b-tree sort, and `paginate` runs a COUNT(*) over the same table for every page.
+--
+-- The table is append-only by trigger and nothing prunes it: every grade,
+-- enrolment and account change appends a row, and one 5000-row import appends
+-- five thousand. The feed therefore got monotonically slower for the life of the
+-- installation, which is the kind of decay nobody attributes to a missing index.
+--
+-- `id` rides along ascending, matching the tiebreaker in the same ORDER BY -- with
+-- it descending SQLite still built a temp b-tree for the second column.
+CREATE INDEX IF NOT EXISTS idx_audit_at ON audit_log (at DESC, id);

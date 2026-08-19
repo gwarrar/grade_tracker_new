@@ -243,8 +243,10 @@ exposes no credentials. The administration page configures *routing* — which
 provider, which model, per feature — not secrets.
 
 **Reversal trigger:** a requirement to paste keys in the browser. That costs one
-dependency (`cryptography`, Fernet, keyed from `SECRET_KEY`) and a decision about
-who may read them back. Not free, so not done speculatively.
+dependency (`cryptography`, Fernet) and a signing key to feed it — the application
+currently has none, having carried a `SECRET_KEY` setting that nothing ever read
+until it was removed — plus a decision about who may read the keys back. Not free,
+so not done speculatively.
 
 ---
 

@@ -274,7 +274,18 @@ class ImportService:
         Raises:
             ValidationError: If the file has no usable header row.
         """
-        text = content.decode("utf-8-sig")
+        try:
+            text = content.decode("utf-8-sig")
+        except UnicodeDecodeError as error:
+            # Excel on a German or French Windows still writes cp1252 by default, so
+            # this is an ordinary file rather than a broken one. Unguarded it raised
+            # past the domain handlers as a 500 -- "the server failed to handle this
+            # request" — for a file whose only sin was an umlaut. The .xlsx path
+            # beside it already reported its parse failures as 422.
+            raise ValidationError(
+                "The file is not UTF-8. Save it as UTF-8 (or CSV UTF-8) and retry.",
+                field="file",
+            ) from error
         try:
             dialect = csv.Sniffer().sniff(text[:2048], delimiters=";,\t")
         except csv.Error:

@@ -153,7 +153,7 @@ def replace_grading_scale(
         422: {"description": "`VALIDATION_ERROR` — unsupported image type."},
     },
 )
-async def replace_asset(
+def replace_asset(
     kind: AssetKindPath,
     file: Annotated[UploadFile, File(description="PNG, JPEG, WebP or icon image.")],
     principal: SuperAdminUser,
@@ -161,7 +161,7 @@ async def replace_asset(
     settings: SettingsDep,
 ) -> OrganizationResponse:
     """Validate and store a logo or favicon under a fixed name."""
-    content = await file.read(settings.max_upload_bytes + 1)
+    content = file.file.read(settings.max_upload_bytes + 1)
     organization = upload_asset(
         conn,
         principal,

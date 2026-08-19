@@ -32,6 +32,7 @@ from notenverwaltung.exceptions import (
     ValidationError,
 )
 from notenverwaltung.models.user import Role
+from notenverwaltung.storage import transaction
 from services import audit
 from services.scoping import Principal
 from services.security import MIN_PASSWORD_LENGTH, hash_password, utc_now
@@ -232,20 +233,26 @@ class UserService:
             )
 
         digest, salt = hash_password(initial)
-        try:
-            cursor = self._conn.execute(
-                "INSERT INTO users"
-                " (email, password_hash, password_salt, role, full_name, must_change_password)"
-                " VALUES (?, ?, ?, ?, ?, 1)",
-                (address, digest, salt, role.value, full_name.strip()),
-            )
-        except sqlite3.IntegrityError as error:
-            raise DuplicateEntryError(f"{address} already has an account") from error
+        # The account, its link to a student record and the audit entry are one unit.
+        # `transaction` nests through savepoints, so the callers that already opened
+        # one -- provisioning a student, importing a cohort -- are unaffected; this
+        # covers the `POST /users` path, which had none.
+        with transaction(self._conn):
+            try:
+                cursor = self._conn.execute(
+                    "INSERT INTO users"
+                    " (email, password_hash, password_salt, role, full_name,"
+                    " must_change_password)"
+                    " VALUES (?, ?, ?, ?, ?, 1)",
+                    (address, digest, salt, role.value, full_name.strip()),
+                )
+            except sqlite3.IntegrityError as error:
+                raise DuplicateEntryError(f"{address} already has an account") from error
 
-        user_id = int(cursor.lastrowid or 0)
-        if role is Role.STUDENT:
-            self._link_student_record(user_id, address)
-        self._record(user_id, "create", after={"email": address, "role": role.value})
+            user_id = int(cursor.lastrowid or 0)
+            if role is Role.STUDENT:
+                self._link_student_record(user_id, address)
+            self._record(user_id, "create", after={"email": address, "role": role.value})
         return self.get(user_id), initial
 
     def _link_student_record(self, user_id: int, address: str) -> None:
@@ -291,14 +298,21 @@ class UserService:
         self._assert_may_grant(role)
         self._assert_may_act_on(before)
 
-        if before.role == Role.SUPERADMIN.value and role is not Role.SUPERADMIN:
-            self._assert_not_last_superadmin(user_id)
+        with transaction(self._conn):
+            # The "last superadmin" count is inside the transaction with the update
+            # it guards. Outside, two administrators demoting the last two
+            # superadmins at the same moment both counted one remaining and both
+            # succeeded, leaving an installation nobody can administer.
+            if before.role == Role.SUPERADMIN.value and role is not Role.SUPERADMIN:
+                self._assert_not_last_superadmin(user_id)
 
-        self._conn.execute(
-            "UPDATE users SET role = ?, updated_at = ? WHERE id = ?",
-            (role.value, utc_now(), user_id),
-        )
-        self._record(user_id, "update", before={"role": before.role}, after={"role": role.value})
+            self._conn.execute(
+                "UPDATE users SET role = ?, updated_at = ? WHERE id = ?",
+                (role.value, utc_now(), user_id),
+            )
+            self._record(
+                user_id, "update", before={"role": before.role}, after={"role": role.value}
+            )
         return self.get(user_id)
 
     def set_active(self, user_id: int, *, active: bool) -> UserRecord:
@@ -325,22 +339,26 @@ class UserService:
         self._assert_not_self(user_id)
         self._assert_may_act_on(target)
 
-        if not active and target.role == Role.SUPERADMIN.value:
-            self._assert_not_last_superadmin(user_id)
+        with transaction(self._conn):
+            if not active and target.role == Role.SUPERADMIN.value:
+                self._assert_not_last_superadmin(user_id)
 
-        self._conn.execute(
-            "UPDATE users SET is_active = ?, updated_at = ? WHERE id = ?",
-            (int(active), utc_now(), user_id),
-        )
-        if not active:
-            self._conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+            self._conn.execute(
+                "UPDATE users SET is_active = ?, updated_at = ? WHERE id = ?",
+                (int(active), utc_now(), user_id),
+            )
+            if not active:
+                # In the same unit of work as the flag. Apart, a lock timeout on
+                # this statement left the account marked inactive with every
+                # session still live and nothing in the audit trail saying so.
+                self._conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
 
-        self._record(
-            user_id,
-            "update",
-            before={"is_active": target.is_active},
-            after={"is_active": active},
-        )
+            self._record(
+                user_id,
+                "update",
+                before={"is_active": target.is_active},
+                after={"is_active": active},
+            )
         return self.get(user_id)
 
     def reset_password(self, user_id: int) -> str:
@@ -366,17 +384,22 @@ class UserService:
 
         temporary = secrets.token_urlsafe(_TEMPORARY_PASSWORD_BYTES)
         digest, salt = hash_password(temporary)
-        self._conn.execute(
-            "UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = 1,"
-            " updated_at = ? WHERE id = ?",
-            (digest, salt, utc_now(), user_id),
-        )
-        self._conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+        # All three together, or none. A reset that changed the password and then
+        # failed to close the sessions would leave the holder of the old one signed
+        # in -- which is the exact thing a reset is performed to stop -- and no
+        # audit entry to say a reset had happened at all.
+        with transaction(self._conn):
+            self._conn.execute(
+                "UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = 1,"
+                " updated_at = ? WHERE id = ?",
+                (digest, salt, utc_now(), user_id),
+            )
+            self._conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
 
-        # The password itself is never written to the audit trail — the trail is
-        # readable by anyone who can read the database, which is the population a
-        # reset is meant to protect against. Only the fact of the reset is recorded.
-        self._record(user_id, "update", after={"password_reset": True})
+            # The password itself is never written to the audit trail — the trail is
+            # readable by anyone who can read the database, which is the population a
+            # reset is meant to protect against. Only the fact of the reset is recorded.
+            self._record(user_id, "update", after={"password_reset": True})
         return temporary
 
     # ── Rules ────────────────────────────────────────────────────────────────

@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 
 from notenverwaltung.exceptions import GradeBookError, NotAuthenticatedError, ValidationError
 from notenverwaltung.models import Role, Theme
+from notenverwaltung.storage import transaction
 from services.scoping import Principal
 from services.security import (
     MIN_PASSWORD_LENGTH,
@@ -132,12 +133,31 @@ class LoginThrottle:
             email: The email that was attempted.
             address: The client address.
         """
+        self._evict_expired()
         key = (email.lower(), address)
         record = self._attempts.setdefault(key, _Attempts())
         record.count += 1
         if record.count >= self._max:
             record.locked_until = time.monotonic() + self._lockout_seconds
             record.count = 0
+
+    def _evict_expired(self) -> None:
+        """Drop entries that are neither counting towards nor serving a lockout.
+
+        Every failed attempt against an address that does not exist created a
+        permanent entry, and only a *successful* sign-in ever removed one — so an
+        unauthenticated caller spraying distinct addresses grew this dictionary
+        without limit. Eviction runs on the write path, where the growth happens,
+        rather than on a timer nobody would remember to start.
+        """
+        now = time.monotonic()
+        expired = [
+            key
+            for key, record in self._attempts.items()
+            if record.count == 0 and record.locked_until <= now
+        ]
+        for key in expired:
+            del self._attempts[key]
 
     def record_success(self, email: str, address: str) -> None:
         """Clear the failure count after a successful sign-in.
@@ -354,16 +374,20 @@ class AuthService:
             )
 
         digest, salt = hash_password(replacement)
-        # Clearing the flag here rather than anywhere else: this is the only path
-        # by which a password becomes known to one person again.
-        self._conn.execute(
-            "UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = 0,"
-            " updated_at = ? WHERE id = ?",
-            (digest, salt, utc_now(), user_id),
-        )
-        # A password change is how someone responds to a suspected compromise. Leaving
-        # the attacker's existing sessions alive would defeat the point.
-        self._conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+        # Both together. Apart, the new password could commit and the session purge
+        # fail, which leaves the old holder signed in -- the precise outcome the
+        # purge exists to prevent, reached by changing the password.
+        with transaction(self._conn):
+            # Clearing the flag here rather than anywhere else: this is the only path
+            # by which a password becomes known to one person again.
+            self._conn.execute(
+                "UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = 0,"
+                " updated_at = ? WHERE id = ?",
+                (digest, salt, utc_now(), user_id),
+            )
+            # A password change is how someone responds to a suspected compromise.
+            # Leaving the attacker's existing sessions alive would defeat the point.
+            self._conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
 
     def update_preferences(
         self,

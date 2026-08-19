@@ -12,13 +12,12 @@ why :func:`load_dotenv` is called below.
 
 from __future__ import annotations
 
-import secrets
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
-from pydantic import Field, field_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -59,9 +58,6 @@ class Settings(BaseSettings):
 
     Attributes:
         database_path: SQLite file, relative to the repository root.
-        secret_key: Used to sign anything that needs it. Generated per-process if
-            unset, which is fine for a first run and wrong for anything persistent —
-            a regenerated key on restart invalidates every signature.
         session_ttl_hours: How long a session stays valid.
         cors_origins: Origins permitted to call the API with credentials.
         cookie_secure: Whether the session cookie carries ``Secure``. Left unset it
@@ -92,7 +88,6 @@ class Settings(BaseSettings):
     )
 
     database_path: str = "grades.db"
-    secret_key: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     session_ttl_hours: int = 168  # one week
     cors_origins: str = "http://localhost:3000"
     cookie_secure: bool | None = None
@@ -194,7 +189,7 @@ def get_settings() -> Settings:
     """Return the process-wide settings.
 
     Cached so the ``.env`` file is read once rather than per request, and so every
-    caller observes the same generated ``secret_key``.
+    caller observes one settings object rather than re-deriving it.
 
     Returns:
         The settings singleton.
