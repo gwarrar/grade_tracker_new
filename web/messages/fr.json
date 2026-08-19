@@ -269,7 +269,8 @@
     "INTERNAL_ERROR": "Une erreur s’est produite sur le serveur. Réessayez ; si le problème persiste, contactez un administrateur.",
     "GRADING_SCALE_POINTS": "Les points de note ne peuvent pas être négatifs.",
     "AI_QUOTA_EXCEEDED": "Le quota d’IA de cette heure est épuisé. Réessayez plus tard.",
-    "PREREQUISITES_NOT_MET": "Cet étudiant n’a pas terminé tous les prérequis du cours."
+    "PREREQUISITES_NOT_MET": "Cet étudiant n’a pas terminé tous les prérequis du cours.",
+    "PASSWORD_CHANGE_REQUIRED": "Votre mot de passe doit être modifié avant de continuer."
   },
   "landing": {
     "nav": {

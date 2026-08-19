@@ -148,3 +148,14 @@ class ForbiddenError(GradeBookError):
 
     code = "FORBIDDEN"
     http_status = 403
+
+
+class PasswordChangeRequiredError(ForbiddenError):
+    """Raised when the caller is still holding a password they did not choose.
+
+    Its own code rather than a plain ``FORBIDDEN`` because the two need different
+    handling: a forbidden action is a dead end, and this one has exactly one way
+    out. The frontend routes it to the change-password screen.
+    """
+
+    code = "PASSWORD_CHANGE_REQUIRED"

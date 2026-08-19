@@ -9,7 +9,11 @@ from typing import Annotated
 from fastapi import Depends, Request
 
 from api.config import Settings, get_settings
-from notenverwaltung.exceptions import ForbiddenError, NotAuthenticatedError
+from notenverwaltung.exceptions import (
+    ForbiddenError,
+    NotAuthenticatedError,
+    PasswordChangeRequiredError,
+)
 from notenverwaltung.models import Role
 from notenverwaltung.storage import connect
 from services.auth import AuthService, LoginThrottle
@@ -91,12 +95,31 @@ def get_optional_principal(
     return auth.resolve(token) if token else None
 
 
+#: Paths a caller may still reach while holding a password they have not chosen.
+#: Exactly the three needed to get out of that state: read who you are, change it,
+#: or leave. Anything else is refused, which is what makes the flag a gate rather
+#: than a suggestion.
+_PASSWORD_CHANGE_EXEMPT = frozenset({"/auth/me", "/auth/logout", "/profile/password"})
+
+
 def get_principal(
+    request: Request,
     principal: Annotated[Principal | None, Depends(get_optional_principal)],
 ) -> Principal:
-    """Require a signed-in caller.
+    """Require a signed-in caller who is not still holding a generated password.
+
+    The second half is the point. ``must_change_password`` was written on account
+    creation and on reset, carried on the principal and published at ``/auth/me``,
+    and then read by nobody — so an administrator who imported four hundred students
+    handed out four hundred passwords that stayed valid for as long as nobody got
+    round to changing them. Migration 008 says the application "must insist on the
+    change rather than suggest it"; only the interface was suggesting it.
+
+    Enforced here rather than on each route because here it cannot be forgotten on
+    the endpoint added next month.
 
     Args:
+        request: The incoming request, for the exemption check.
         principal: The resolved principal, if any.
 
     Returns:
@@ -104,9 +127,14 @@ def get_principal(
 
     Raises:
         NotAuthenticatedError: If nobody is signed in.
+        ForbiddenError: If the caller must change their password first.
     """
     if principal is None:
         raise NotAuthenticatedError("Sign-in required.")
+    if principal.must_change_password and request.url.path not in _PASSWORD_CHANGE_EXEMPT:
+        raise PasswordChangeRequiredError(
+            "The initial password must be changed before anything else."
+        )
     return principal
 
 

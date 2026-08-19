@@ -76,6 +76,19 @@ def test_the_new_account_can_sign_in_and_sees_its_own_record(
     student = _sign_in(app, "nadia.haddad@students.test", created["initial_password"])
     me = student.get("/auth/me").json()
     assert me["student_id"] == "S900"
+    # The generated password reaches the account and no further: everything except
+    # reading your own identity, changing it and leaving is refused until it is
+    # replaced. Provisioning hands out a credential with two owners, and this is
+    # the window in which that is true.
+    assert me["must_change_password"] is True
+    assert student.get("/students").status_code == 403
+
+    student.post(
+        "/profile/password",
+        json={"current_password": created["initial_password"], "new_password": "her-own-2026"},
+    )
+    # Changing it closes every session, so the record is read through a new one.
+    student = _sign_in(app, "nadia.haddad@students.test", "her-own-2026")
 
     visible = student.get("/students").json()
     assert [row["student_id"] for row in visible["items"]] == ["S900"]

@@ -269,7 +269,8 @@
     "INTERNAL_ERROR": "Something went wrong on the server. Try again; if it persists, contact an administrator.",
     "GRADING_SCALE_POINTS": "Grade points cannot be negative.",
     "AI_QUOTA_EXCEEDED": "You have used this hour's AI allowance. Try again shortly.",
-    "PREREQUISITES_NOT_MET": "This student has not completed every prerequisite for the course."
+    "PREREQUISITES_NOT_MET": "This student has not completed every prerequisite for the course.",
+    "PASSWORD_CHANGE_REQUIRED": "Your password must be changed before you can continue."
   },
   "landing": {
     "nav": {

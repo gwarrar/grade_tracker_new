@@ -12,7 +12,7 @@
 
 import { API_BASE } from "@/lib/api";
 import { brandingCss, type BrandingColors } from "@/lib/branding-css";
-import { DEFAULT_BACKGROUND } from "@/lib/contrast";
+import { DEFAULT_BACKGROUND, parseHex } from "@/lib/contrast";
 
 /** Cache tag for the branding read, revalidated by the branding editor on save. */
 export const BRANDING_TAG = "org-branding";
@@ -62,6 +62,43 @@ export function assetUrl(path: string): string {
 }
 
 /**
+ * Replace any value that is not a plain hex colour with the default.
+ *
+ * `brandingCss` concatenates these six strings into a `<style>` element that is
+ * rendered with `dangerouslySetInnerHTML` in the root layout — on every page,
+ * including the ones served before sign-in. The HTML tokeniser ends a `<style>`
+ * at the first literal `</style`, so a stored value carrying one would close the
+ * element and everything after it would be parsed as markup. A value carrying
+ * only a brace would need no script to make the application unusable.
+ *
+ * The API validates on write and the editor uses `<input type="color">`, so this
+ * is the third lock rather than the first. It is here because the other two are
+ * upstream of a file that renders untrusted text into markup, and this one costs
+ * a regex.
+ *
+ * @param colors The merged palette.
+ * @returns The palette with unparseable values replaced.
+ */
+export function sanitiseColors(colors: BrandingColors): BrandingColors {
+  const safe = (value: string, fallback: string) =>
+    parseHex(value) === null ? fallback : value;
+  return {
+    primary: {
+      light: safe(colors.primary.light, FALLBACK.colors.primary.light),
+      dark: safe(colors.primary.dark, FALLBACK.colors.primary.dark),
+    },
+    accent: {
+      light: safe(colors.accent.light, FALLBACK.colors.accent.light),
+      dark: safe(colors.accent.dark, FALLBACK.colors.accent.dark),
+    },
+    background: {
+      light: safe(colors.background.light, FALLBACK.colors.background.light),
+      dark: safe(colors.background.dark, FALLBACK.colors.background.dark),
+    },
+  };
+}
+
+/**
  * Fetch the organisation's public configuration.
  *
  * Falls back to defaults rather than throwing: the sign-in page must render even
@@ -86,7 +123,10 @@ export async function getBranding(): Promise<Branding> {
     // hands back a payload missing that key, and `brandingCss` would read `.light`
     // off undefined and take the root layout with it. Every page, for one absent
     // shade. Same reasoning as the fallback above: this file renders something.
-    return { ...payload, colors: { ...FALLBACK.colors, ...payload.colors } };
+    return {
+      ...payload,
+      colors: sanitiseColors({ ...FALLBACK.colors, ...payload.colors }),
+    };
   } catch {
     return FALLBACK;
   }

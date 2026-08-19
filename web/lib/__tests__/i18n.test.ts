@@ -116,6 +116,9 @@ describe("every API error code has a message", () => {
     // Its own code rather than a generic validation failure: "request failed
     // validation" tells whoever is enrolling nothing they can act on.
     "PREREQUISITES_NOT_MET",
+    // Distinct from FORBIDDEN because it is the one refusal with a way out: the
+    // interface sends the user to the change-password screen rather than a dead end.
+    "PASSWORD_CHANGE_REQUIRED",
     "INVALID_CREDENTIALS", "ACCOUNT_DISABLED", "TOO_MANY_ATTEMPTS",
     "PAYLOAD_TOO_LARGE", "NO_GRADES_RECORDED", "OVERRIDE_NOT_FOUND",
     // Every entry of _STATUS_CODES in api/problems.py. These are the codes a

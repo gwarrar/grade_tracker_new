@@ -26,6 +26,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import PASSWORD
+
 
 class TestSummaryExport:
     """The institution-wide summary is staff-only through every door."""
@@ -225,3 +227,53 @@ class TestReportExportScope:
 
         assert [g["course_id"] for g in payload["grades"]] == ["CS101"]
         assert exported.count("CS101") == len(payload["grades"])
+
+
+class TestForcedPasswordChange:
+    """A generated password gets you to the change screen and nowhere else.
+
+    ``must_change_password`` was written on account creation and on reset, carried
+    on the principal and published at ``/auth/me``, and then read by nobody. An
+    administrator importing four hundred students handed out four hundred
+    passwords that stayed valid indefinitely. Migration 008 asks the application to
+    "insist on the change rather than suggest it"; only the frontend suggested it.
+    """
+
+    def test_the_application_is_closed_until_the_password_changes(
+        self, seeded_db: sqlite3.Connection, as_student: TestClient
+    ) -> None:
+        """The flag is set after sign-in, so the very next request is refused."""
+        seeded_db.execute(
+            "UPDATE users SET must_change_password = 1 WHERE email = 'student@test.local'"
+        )
+        seeded_db.commit()
+
+        response = as_student.get("/grades")
+
+        assert response.status_code == 403, response.text
+        assert response.json()["code"] == "PASSWORD_CHANGE_REQUIRED"
+
+    def test_the_way_out_stays_open(
+        self, seeded_db: sqlite3.Connection, as_student: TestClient
+    ) -> None:
+        """The counterweight: refusing everything would include the fix itself."""
+        seeded_db.execute(
+            "UPDATE users SET must_change_password = 1 WHERE email = 'student@test.local'"
+        )
+        seeded_db.commit()
+
+        assert as_student.get("/auth/me").status_code == 200
+        changed = as_student.post(
+            "/profile/password",
+            json={"current_password": PASSWORD, "new_password": "a-chosen-one-42"},
+        )
+
+        assert changed.status_code == 200, changed.text
+        # 401 rather than 200: changing a password closes every session including
+        # this one, by design. The point here is that the gate let the change
+        # through, not that the session survived it.
+        assert as_student.get("/grades").status_code == 401
+
+    def test_an_ordinary_account_is_unaffected(self, as_student: TestClient) -> None:
+        """Nobody who chose their own password notices this exists."""
+        assert as_student.get("/grades").status_code == 200
