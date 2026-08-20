@@ -160,8 +160,20 @@ export function checkBothModes(
   dark: string,
   background: ModePair = DEFAULT_BACKGROUND,
 ): DualModeResult {
-  const lightResult = checkContrast(light, background.light);
-  const darkResult = checkContrast(dark, background.dark);
+  // Against the palest surface as well as the page, exactly as `checkBackground`
+  // does and for the reason stated there: cards, modals and the detail panel are
+  // derived by mixing the page toward white, so in dark mode they are *lighter*
+  // than the page and a brand colour that clears the page can fail badly on them.
+  // Measured, on the shipped dark background: #5a5a8c is 3.12 against the page and
+  // 2.30 against the overlay -- a passing gate and an unreadable button inside
+  // every dialog.
+  const worst = (colour: string, background: string): ContrastResult =>
+    [background, palestSurface(background)]
+      .map((surface) => checkContrast(colour, surface))
+      .reduce((a, b) => (a.ratio <= b.ratio ? a : b));
+
+  const lightResult = worst(light, background.light);
+  const darkResult = worst(dark, background.dark);
   return {
     light: lightResult,
     dark: darkResult,

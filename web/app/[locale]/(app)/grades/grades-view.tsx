@@ -27,7 +27,13 @@ import { MasterDetail } from "@/components/app/master-detail";
 import { Pager } from "@/components/app/pager";
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
-import { formatDate, formatNumber, formatPercent, parseLocaleNumber } from "@/lib/format";
+import {
+  formatDate,
+  formatNumber,
+  formatNumberForInput,
+  formatPercent,
+  parseLocaleNumber,
+} from "@/lib/format";
 import { can } from "@/lib/permissions";
 import type { Me } from "@/lib/session";
 import { useDebounced, useSelection, useUrlParam } from "@/lib/use-selection";
@@ -285,10 +291,16 @@ export function GradesView({
         )}
       </fieldset>
 
+      {/* Suppressed while the bulk dialog is open, the way the students and
+          courses screens suppress theirs behind a create modal. Both mounted at
+          once put two `id="title"`, `id="date"` and `id="weight"` in the document,
+          and a label inside the dialog resolved to the input behind it -- which is
+          inert, so the click moved no focus and a screen reader followed the same
+          wrong target. */}
       <MasterDetail
-        detailKey={selectedId}
+        detailKey={bulk ? null : selectedId}
         detail={
-          selectedId && (
+          !bulk && selectedId && (
             <GradeDetail
               key={selectedId}
               gradeId={selectedId}
@@ -637,7 +649,7 @@ function GradeDetail({
           <Input
             name="score"
             label={t("grade.score")}
-            value={formatNumber(grade.score, locale)}
+            value={formatNumberForInput(grade.score, locale)}
             inputMode="decimal"
             // Spells out the maximum, so "88,5" is entered against a known scale
             // rather than guessed at.
@@ -646,7 +658,7 @@ function GradeDetail({
           <Input
             name="weight"
             label={t("grade.weight")}
-            value={formatNumber(grade.weight, locale)}
+            value={formatNumberForInput(grade.weight, locale)}
             inputMode="decimal"
             help={t("grade.weightHelp")}
           />

@@ -387,7 +387,16 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
         {users.isPending && (
           <p className="px-4 py-8 text-center text-sm text-subtle">{tStats("loading")}</p>
         )}
-        {!users.isPending && rows.length === 0 && (
+        {/* Same distinction as the providers list: a failed request is not an
+            account list that happens to be empty. */}
+        {users.isError && (
+          <p role="alert" className="mx-4 my-4 rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
+            {tError(
+              (users.error instanceof ApiError ? users.error.code : "NETWORK_ERROR") as "unknown",
+            )}
+          </p>
+        )}
+        {!users.isPending && !users.isError && rows.length === 0 && (
           <p className="px-4 py-8 text-center text-sm text-subtle">
             {tStats("noData")}
           </p>

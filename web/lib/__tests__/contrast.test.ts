@@ -7,6 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_BACKGROUND,
   checkBackground,
   checkBothModes,
   checkContrast,
@@ -164,5 +165,24 @@ describe("checkBackground", () => {
     // be refused — half-legible is not a state worth shipping.
     const result = checkBackground("#7d7d76", "#08080a");
     expect(result.light.passesAA).toBe(false);
+  });
+});
+
+describe("the brand gate sees the surfaces the brand is used on", () => {
+  it("refuses a dark brand that clears the page but fails on a card", () => {
+    // Cards, modals and the detail panel are the page mixed toward white, so in
+    // dark mode they are lighter than the page. Measuring against the page alone
+    // passed #5a5a8c at 3.12 while it renders at 2.30 inside a dialog — where the
+    // confirm button lives.
+    const result = checkBothModes("#2e5bff", "#5a5a8c", DEFAULT_BACKGROUND);
+
+    expect(result.usable).toBe(false);
+    expect(result.dark.ratio).toBeLessThan(3);
+  });
+
+  it("still accepts a dark brand that is readable on both", () => {
+    const result = checkBothModes("#2e5bff", "#7c9bff", DEFAULT_BACKGROUND);
+
+    expect(result.usable).toBe(true);
   });
 });

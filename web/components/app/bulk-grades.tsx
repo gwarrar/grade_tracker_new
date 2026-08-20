@@ -59,7 +59,14 @@ export function BulkGrades({
   const [assessment, setAssessment] = useState("");
   const [weight, setWeight] = useState(formatNumber(1, locale));
 
+  // `initialCourseId` comes from the URL and is never validated, while `courses`
+  // holds only active ones — so a bookmark to an archived course left this
+  // undefined. The score guard below was written as `course && score >
+  // course.max_grade`, which silently dropped the ceiling: 950 typed for 95 passed
+  // client validation for a whole class. Falling back to the picker's first course
+  // is wrong too, so the dialog refuses to submit instead.
   const course = courses.find((candidate) => candidate.course_id === courseId);
+  const courseMissing = courseId !== "" && course === undefined;
 
   const register = useQuery({
     // The same key the single-grade dialog uses, so the two share a cache entry.
@@ -93,7 +100,7 @@ export function BulkGrades({
       const raw = String(data.get(`score-${entry.student_id}`) ?? "").trim();
       if (raw === "") continue; // Not marked. Not zero.
       const score = parseLocaleNumber(raw, locale);
-      if (score === null || score < 0 || (course && score > course.max_grade)) {
+      if (score === null || score < 0 || course === undefined || score > course.max_grade) {
         rejected.push(entry.student_id);
       } else {
         scores.push({ student_id: entry.student_id, score });
@@ -272,7 +279,9 @@ export function BulkGrades({
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={save.isPending || register.isFetching || roster.length === 0}
+              disabled={
+                save.isPending || register.isFetching || roster.length === 0 || courseMissing
+              }
             >
               {save.isPending ? t("grade.saving") : t("action.save")}
             </button>

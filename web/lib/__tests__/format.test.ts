@@ -7,7 +7,13 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { formatDate, formatNumber, formatPercent, parseLocaleNumber } from "../format";
+import {
+  formatDate,
+  formatNumber,
+  formatNumberForInput,
+  formatPercent,
+  parseLocaleNumber,
+} from "../format";
 
 describe("parseLocaleNumber", () => {
   it("parses a decimal point in English", () => {
@@ -119,5 +125,32 @@ describe("parseLocaleNumber — malformed grouping", () => {
     expect(parseLocaleNumber("1,234", "en")).toBe(1234);
     expect(parseLocaleNumber("1,234,567.8", "en")).toBe(1234567.8);
     expect(parseLocaleNumber("1.234.567,8", "de")).toBe(1234567.8);
+  });
+});
+
+describe("formatNumberForInput", () => {
+  it("keeps every digit, because the value it seeds is submitted back", () => {
+    // Three equally-weighted assessments. `formatNumber` caps at two fraction
+    // digits, so opening a grade to fix a typo in its title rewrote the weight to
+    // 0.33 and moved the course average, with nothing said.
+    expect(formatNumberForInput(0.3333, "en")).toBe("0.3333");
+    expect(formatNumberForInput(88.756, "en")).toBe("88.756");
+    expect(formatNumber(0.3333, "en")).toBe("0.33");
+  });
+
+  it("uses the locale's decimal separator, so parseLocaleNumber reads it back", () => {
+    expect(formatNumberForInput(0.3333, "de")).toBe("0,3333");
+    expect(parseLocaleNumber(formatNumberForInput(0.3333, "de"), "de")).toBe(0.3333);
+    expect(parseLocaleNumber(formatNumberForInput(1234.5, "fr"), "fr")).toBe(1234.5);
+  });
+
+  it("omits grouping, which a field about to be edited should not carry", () => {
+    expect(formatNumberForInput(1234.5, "en")).toBe("1234.5");
+    expect(formatNumberForInput(1234.5, "de")).toBe("1234,5");
+  });
+
+  it("renders absent as empty rather than an em dash", () => {
+    expect(formatNumberForInput(null, "en")).toBe("");
+    expect(formatNumberForInput(undefined, "en")).toBe("");
   });
 });

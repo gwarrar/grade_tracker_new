@@ -71,6 +71,9 @@ function confidenceClass(value: string): string {
   return "badge-warn";
 }
 
+/** Extensions the wizard accepts, shared by the file input and the drop zone. */
+const ACCEPTED = [".csv", ".tsv", ".xlsx", ".xlsm"] as const;
+
 export function ImportView({ locale }: { locale: string }) {
   const t = useTranslations("admin.import");
   const tAction = useTranslations("action");
@@ -151,7 +154,9 @@ export function ImportView({ locale }: { locale: string }) {
         setSamples(parsed.rows.slice(0, 5));
         setStep("map");
       } catch {
-        setCode("NETWORK_ERROR");
+        // The file is the problem, not the connection. Reporting NETWORK_ERROR sent
+        // the user to check their network over a malformed CSV.
+        setCode("VALIDATION_ERROR");
       }
     } else {
       // .xlsx (and any other server-readable format): the browser cannot parse
@@ -199,11 +204,23 @@ export function ImportView({ locale }: { locale: string }) {
     event.preventDefault();
     setDragging(false);
     const selected = event.dataTransfer.files?.[0];
-    if (selected) void pick(selected);
+    if (!selected) return;
+    // The file input is restricted to these; the drop zone accepted anything, so a
+    // dropped PDF was uploaded to the preview endpoint to be rejected there.
+    if (!ACCEPTED.some((extension) => selected.name.toLowerCase().endsWith(extension))) {
+      setCode("VALIDATION_ERROR");
+      return;
+    }
+    void pick(selected);
   }
 
   function restart() {
     setStep("file");
+    // Including the two the reset used to leave behind. "Start again" after
+    // importing students with accounts returned to step one still set to students,
+    // still ticked -- carried state from a run the user had just finished.
+    setKind("students");
+    setCreateAccounts(true);
     setFile(null);
     setHeaders([]);
     setSamples([]);
@@ -275,7 +292,7 @@ export function ImportView({ locale }: { locale: string }) {
               {inspecting ? t("inspect") : t("chooseFile")}
               <input
                 type="file"
-                accept=".csv,.tsv,.xlsx,.xlsm"
+                accept={ACCEPTED.join(",")}
                 className="sr-only"
                 disabled={inspecting}
                 onChange={(event) => {
@@ -373,7 +390,13 @@ export function ImportView({ locale }: { locale: string }) {
                         <td>
                           <Select
                             name={`column-${index}`}
-                            label={t("field")}
+                            // Named for its column. Every one of these announced
+                            // "Field", so a screen reader heard the same word for
+                            // each row with nothing to tell them apart -- and
+                            // jsx-a11y sees a correctly-labelled control, so it
+                            // passes.
+                            label={`${t("field")}: ${header || t("unmapped")}`}
+                            labelHidden
                             value={initial[header] ?? ""}
                             required={false}
                           >

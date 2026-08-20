@@ -186,6 +186,7 @@ export function Select({
   required = true,
   children,
   help,
+  labelHidden = false,
 }: {
   name: string;
   label: string;
@@ -193,11 +194,22 @@ export function Select({
   required?: boolean;
   children: ReactNode;
   help?: string;
+  /**
+   * Render the label to assistive technology only.
+   *
+   * For a control in a table whose row already names it on screen. The label still
+   * exists and is still associated — hiding it is a visual decision, not a licence
+   * to give every control in the column the same name.
+   */
+  labelHidden?: boolean;
 }) {
   return (
     <div>
-      <div className="flex items-center gap-1.5">
-        <label htmlFor={name} className="block text-sm text-muted">
+      <div className={labelHidden ? "" : "flex items-center gap-1.5"}>
+        <label
+          htmlFor={name}
+          className={labelHidden ? "sr-only" : "block text-sm text-muted"}
+        >
           {label}
         </label>
         {help && <FieldHelp help={help} />}

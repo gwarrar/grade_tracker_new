@@ -221,7 +221,19 @@ function Providers() {
           />
         ))}
         {providers.isPending && <li className="text-sm text-subtle">…</li>}
-        {!providers.isPending && rows.length === 0 && (
+        {/* A failed load is not an empty list. `?? []` rendered "no providers
+            configured" when the request had simply failed, which is a different
+            fact and invites configuring a second one. */}
+        {providers.isError && (
+          <li role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
+            {tError(
+              (providers.error instanceof ApiError
+                ? providers.error.code
+                : "NETWORK_ERROR") as "unknown",
+            )}
+          </li>
+        )}
+        {!providers.isPending && !providers.isError && rows.length === 0 && (
           <li className="rounded-xl border border-dashed border-line px-6 py-8 text-center text-sm text-subtle">
             {tStats("noData")}
           </li>
@@ -570,7 +582,7 @@ function UsageTable({ locale }: { locale: string }) {
                   {formatNumber(row.output_tokens, locale)}
                 </td>
                 <td className="numeric px-4 py-2.5 text-end text-muted">
-                  ${row.cost_estimate.toFixed(2)}
+                  ${formatNumber(row.cost_estimate, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
                 <td
                   className={`numeric px-4 py-2.5 text-end ${

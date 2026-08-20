@@ -35,6 +35,15 @@ export function AppNav({ me, branding }: { me: Me; branding: Branding }) {
       router.replace("/login");
       router.refresh();
     },
+    // A sign-out that fails silently is the worst kind: the button re-enables, the
+    // user believes they are signed out, and on a shared machine the cookie is
+    // still live. The local cache goes either way, and the sign-in page will tell
+    // them if the session outlived the request.
+    onError: () => {
+      queryClient.clear();
+      router.replace("/login");
+      router.refresh();
+    },
   });
 
   const visible = APP_ROUTES.filter((link) => link.nav && atLeast(me.role, link.min));

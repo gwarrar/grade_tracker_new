@@ -26,6 +26,36 @@ export function formatNumber(
 }
 
 /**
+ * Format a number for an editable field, keeping every digit it holds.
+ *
+ * `formatNumber` caps at two fraction digits, which is right for display and
+ * wrong for a form: an edit form seeds its inputs with the formatted value and
+ * submits whatever is parsed back out, so the cap silently rewrote the stored
+ * number. A grade weighted 0.3333 — three equally-weighted assessments — became
+ * 0.33 the first time anyone opened the grade to fix a typo in its title, and the
+ * course average moved. Nothing warned, and the round trip looked like a no-op.
+ *
+ * Grouping separators are omitted for the same reason: they are a display
+ * convention, and a field the user is about to edit should hold the value rather
+ * than a rendering of it. The decimal separator stays locale-correct, which is
+ * what `parseLocaleNumber` expects on the way back.
+ *
+ * @param value - The stored number.
+ * @param locale - The active locale, for the decimal separator.
+ * @returns The value with full precision, or an empty string when absent.
+ */
+export function formatNumberForInput(
+  value: number | null | undefined,
+  locale: string,
+): string {
+  if (value === null || value === undefined) return "";
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 20,
+    useGrouping: false,
+  }).format(value);
+}
+
+/**
  * Format a percentage.
  *
  * @param value - A percentage in 0–100, or null.

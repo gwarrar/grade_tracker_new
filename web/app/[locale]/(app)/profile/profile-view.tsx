@@ -148,15 +148,30 @@ function SessionsSection({ locale }: { locale: string }) {
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["profile", "sessions"] });
 
+  // Both report failure. Without it, revoking a device that is still signed in
+  // produced nothing at all -- `onSuccess` never ran, so the row simply stayed,
+  // which reads as a slow list rather than a session that is still live.
+  const [sessionCode, setSessionCode] = useState<string | null>(null);
+  const onSessionError = (error: unknown) =>
+    setSessionCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
+
   const revoke = useMutation({
     mutationFn: (token: string) =>
       api(`/profile/sessions/${token}`, { method: "DELETE" }),
-    onSuccess: refresh,
+    onSuccess: () => {
+      setSessionCode(null);
+      void refresh();
+    },
+    onError: onSessionError,
   });
 
   const revokeOthers = useMutation({
     mutationFn: () => api("/profile/sessions/revoke-others", { method: "POST" }),
-    onSuccess: refresh,
+    onSuccess: () => {
+      setSessionCode(null);
+      void refresh();
+    },
+    onError: onSessionError,
   });
 
   const rows = sessions.data ?? [];
@@ -165,6 +180,12 @@ function SessionsSection({ locale }: { locale: string }) {
   return (
     <section>
       <h2 className="text-lg font-medium text-text">{t("profile.sessions")}</h2>
+
+      {sessionCode && (
+        <p role="alert" className="mt-3 rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
+          {t(`error.${sessionCode}` as "error.unknown")}
+        </p>
+      )}
 
       <ul className="mt-4 divide-y divide-line rounded-xl border border-line bg-surface">
         {rows.map((session) => (

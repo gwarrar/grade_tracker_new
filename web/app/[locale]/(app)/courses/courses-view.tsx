@@ -21,7 +21,12 @@ import { Modal } from "@/components/ui/modal";
 import { api, ApiError, type Response } from "@/lib/api";
 import type { paths } from "@/lib/api-schema";
 import { readCourseAssessments } from "@/lib/course-assessments";
-import { formatDate, formatNumber, parseLocaleNumber } from "@/lib/format";
+import {
+  formatDate,
+  formatNumber,
+  formatNumberForInput,
+  parseLocaleNumber,
+} from "@/lib/format";
 import { can } from "@/lib/permissions";
 import type { Me } from "@/lib/session";
 import { useDebounced, useSelection, useUrlParam } from "@/lib/use-selection";
@@ -398,7 +403,9 @@ function CourseFields({
   const [assessments, setAssessments] = useState(
     (course?.assessments ?? []).map((assessment) => ({
       name: assessment.name,
-      weight: formatNumber(assessment.weight, locale),
+      // Full precision: these seed an editable field, and the two-digit display
+      // cap rewrote the stored weight on any save that did not touch it.
+      weight: formatNumberForInput(assessment.weight, locale),
     })),
   );
   return (
@@ -409,13 +416,13 @@ function CourseFields({
       <Input
         name="credits"
         label={t("course.credits")}
-        value={course ? formatNumber(course.credits, locale) : "1"}
+        value={course ? formatNumberForInput(course.credits, locale) : "1"}
         inputMode="decimal"
         help={t("course.creditsHelp")}
       />
       <Input name="max_students" label={t("course.maxStudents")} value={String(course?.max_students ?? 30)} type="number" inputMode="numeric" />
-      <Input name="max_grade" label={t("course.maxGrade")} value={course ? formatNumber(course.max_grade, locale) : "100"} inputMode="decimal" />
-      <Input name="passing_grade" label={t("course.passingGrade")} value={course ? formatNumber(course.passing_grade, locale) : "60"} inputMode="decimal" />
+      <Input name="max_grade" label={t("course.maxGrade")} value={course ? formatNumberForInput(course.max_grade, locale) : "100"} inputMode="decimal" />
+      <Input name="passing_grade" label={t("course.passingGrade")} value={course ? formatNumberForInput(course.passing_grade, locale) : "60"} inputMode="decimal" />
       {can.writeStudent(me) && <TeacherPicker course={course} />}
       <Select name="status" label={t("course.status")} value={course?.status ?? "active"}>
         <option value="active">{t("course.statusValue.active")}</option>
