@@ -15,7 +15,6 @@ from pydantic import BaseModel, Field
 
 from api.deps import AdminUser, CurrentUser, DbConn
 from notenverwaltung.models.user import Role
-from notenverwaltung.storage import transaction
 from services.users import UserService
 
 router = APIRouter(prefix="/admin/users", tags=["Users"])
@@ -155,22 +154,18 @@ def list_users(
         409: {"description": "`DUPLICATE_ENTRY` — that email already has an account."},
     },
 )
-def create_user(
-    body: CreateUserRequest, _: AdminUser, users: Users, conn: DbConn
-) -> CreatedUserResponse:
+def create_user(body: CreateUserRequest, _: AdminUser, users: Users) -> CreatedUserResponse:
     """Create an account.
 
     Args:
         body: Email, name and role.
         _: Enforces the admin role.
         users: The service.
-        conn: The request's connection, for the transaction.
 
     Returns:
         The account and its one-time password.
     """
-    with transaction(conn):
-        record, password = users.create(email=body.email, full_name=body.full_name, role=body.role)
+    record, password = users.create(email=body.email, full_name=body.full_name, role=body.role)
     return CreatedUserResponse(user=UserResponse(**asdict(record)), initial_password=password)
 
 
@@ -188,9 +183,7 @@ def create_user(
         },
     },
 )
-def set_role(
-    user_id: int, body: RoleRequest, _: AdminUser, users: Users, conn: DbConn
-) -> UserResponse:
+def set_role(user_id: int, body: RoleRequest, _: AdminUser, users: Users) -> UserResponse:
     """Change what an account may do.
 
     Args:
@@ -198,13 +191,11 @@ def set_role(
         body: The new role.
         _: Enforces the admin role.
         users: The service.
-        conn: The request's connection.
 
     Returns:
         The updated account.
     """
-    with transaction(conn):
-        record = users.set_role(user_id, body.role)
+    record = users.set_role(user_id, body.role)
     return UserResponse(**asdict(record))
 
 
@@ -220,9 +211,7 @@ def set_role(
         409: {"description": "`CANNOT_MODIFY_SELF` or `LAST_SUPERADMIN`."},
     },
 )
-def set_active(
-    user_id: int, body: ActiveRequest, _: AdminUser, users: Users, conn: DbConn
-) -> UserResponse:
+def set_active(user_id: int, body: ActiveRequest, _: AdminUser, users: Users) -> UserResponse:
     """Activate or deactivate an account.
 
     Args:
@@ -230,13 +219,11 @@ def set_active(
         body: The desired state.
         _: Enforces the admin role.
         users: The service.
-        conn: The request's connection.
 
     Returns:
         The updated account.
     """
-    with transaction(conn):
-        record = users.set_active(user_id, active=body.is_active)
+    record = users.set_active(user_id, active=body.is_active)
     return UserResponse(**asdict(record))
 
 
@@ -250,18 +237,16 @@ def set_active(
         "account is compromised, and leaving the intruder signed in defeats it."
     ),
 )
-def reset_password(user_id: int, _: AdminUser, users: Users, conn: DbConn) -> PasswordResetResponse:
+def reset_password(user_id: int, _: AdminUser, users: Users) -> PasswordResetResponse:
     """Issue a temporary password.
 
     Args:
         user_id: Which account.
         _: Enforces the admin role.
         users: The service.
-        conn: The request's connection.
 
     Returns:
         The one-time password.
     """
-    with transaction(conn):
-        temporary = users.reset_password(user_id)
+    temporary = users.reset_password(user_id)
     return PasswordResetResponse(temporary_password=temporary)

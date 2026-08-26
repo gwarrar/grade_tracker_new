@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response
 
-from api.deps import SESSION_COOKIE, CurrentUser, DbConn, get_auth
+from api.deps import SESSION_COOKIE, CurrentUser, get_auth
 from api.routers.auth import to_response
 from api.schemas.auth import (
     MessageResponse,
@@ -17,7 +17,6 @@ from api.schemas.auth import (
 )
 from notenverwaltung.exceptions import ValidationError
 from notenverwaltung.models import SUPPORTED_LOCALES, Theme
-from notenverwaltung.storage import transaction
 from services.auth import AuthService
 from services.security import hash_token
 
@@ -39,7 +38,6 @@ router = APIRouter(prefix="/profile", tags=["Profile"])
 def update_preferences(
     payload: PreferencesRequest,
     principal: CurrentUser,
-    conn: DbConn,
     auth: Annotated[AuthService, Depends(get_auth)],
 ) -> PrincipalResponse:
     """Update the caller's own preferences.
@@ -47,7 +45,6 @@ def update_preferences(
     Args:
         payload: The requested changes. Omitted fields are left alone.
         principal: The authenticated caller.
-        conn: The request's database connection.
         auth: The account service.
 
     Returns:
@@ -70,14 +67,13 @@ def update_preferences(
         except ValueError as exc:
             raise ValidationError(f"Unknown theme {fields['theme']!r}.", field="theme") from exc
 
-    with transaction(conn):
-        auth.update_preferences(
-            principal.user_id,
-            locale=fields.get("locale"),
-            theme=fields.get("theme"),
-            full_name=fields.get("full_name"),
-            touched=frozenset(fields),
-        )
+    auth.update_preferences(
+        principal.user_id,
+        locale=fields.get("locale"),
+        theme=fields.get("theme"),
+        full_name=fields.get("full_name"),
+        touched=frozenset(fields),
+    )
     return to_response(auth.reload_principal(principal.user_id))
 
 
@@ -100,7 +96,6 @@ def update_preferences(
 def change_password(
     payload: PasswordChangeRequest,
     principal: CurrentUser,
-    conn: DbConn,
     response: Response,
     auth: Annotated[AuthService, Depends(get_auth)],
 ) -> MessageResponse:
@@ -109,15 +104,13 @@ def change_password(
     Args:
         payload: Current and replacement passwords.
         principal: The authenticated caller.
-        conn: The request's database connection.
         response: The outgoing response, which clears the now-invalid cookie.
         auth: The authentication service.
 
     Returns:
         An acknowledgement.
     """
-    with transaction(conn):
-        auth.change_password(principal.user_id, payload.current_password, payload.new_password)
+    auth.change_password(principal.user_id, payload.current_password, payload.new_password)
     response.delete_cookie(SESSION_COOKIE, path="/")
     return MessageResponse(code="PASSWORD_CHANGED")
 
@@ -177,7 +170,6 @@ def list_sessions(
 def revoke_session(
     token_sha256: str,
     principal: CurrentUser,
-    conn: DbConn,
     auth: Annotated[AuthService, Depends(get_auth)],
 ) -> MessageResponse:
     """Revoke one of the caller's sessions.
@@ -185,7 +177,6 @@ def revoke_session(
     Args:
         token_sha256: Which session to close.
         principal: The authenticated caller.
-        conn: The request's database connection.
         auth: The authentication service.
 
     Returns:
@@ -194,8 +185,7 @@ def revoke_session(
     Raises:
         ValidationError: If no such session belongs to this account.
     """
-    with transaction(conn):
-        removed = auth.revoke_session(principal.user_id, token_sha256)
+    removed = auth.revoke_session(principal.user_id, token_sha256)
     if not removed:
         error = ValidationError("No such session on this account.", field="token_sha256")
         error.code = "SESSION_NOT_FOUND"
@@ -213,7 +203,6 @@ def revoke_session(
 def revoke_other_sessions(
     principal: CurrentUser,
     request: Request,
-    conn: DbConn,
     auth: Annotated[AuthService, Depends(get_auth)],
 ) -> MessageResponse:
     """Close every session except the caller's own.
@@ -221,14 +210,12 @@ def revoke_other_sessions(
     Args:
         principal: The authenticated caller.
         request: The incoming request, whose session is preserved.
-        conn: The request's database connection.
         auth: The authentication service.
 
     Returns:
         How many sessions were closed.
     """
-    with transaction(conn):
-        closed = auth.logout_everywhere(
-            principal.user_id, keep_token=request.cookies.get(SESSION_COOKIE)
-        )
+    closed = auth.logout_everywhere(
+        principal.user_id, keep_token=request.cookies.get(SESSION_COOKIE)
+    )
     return MessageResponse(code="SESSIONS_REVOKED", count=closed)

@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, Path, status
 from pydantic import BaseModel, Field
 
 from api.deps import AdminUser, CurrentUser, DbConn
-from notenverwaltung.storage import transaction
 from services.localization import MAX_VALUE_LENGTH, LocalizationService
 
 router = APIRouter(prefix="/org/i18n", tags=["Localization"])
@@ -103,11 +102,9 @@ def set_override(
     payload: OverrideRequest,
     svc: Localization,
     principal: CurrentUser,
-    conn: DbConn,
 ) -> OverrideResponse:
     """Create or replace one override."""
-    with transaction(conn):
-        stored = svc.set_override(principal, locale, key, payload.value)
+    stored = svc.set_override(principal, locale, key, payload.value)
     return OverrideResponse(**stored)
 
 
@@ -126,8 +123,6 @@ def delete_override(
     key: str,
     svc: Localization,
     principal: CurrentUser,
-    conn: DbConn,
 ) -> None:
     """Remove an override."""
-    with transaction(conn):
-        svc.delete_override(principal, locale, key)
+    svc.delete_override(principal, locale, key)

@@ -76,36 +76,35 @@ def test_no_upward_imports(package: str, path: pathlib.Path) -> None:
     )
 
 
-def test_migrated_enrollment_controllers_do_not_import_infrastructure() -> None:
-    """The migrated enrollment seam depends on its capability, not infrastructure.
+def test_routers_do_not_import_infrastructure() -> None:
+    """No router reaches past its service into the database.
 
-    Imports are module-scoped, so this protects the complete directory router that
-    owns the five migrated handlers. Migration, seed and admin entry points, plus
-    not-yet-migrated routers and services, intentionally remain outside this rule.
+    This used to police five hand-listed handlers in `directory.py`, guarding a
+    migration to an `AcademicRecords` protocol that was never finished — its own
+    docstring conceded that "not-yet-migrated routers and services intentionally
+    remain outside this rule", which is a rule that exempts whatever breaks it.
+
+    Every router now passes it, so the exemption is gone. A router that imports
+    `sqlite3` or the storage layer has taken on the transaction boundary, which
+    belongs to the service that owns the use case -- together with the audit row that
+    has to commit with the change it describes.
+
+    Importing a *service* is not a violation: `routers/audit.py` reads the trail
+    through `services.audit`, which is the layer doing its job.
     """
-    path = SRC / "api" / "routers" / "directory.py"
-    assert path.is_file(), "The migrated directory router has moved"
-
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    functions = {node.name for node in tree.body if isinstance(node, ast.FunctionDef)}
-    expected = {
-        "student_courses",
-        "list_enrollments",
-        "enroll",
-        "set_enrollment_status",
-        "unenroll",
-    }
-    assert expected <= functions, f"Enrollment controllers missing: {sorted(expected - functions)}"
-
-    forbidden = ("sqlite3", "notenverwaltung.storage", "services.audit")
-    violations = sorted(
-        name
-        for name in imports_of(path)
-        if any(name == prefix or name.startswith(f"{prefix}.") for prefix in forbidden)
-    )
-    assert not violations, (
-        f"{path.relative_to(SRC)} imports infrastructure directly: {violations}. "
-        "Use the AcademicRecords capability instead."
+    forbidden = ("sqlite3", "notenverwaltung.storage")
+    offenders: dict[str, list[str]] = {}
+    for path in sorted((SRC / "api" / "routers").glob("*.py")):
+        violations = sorted(
+            name
+            for name in imports_of(path)
+            if any(name == prefix or name.startswith(f"{prefix}.") for prefix in forbidden)
+        )
+        if violations:
+            offenders[path.name] = violations
+    assert not offenders, (
+        f"Routers importing infrastructure directly: {offenders}. "
+        "Move the transaction and its audit row into the service that owns the use case."
     )
 
 

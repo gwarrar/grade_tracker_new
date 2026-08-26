@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from llm.base import LLMError
 from llm.registry import Feature, ProviderConfig, Registry, build
 from notenverwaltung.exceptions import DuplicateEntryError, ValidationError
+from notenverwaltung.storage import transaction
 from services import audit
 
 VALID_KINDS = frozenset({"anthropic", "openai_compatible"})
@@ -188,37 +189,38 @@ class AiAdminService:
         self._check_kind(kind)
         params_json = _normalise_params_json(params_json)
 
-        try:
-            cursor = self._conn.execute(
-                "INSERT INTO ai_providers"
-                " (name, kind, base_url, api_key_env, default_model, is_enabled,"
-                "  is_third_party_pool, params_json)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    name,
-                    kind,
-                    base_url or None,
-                    api_key_env,
-                    default_model,
-                    int(is_enabled),
-                    int(is_third_party_pool),
-                    params_json,
-                ),
-            )
-        except sqlite3.IntegrityError as error:
-            raise DuplicateEntryError(f"a provider named {name!r} already exists") from error
+        with transaction(self._conn):
+            try:
+                cursor = self._conn.execute(
+                    "INSERT INTO ai_providers"
+                    " (name, kind, base_url, api_key_env, default_model, is_enabled,"
+                    "  is_third_party_pool, params_json)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        name,
+                        kind,
+                        base_url or None,
+                        api_key_env,
+                        default_model,
+                        int(is_enabled),
+                        int(is_third_party_pool),
+                        params_json,
+                    ),
+                )
+            except sqlite3.IntegrityError as error:
+                raise DuplicateEntryError(f"a provider named {name!r} already exists") from error
 
-        provider_id = int(cursor.lastrowid or 0)
-        config = self._registry.get(provider_id)
-        audit.record(
-            self._conn,
-            actor_user_id=actor_id,
-            entity="ai_provider",
-            entity_id=str(provider_id),
-            action="create",
-            after={"name": name, "kind": kind, "api_key_env": api_key_env},
-        )
-        return config
+            provider_id = int(cursor.lastrowid or 0)
+            config = self._registry.get(provider_id)
+            audit.record(
+                self._conn,
+                actor_user_id=actor_id,
+                entity="ai_provider",
+                entity_id=str(provider_id),
+                action="create",
+                after={"name": name, "kind": kind, "api_key_env": api_key_env},
+            )
+            return config
 
     def update_provider(
         self,
@@ -278,26 +280,27 @@ class AiAdminService:
             return before
 
         assignments = ", ".join(f"{column} = ?" for column in changes)
-        try:
-            self._conn.execute(
-                f"UPDATE ai_providers SET {assignments}, updated_at = ?"  # noqa: S608
-                " WHERE id = ?",
-                (*changes.values(), _now(), provider_id),
-            )
-        except sqlite3.IntegrityError as error:
-            raise DuplicateEntryError(f"a provider named {name!r} already exists") from error
+        with transaction(self._conn):
+            try:
+                self._conn.execute(
+                    f"UPDATE ai_providers SET {assignments}, updated_at = ?"  # noqa: S608
+                    " WHERE id = ?",
+                    (*changes.values(), _now(), provider_id),
+                )
+            except sqlite3.IntegrityError as error:
+                raise DuplicateEntryError(f"a provider named {name!r} already exists") from error
 
-        after = self._registry.get(provider_id)
-        audit.record(
-            self._conn,
-            actor_user_id=actor_id,
-            entity="ai_provider",
-            entity_id=str(provider_id),
-            action="update",
-            before={"name": before.name, "is_enabled": before.is_enabled},
-            after={"name": after.name, "is_enabled": after.is_enabled},
-        )
-        return after
+            after = self._registry.get(provider_id)
+            audit.record(
+                self._conn,
+                actor_user_id=actor_id,
+                entity="ai_provider",
+                entity_id=str(provider_id),
+                action="update",
+                before={"name": before.name, "is_enabled": before.is_enabled},
+                after={"name": after.name, "is_enabled": after.is_enabled},
+            )
+            return after
 
     def delete_provider(self, provider_id: int, *, actor_id: int) -> None:
         """Remove a provider.
@@ -314,15 +317,16 @@ class AiAdminService:
             LLMError: If no such provider exists.
         """
         config = self._registry.get(provider_id)
-        self._conn.execute("DELETE FROM ai_providers WHERE id = ?", (provider_id,))
-        audit.record(
-            self._conn,
-            actor_user_id=actor_id,
-            entity="ai_provider",
-            entity_id=str(provider_id),
-            action="delete",
-            before={"name": config.name, "kind": config.kind},
-        )
+        with transaction(self._conn):
+            self._conn.execute("DELETE FROM ai_providers WHERE id = ?", (provider_id,))
+            audit.record(
+                self._conn,
+                actor_user_id=actor_id,
+                entity="ai_provider",
+                entity_id=str(provider_id),
+                action="delete",
+                before={"name": config.name, "kind": config.kind},
+            )
 
     def test_connection(self, provider_id: int) -> tuple[bool, str, str]:
         """Make the smallest possible real call, to prove the configuration works.
@@ -423,27 +427,28 @@ class AiAdminService:
         # naming the provider instead of an opaque integrity error.
         self._registry.get(provider_id)
 
-        self._conn.execute(
-            "INSERT INTO ai_feature_models (feature, provider_id, model, effort, updated_at)"
-            " VALUES (?, ?, ?, ?, ?)"
-            " ON CONFLICT (feature) DO UPDATE SET"
-            "   provider_id = excluded.provider_id,"
-            "   model = excluded.model,"
-            "   effort = excluded.effort,"
-            "   updated_at = excluded.updated_at",
-            (feature.value, provider_id, model, effort, _now()),
-        )
-        audit.record(
-            self._conn,
-            actor_user_id=actor_id,
-            entity="ai_routing",
-            entity_id=feature.value,
-            action="update",
-            after={"provider_id": provider_id, "model": model, "effort": effort},
-        )
+        with transaction(self._conn):
+            self._conn.execute(
+                "INSERT INTO ai_feature_models (feature, provider_id, model, effort, updated_at)"
+                " VALUES (?, ?, ?, ?, ?)"
+                " ON CONFLICT (feature) DO UPDATE SET"
+                "   provider_id = excluded.provider_id,"
+                "   model = excluded.model,"
+                "   effort = excluded.effort,"
+                "   updated_at = excluded.updated_at",
+                (feature.value, provider_id, model, effort, _now()),
+            )
+            audit.record(
+                self._conn,
+                actor_user_id=actor_id,
+                entity="ai_routing",
+                entity_id=feature.value,
+                action="update",
+                after={"provider_id": provider_id, "model": model, "effort": effort},
+            )
 
-        stored = next(r for r in self.routing() if r.feature == feature.value)
-        return stored
+            stored = next(r for r in self.routing() if r.feature == feature.value)
+            return stored
 
     # ── Usage ────────────────────────────────────────────────────────────────
 
