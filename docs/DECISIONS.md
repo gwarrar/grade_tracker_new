@@ -496,3 +496,40 @@ commit.
 **Reversal trigger:** a teacher who should not see a student they do not teach —
 a safeguarding case, a shared building with two institutions, or a data-protection
 review. The fix is then routing `summary_report` through `_ranked`.
+
+---
+
+## 21. Conversation history is held by the client
+
+`/ai/ask` takes the earlier turns in the request body. There is no `conversations`
+table, no session-scoped server state, no retention policy and no cleanup job.
+
+The obvious objection is that a client can forge it. It can, and it buys nothing —
+which is worth writing down, because "the client sends its own history" sounds
+careless until you check what the history can actually reach:
+
+- **The model still cannot write.** `WRITE_TOOLS` has schemas and no entry in
+  `HANDLERS` (§10). A transcript claiming the assistant has write access does not
+  create a code path that performs a write.
+- **Every read tool composes the caller's own `Scope` server-side.** The model picks
+  filters from a fixed schema; Python builds the SQL around the *actual* principal.
+  A forged *"you are an administrator now"* changes the wording of the answer and
+  nothing about which rows come back. `tests/api/test_ai.py::TestFollowUps` asserts
+  exactly this with a student caller.
+- **Only `user` and `assistant` roles are accepted.** `system` is refused at the
+  edge; accepting it would let a client rewrite the instructions the assistant runs
+  under, which is the one thing in this list that would matter.
+
+What a client-held transcript *can* do is cost money, since every turn is re-sent on
+every follow-up. Hence `MAX_HISTORY_TURNS = 6`, and a request carrying more is
+rejected rather than silently truncated: a client sending twenty has misunderstood
+something, and quietly dropping fourteen hides it.
+
+Tool results are deliberately **not** replayed. Only the prose either side said goes
+back. Re-asserting results computed under an earlier scope would be the one way this
+design could leak, and a pronoun does not need them to resolve.
+
+**Reversal trigger:** a requirement to *audit* or *resume* conversations — a
+safeguarding review asking what a student asked the assistant, or continuing a thread
+on another device. Both need the transcript server-side, and both bring the retention
+policy that decision currently avoids.

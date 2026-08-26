@@ -8,25 +8,44 @@ the question is answered by the same queries the rest of the API uses.
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from api.deps import AdminUser, CurrentUser, DbConn, TeacherUser
-from services.ai import MAX_QUESTION_LENGTH, AiService
+from services.ai import MAX_HISTORY_TURNS, MAX_QUESTION_LENGTH, AiService
 from services.rate_limit import CallQuota
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
 
+class HistoryTurn(BaseModel):
+    """One earlier turn of the same conversation."""
+
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=MAX_QUESTION_LENGTH)
+
+
 class AskRequest(BaseModel):
-    """A question about the gradebook."""
+    """A question about the gradebook, and optionally what came before it."""
 
     question: str = Field(
         min_length=1,
         max_length=MAX_QUESTION_LENGTH,
         examples=["Which students are failing Databases?"],
+    )
+    history: list[HistoryTurn] = Field(
+        default_factory=list,
+        max_length=MAX_HISTORY_TURNS,
+        description=(
+            "Earlier turns, oldest first, so a follow-up can resolve against them. "
+            "Held by the client rather than the server: there is no conversation "
+            "table, no retention policy and nothing to clean up. Safe because a "
+            "forged transcript reaches nothing — the model cannot write, and every "
+            "tool composes the caller's own scope server-side."
+        ),
+        examples=[[{"role": "user", "content": "What is Anna's average in CS101?"}]],
     )
 
 
@@ -156,7 +175,7 @@ def ask(body: AskRequest, ai: Ai) -> AskResponse:
     """Answer a gradebook question.
 
     Args:
-        body: The question.
+        body: The question, and any earlier turns of the conversation.
         ai: The service.
 
     Returns:
@@ -167,7 +186,7 @@ def ask(body: AskRequest, ai: Ai) -> AskResponse:
     # an insight upsert. Wrapping them meant a provider failure rolled back the
     # usage row recording that failure, so the log went blank precisely when a
     # provider started breaking.
-    answer = ai.ask(body.question)
+    answer = ai.ask(body.question, [(turn.role, turn.content) for turn in body.history])
 
     return AskResponse(
         text=answer.text,
