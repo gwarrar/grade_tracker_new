@@ -805,7 +805,7 @@ function CourseDetail({
                   {!studentSearchUnsettled && studentQuery.length >= 2 && students.isSuccess && candidates.length > 0 && (
                     <form onSubmit={submitEnrollment} className="mt-3 flex items-end gap-2">
                       <div className="min-w-0 flex-1">
-                        <Select name="student_id" label={t("enrollment.student")} value={candidates[0].student_id}>
+                        <Select name="student_id" label={t("enrollment.student")} value={candidates[0]?.student_id ?? ""}>
                           {candidates.map((student) => (
                             <option key={student.student_id} value={student.student_id}>
                               {student.student_id} — {student.first_name} {student.last_name}

@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import jsxA11y from "eslint-plugin-jsx-a11y";
+import tseslint from "typescript-eslint";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -17,6 +18,27 @@ const eslintConfig = defineConfig([
   {
     files: ["**/*.{ts,tsx}"],
     rules: jsxA11y.flatConfigs.recommended.rules,
+  },
+  // Type-aware rules. `eslint-config-next/typescript` ships the subset that needs
+  // no type information, which leaves out the two that matter most in a codebase
+  // built on TanStack Query: a mutation whose promise nobody awaits fails silently,
+  // and an async function passed where a void callback is expected turns a rejection
+  // into an unhandled one. Both are invisible to a non-type-aware linter.
+  {
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
+    plugins: { "@typescript-eslint": tseslint.plugin },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        // A form's `onSubmit` is the one place an async handler is idiomatic React,
+        // and every one of ours already catches through a mutation.
+        { checksVoidReturn: { attributes: false } },
+      ],
+    },
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([

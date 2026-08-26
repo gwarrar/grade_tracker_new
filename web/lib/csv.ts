@@ -80,9 +80,10 @@ export function parseCsv(text: string): ParsedCsv {
   // reaches here, and it is not dropped.
   if (field !== "" || row.length > 0) endRow();
 
-  if (all.length === 0) return { headers: [], rows: [] };
   const [headers, ...rows] = all;
-  return { headers, rows };
+  // `headers` is undefined only for an empty file, which is a real input: a
+  // zero-byte upload reaches here.
+  return headers ? { headers, rows } : { headers: [], rows: [] };
 }
 
 /**

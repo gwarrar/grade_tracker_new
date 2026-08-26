@@ -187,8 +187,9 @@ export function ImportView({ locale }: { locale: string }) {
     const data = new FormData(event.currentTarget);
     const byColumn: Mapping = {};
     for (let i = 0; i < headers.length; i++) {
+      const column = headers[i];
       const field = String(data.get(`column-${i}`) ?? "");
-      if (field) byColumn[headers[i]] = field;
+      if (column && field) byColumn[column] = field;
     }
     const request: Mapping = {};
     for (const [column, field] of Object.entries(byColumn)) request[field] = column;

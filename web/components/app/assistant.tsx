@@ -206,7 +206,11 @@ function ResultTable({ result }: { result: Record<string, unknown> }) {
   }
 
   const rows = rowsEntry[1] as Record<string, unknown>[];
-  const columns = Object.keys(rows[0]);
+  const first = rows[0];
+  // A tool can legitimately return zero rows -- "which students are failing" with
+  // nobody failing -- and reading columns off row zero threw when it did.
+  if (!first) return null;
+  const columns = Object.keys(first);
 
   return (
     <div className="mt-1 overflow-x-auto rounded-lg border border-line">

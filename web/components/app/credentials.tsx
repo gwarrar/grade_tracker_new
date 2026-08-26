@@ -95,7 +95,8 @@ export function CredentialsCard({
             // school LAN deployment on plain http is exactly that. Unguarded this
             // threw in the handler and copied nothing, silently -- on the one card
             // whose whole purpose is that the password is never shown again.
-            const text = rows.length === 1 ? rows[0].password : csv();
+            const only = rows.length === 1 ? rows[0] : undefined;
+            const text = only ? only.password : csv();
             if (!navigator.clipboard) {
               setCopyFailed(true);
               return;

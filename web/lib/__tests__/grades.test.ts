@@ -58,7 +58,7 @@ describe("groupByCourse", () => {
 
     expect(groups).toHaveLength(2);
     expect(groups.map((g) => g.course_id)).toEqual(["CS101", "MA110"]);
-    expect(groups[0].lines).toHaveLength(2);
+    expect(groups[0]?.lines).toHaveLength(2);
   });
 
   it("averages a course's marks the way the server does", () => {
@@ -66,12 +66,14 @@ describe("groupByCourse", () => {
     // component no longer computes it. This still pins the definition the server's
     // number has to match — a divergence in either direction fails here.
     const [intro] = groupByCourse(lines);
+    if (!intro) throw new Error("groupByCourse must produce the intro course");
 
     expect(weightedAverage(intro.lines)).toBe(80);
   });
 
   it("counts passes and failures per course", () => {
     const [intro, maths] = groupByCourse(lines);
+    if (!intro || !maths) throw new Error("groupByCourse must produce both courses");
 
     expect([intro.passed, intro.failed]).toEqual([2, 0]);
     expect([maths.passed, maths.failed]).toEqual([0, 1]);

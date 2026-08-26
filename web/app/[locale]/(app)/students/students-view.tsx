@@ -624,7 +624,7 @@ export function StudentDetail({
                   {student.is_active && availableCourses.length > 0 ? (
                     <form onSubmit={submitEnrollment} className="mt-3 flex items-end gap-2">
                       <div className="min-w-0 flex-1">
-                        <Select name="course_id" label={t("enrollment.course")} value={availableCourses[0].course_id}>
+                        <Select name="course_id" label={t("enrollment.course")} value={availableCourses[0]?.course_id ?? ""}>
                           {availableCourses.map((course) => <option key={course.course_id} value={course.course_id}>{course.course_id} — {course.name}</option>)}
                         </Select>
                       </div>

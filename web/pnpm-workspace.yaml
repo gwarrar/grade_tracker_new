@@ -1,3 +1,10 @@
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
+# Postinstall scripts are opt-in, not opt-out. None of these four are needed:
+# `sharp` and `@parcel/watcher` ship prebuilt binaries for this platform, and
+# `@swc/core` and `unrs-resolver` are transitive build-tool dependencies whose
+# native steps nothing here exercises. Declared explicitly so the list is a
+# decision rather than a warning nobody read.
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  sharp: false
+  unrs-resolver: false

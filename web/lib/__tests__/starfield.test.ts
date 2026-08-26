@@ -32,9 +32,9 @@ describe("starLayers", () => {
     expect(layers).toHaveLength(3);
     // Denser, smaller and slower with distance — that ordering is the parallax.
     expect(layers.map((l) => l.count)).toEqual([...layers.map((l) => l.count)].sort((a, b) => a - b));
-    expect(layers[0].size).toBeGreaterThan(layers[2].size);
-    expect(layers[0].duration).toBeLessThan(layers[2].duration);
-    expect(layers[0].opacity).toBeGreaterThan(layers[2].opacity);
+    expect(layers[0]!.size).toBeGreaterThan(layers[2]!.size);
+    expect(layers[0]!.duration).toBeLessThan(layers[2]!.duration);
+    expect(layers[0]!.opacity).toBeGreaterThan(layers[2]!.opacity);
   });
 
   it("keeps every star inside the field", () => {
@@ -53,6 +53,7 @@ describe("starLayers", () => {
 
   it("emits a box-shadow entry per star, referencing the token", () => {
     const [near] = starLayers(7);
+    if (!near) throw new Error("starLayers must produce a near layer");
 
     // No hex literal outside tokens.css — the star colour has to stay a variable, or
     // the field would not follow the light/dark switch.

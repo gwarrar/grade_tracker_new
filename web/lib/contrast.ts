@@ -124,8 +124,12 @@ export function contrastRatio(foreground: string, background: string): number {
   const bg = parseHex(background);
   if (!fg || !bg) return 1;
 
-  const [lighter, darker] = [luminance(fg), luminance(bg)].sort((a, b) => b - a);
-  return (lighter + 0.05) / (darker + 0.05);
+  // Not a sort-and-destructure: with `noUncheckedIndexedAccess` the compiler
+  // cannot know a two-element array has two elements, and Math.max/min say what
+  // this actually means anyway.
+  const one = luminance(fg);
+  const other = luminance(bg);
+  return (Math.max(one, other) + 0.05) / (Math.min(one, other) + 0.05);
 }
 
 /**

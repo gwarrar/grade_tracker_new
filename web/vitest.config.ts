@@ -30,6 +30,21 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Measured, but only over the modules tests actually reach. Including every
+    // view would set the floor at whatever the eight untested screens happen to
+    // drag it to, which is a number about the backlog rather than about this
+    // change -- and a floor that moves with unrelated work is not a gate.
+    coverage: {
+      provider: "v8",
+      include: ["lib/**/*.ts", "components/**/*.tsx"],
+      exclude: ["lib/api-schema.d.ts", "**/__tests__/**", "**/*.test.*"],
+      reporter: ["text-summary"],
+      // Set just under what the suite measures today (lines 50.1, branches 43.9,
+      // functions 44.0, statements 49.7). A floor above current coverage fails
+      // the build on arrival; a floor at zero is decoration. Raise it when the
+      // view tests in docs/ROADMAP.md land.
+      thresholds: { lines: 48, functions: 42, branches: 42, statements: 47 },
+    },
     setupFiles: ["./vitest.setup.ts"],
   },
 });
