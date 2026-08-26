@@ -10,7 +10,9 @@
     "lint": "eslint",
     "gen:api": "openapi-typescript ../docs/openapi.json -o lib/api-schema.d.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "check": "tsc --noEmit && eslint . && vitest run"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
@@ -29,6 +31,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -36,6 +39,7 @@
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "typescript-eslint": "^8.68.0",
     "vitest": "^4.1.10"
   },
   "packageManager": "pnpm@11.18.0"

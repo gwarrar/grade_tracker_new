@@ -99,10 +99,6 @@ class TestScopeComposition:
         assert combined.sql == "(a = ?) AND (b = ?)"
         assert combined.params == (1, 2)
 
-    def test_is_unrestricted_only_for_allow_all(self) -> None:
-        assert ALLOW_ALL.is_unrestricted
-        assert not DENY_ALL.is_unrestricted
-
 
 class TestColumnGuard:
     @pytest.mark.parametrize("column", ["g.course_id", "course_id", "c_1"])

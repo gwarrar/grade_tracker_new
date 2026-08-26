@@ -465,7 +465,8 @@
       "resetTitle": "Dieses Passwort zurücksetzen?",
       "resetDescription": "Ein neues Einmalpasswort wird erzeugt und einmalig angezeigt. Das bisherige gilt sofort nicht mehr, und alle Sitzungen werden beendet.",
       "deactivateTitle": "Dieses Konto deaktivieren?",
-      "deactivateDescription": "Die Person wird überall abgemeldet und kann sich erst nach erneuter Aktivierung wieder anmelden."
+      "deactivateDescription": "Die Person wird überall abgemeldet und kann sich erst nach erneuter Aktivierung wieder anmelden.",
+      "namePlaceholder": "Katrin Weber"
     },
     "audit": {
       "title": "Aktivität",

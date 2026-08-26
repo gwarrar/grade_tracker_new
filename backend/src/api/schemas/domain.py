@@ -10,12 +10,32 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated, Any, Literal
 
+from fastapi import Query
 from pydantic import BaseModel, Field
+
+from notenverwaltung.storage.queries import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 
 PageParam = Annotated[int, Field(ge=1, description="1-based page number.", examples=[1])]
 SizeParam = Annotated[
-    int, Field(ge=1, le=200, description="Rows per page, capped at 200.", examples=[25])
+    int,
+    Field(
+        ge=1,
+        le=MAX_PAGE_SIZE,
+        description=f"Rows per page, capped at {MAX_PAGE_SIZE}.",
+        examples=[DEFAULT_PAGE_SIZE],
+    ),
 ]
+
+PageQuery = Annotated[int, Query(ge=1, description="1-based page number.")]
+"""The `?page=` parameter, for route signatures."""
+
+SizeQuery = Annotated[
+    int, Query(ge=1, le=MAX_PAGE_SIZE, description=f"Rows per page, capped at {MAX_PAGE_SIZE}.")
+]
+"""The `?size=` parameter. Pair with `= PAGE_SIZE` for the default."""
+
+PAGE_SIZE = DEFAULT_PAGE_SIZE
+"""Re-exported so routers need not import the storage layer for one integer."""
 
 
 class PageResponse[T](BaseModel):

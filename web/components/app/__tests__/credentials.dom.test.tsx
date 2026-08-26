@@ -60,7 +60,7 @@ describe("CredentialsCard", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
 
-    show([ROWS[0]]);
+    show([ROWS[0]!]);
     await userEvent.click(screen.getByRole("button", { name: "Copy" }));
 
     // The password alone, with no label or punctuation: whatever this writes is
@@ -75,13 +75,13 @@ describe("CredentialsCard", () => {
     show(ROWS);
     await userEvent.click(screen.getByRole("button", { name: "Copy" }));
 
-    const written = writeText.mock.calls[0][0] as string;
+    const written = writeText.mock.calls[0]?.[0] as string;
     expect(written).toContain("aB3-xY9_pQ");
     expect(written).toContain("kL7-mN2_rS");
   });
 
   it("offers a file only when copying by hand would be unreasonable", () => {
-    const { rerender } = show([ROWS[0]]);
+    const { rerender } = show([ROWS[0]!]);
     expect(screen.queryByRole("button", { name: /Download/ })).not.toBeInTheDocument();
 
     rerender(

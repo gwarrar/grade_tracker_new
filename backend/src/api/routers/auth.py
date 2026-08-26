@@ -7,9 +7,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response, status
 
 from api.config import Settings, get_settings
-from api.deps import SESSION_COOKIE, CurrentUser, DbConn, get_auth
+from api.deps import SESSION_COOKIE, CurrentUser, get_auth
 from api.schemas.auth import LoginRequest, MessageResponse, PrincipalResponse
-from notenverwaltung.storage import transaction
 from services.auth import AuthService
 from services.scoping import Principal
 
@@ -77,7 +76,6 @@ def login(
     payload: LoginRequest,
     request: Request,
     response: Response,
-    conn: DbConn,
     auth: Annotated[AuthService, Depends(get_auth)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> PrincipalResponse:
@@ -87,20 +85,18 @@ def login(
         payload: The submitted credentials.
         request: The incoming request, for the client address and user agent.
         response: The outgoing response, which receives the cookie.
-        conn: The request's database connection.
         auth: The authentication service.
         settings: Application settings.
 
     Returns:
         The signed-in principal.
     """
-    with transaction(conn):
-        token, principal = auth.login(
-            payload.email,
-            payload.password,
-            address=request.client.host if request.client else "",
-            user_agent=request.headers.get("user-agent", ""),
-        )
+    token, principal = auth.login(
+        payload.email,
+        payload.password,
+        address=request.client.host if request.client else "",
+        user_agent=request.headers.get("user-agent", ""),
+    )
     _set_session_cookie(response, token, settings)
     return to_response(principal)
 
@@ -114,7 +110,6 @@ def login(
 def logout(
     request: Request,
     response: Response,
-    conn: DbConn,
     auth: Annotated[AuthService, Depends(get_auth)],
 ) -> MessageResponse:
     """Close the caller's session.
@@ -125,7 +120,6 @@ def logout(
     Args:
         request: The incoming request.
         response: The outgoing response, which clears the cookie.
-        conn: The request's database connection.
         auth: The authentication service.
 
     Returns:
@@ -133,8 +127,7 @@ def logout(
     """
     token = request.cookies.get(SESSION_COOKIE)
     if token:
-        with transaction(conn):
-            auth.logout(token)
+        auth.logout(token)
     response.delete_cookie(SESSION_COOKIE, path="/")
     return MessageResponse(code="SIGNED_OUT")
 

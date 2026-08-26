@@ -1,7 +1,9 @@
 """Provider-agnostic chat interface.
 
-The same ``GradeStore`` pattern applied a second time: one abstract base, several
-implementations, and callers that never learn which one they have.
+One abstract base, several implementations, and callers that never learn which one
+they have. Unlike the storage layer -- where a single shipping implementation made the
+abstract base a second place to edit rather than a seam -- this one earns its keep:
+there are two live providers and they disagree about nearly everything below.
 
 The abstraction **normalises rather than passes through**. Anthropic and the
 OpenAI-compatible family disagree on every part of tool use that matters:

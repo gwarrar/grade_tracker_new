@@ -211,7 +211,6 @@ def create_app() -> FastAPI:
     app.include_router(notes.router)
     app.include_router(reports.reports_router)
     app.include_router(reports.analytics_router)
-    app.include_router(reports.org_router)
     app.include_router(organization.router)
     app.include_router(localization.router)
     app.include_router(ai.router)

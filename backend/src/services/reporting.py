@@ -11,11 +11,17 @@ from __future__ import annotations
 import csv
 import io
 import sqlite3
-from dataclasses import replace
+from dataclasses import asdict, replace
 from typing import Any
 
-from notenverwaltung.exceptions import ForbiddenError, ValidationError
+from notenverwaltung.exceptions import (
+    CourseNotFoundError,
+    ForbiddenError,
+    StudentNotFoundError,
+    ValidationError,
+)
 from notenverwaltung.gradebook import GradeBook, weighted_mean
+from notenverwaltung.grading_scale import AT_RISK_THRESHOLD
 from notenverwaltung.models import Role
 from notenverwaltung.reports import CsvReportGenerator, ReportBuilder
 from notenverwaltung.reports.base import (
@@ -26,6 +32,7 @@ from notenverwaltung.reports.base import (
 )
 from notenverwaltung.reports.csv_report import SafeWriter
 from notenverwaltung.storage import GradeStore
+from notenverwaltung.storage.queries import exists
 from notenverwaltung.storage.scope import Scope
 from services.organization import load_grading_scale, load_organization
 from services.scoping import Principal, course_scope, grade_scope, student_scope
@@ -230,7 +237,7 @@ class ReportingService:
             grades=[g for g in report.grades if g.student_id == self._principal.student_id],
         )
 
-    def summary_report(self, at_risk_threshold: float = 60.0) -> dict[str, Any]:
+    def summary_report(self, at_risk_threshold: float = AT_RISK_THRESHOLD) -> dict[str, Any]:
         """Build the institution-wide summary.
 
         Args:
@@ -297,7 +304,7 @@ class ReportingService:
         """
         return self._ranked(descending=True)[:limit]
 
-    def at_risk_students(self, threshold: float = 60.0) -> list[dict[str, Any]]:
+    def at_risk_students(self, threshold: float = AT_RISK_THRESHOLD) -> list[dict[str, Any]]:
         """List students averaging below a threshold, worst first.
 
         Students with no grades are excluded: no data is not the same as poor
@@ -349,35 +356,10 @@ class ReportingService:
             c_scope.params,
         ).fetchall()
 
-        g_scope = grade_scope(self._principal, "g.student_id", "g.course_id") & teacher_scope
-        grade_rows = self._conn.execute(
-            "SELECT g.course_id, g.student_id, g.score, g.weight, c.max_grade, c.passing_grade"  # noqa: S608
-            "  FROM grades g JOIN courses c ON c.course_id = g.course_id"
-            f" WHERE g.deleted_at IS NULL AND ({g_scope.sql})",
-            g_scope.params,
-        ).fetchall()
+        grade_rows = self._scoped_grade_rows(teacher_scope)
 
         by_course, overall = self._aggregate(grade_rows)
-        courses = [
-            {
-                "course_id": row["course_id"],
-                "course_name": row["name"],
-                "term": row["term"],
-                "student_count": by_course[row["course_id"]]["student_count"]
-                if row["course_id"] in by_course
-                else 0,
-                "grade_count": by_course[row["course_id"]]["grade_count"]
-                if row["course_id"] in by_course
-                else 0,
-                "average_percentage": by_course[row["course_id"]]["average_percentage"]
-                if row["course_id"] in by_course
-                else None,
-                "pass_rate": by_course[row["course_id"]]["pass_rate"]
-                if row["course_id"] in by_course
-                else None,
-            }
-            for row in course_rows
-        ]
+        courses = [_course_figures(row, by_course) for row in course_rows]
         return {
             "user_id": user_id,
             "teacher_name": account[0],
@@ -413,38 +395,10 @@ class ReportingService:
             c_scope.params,
         ).fetchall()
 
-        g_scope = grade_scope(self._principal, "g.student_id", "g.course_id") & Scope(
-            "c.term = ?", (term,)
-        )
-        grade_rows = self._conn.execute(
-            "SELECT g.course_id, g.student_id, g.score, g.weight, c.max_grade, c.passing_grade"  # noqa: S608
-            "  FROM grades g JOIN courses c ON c.course_id = g.course_id"
-            f" WHERE g.deleted_at IS NULL AND ({g_scope.sql})",
-            g_scope.params,
-        ).fetchall()
+        grade_rows = self._scoped_grade_rows(Scope("c.term = ?", (term,)))
 
         by_course, overall = self._aggregate(grade_rows)
-        courses = [
-            {
-                "course_id": row["course_id"],
-                "course_name": row["name"],
-                "term": row["term"],
-                "teacher_name": row["teacher_name"],
-                "student_count": by_course[row["course_id"]]["student_count"]
-                if row["course_id"] in by_course
-                else 0,
-                "grade_count": by_course[row["course_id"]]["grade_count"]
-                if row["course_id"] in by_course
-                else 0,
-                "average_percentage": by_course[row["course_id"]]["average_percentage"]
-                if row["course_id"] in by_course
-                else None,
-                "pass_rate": by_course[row["course_id"]]["pass_rate"]
-                if row["course_id"] in by_course
-                else None,
-            }
-            for row in course_rows
-        ]
+        courses = [_course_figures(row, by_course, with_teacher=True) for row in course_rows]
         return {
             "term": term,
             "course_count": len(courses),
@@ -864,24 +818,110 @@ class ReportingService:
         ranked.sort(key=lambda entry: entry["average_percentage"], reverse=descending)
         return ranked
 
-    def _assert_visible_student(self, student_id: str) -> None:
-        """Raise unless the student is within the caller's scope."""
-        from services.directory import DirectoryService
+    def _scoped_grade_rows(self, extra: Scope) -> list[sqlite3.Row]:
+        """Fetch the live grades a caller may see, narrowed by one more condition.
 
-        DirectoryService(self._conn, self._principal).get_student(student_id)
+        The teacher rollup and the term breakdown asked the same question with the
+        same SQL, written out twice. The only thing that differed was `extra`: one
+        pins a teacher, the other a term.
+
+        Args:
+            extra: An additional restriction, ANDed with the caller's grade scope.
+
+        Returns:
+            One row per live grade, carrying the course maximum and passing mark so
+            percentages can be computed without a second query.
+        """
+        scope = grade_scope(self._principal, "g.student_id", "g.course_id") & extra
+        return self._conn.execute(
+            "SELECT g.course_id, g.student_id, g.score, g.weight, c.max_grade, c.passing_grade"  # noqa: S608
+            "  FROM grades g JOIN courses c ON c.course_id = g.course_id"
+            f" WHERE g.deleted_at IS NULL AND ({scope.sql})",
+            scope.params,
+        ).fetchall()
+
+    def _assert_visible_student(self, student_id: str) -> None:
+        """Raise unless the student is within the caller's scope.
+
+        Not-found and out-of-scope are deliberately the same answer: a 403 on a
+        specific id confirms a record with that id exists.
+
+        Args:
+            student_id: Which student.
+
+        Raises:
+            StudentNotFoundError: If no such student is visible to the caller.
+        """
+        if not exists(
+            self._conn,
+            "students",
+            "student_id",
+            student_id,
+            student_scope(self._principal, "student_id"),
+        ):
+            raise StudentNotFoundError(f"No student with id {student_id!r}.", student_id=student_id)
 
     def _assert_visible_course(self, course_id: str) -> None:
-        """Raise unless the course is within the caller's scope."""
-        from services.directory import DirectoryService
+        """Raise unless the course is within the caller's scope.
 
-        DirectoryService(self._conn, self._principal).get_course(course_id)
+        Args:
+            course_id: Which course.
+
+        Raises:
+            CourseNotFoundError: If no such course is visible to the caller.
+        """
+        if not exists(
+            self._conn,
+            "courses",
+            "course_id",
+            course_id,
+            course_scope(self._principal, "course_id"),
+        ):
+            raise CourseNotFoundError(f"No course with id {course_id!r}.", course_id=course_id)
 
 
 def _as_dict(report: Any) -> dict[str, Any]:
     """Convert a report dataclass into a plain dictionary."""
-    from dataclasses import asdict
-
     return asdict(report)
+
+
+def _course_figures(
+    row: sqlite3.Row, by_course: dict[str, dict[str, Any]], *, with_teacher: bool = False
+) -> dict[str, Any]:
+    """Shape one course's row for a rollup, filling in zeros where nothing is graded.
+
+    A course with no grades must still appear: "no marks yet" and "not in this term"
+    are different answers, and dropping the row gives the reader the wrong one. That
+    is why every figure has an explicit empty value rather than a missing key.
+
+    Args:
+        row: The course row.
+        by_course: Aggregated figures keyed by course id, from :meth:`_aggregate`.
+        with_teacher: Include `teacher_name` from the row. Only the term breakdown
+            lists whose course each one is. A boolean rather than the name itself,
+            because an unassigned course must still carry the key with a null value
+            -- omitting it would fail the response model.
+
+    Returns:
+        The course's figures.
+    """
+    figures = by_course.get(row["course_id"])
+    shaped: dict[str, Any] = {
+        "course_id": row["course_id"],
+        "course_name": row["name"],
+        "term": row["term"],
+    }
+    if with_teacher:
+        shaped["teacher_name"] = row["teacher_name"]
+    shaped.update(
+        {
+            "student_count": figures["student_count"] if figures else 0,
+            "grade_count": figures["grade_count"] if figures else 0,
+            "average_percentage": figures["average_percentage"] if figures else None,
+            "pass_rate": figures["pass_rate"] if figures else None,
+        }
+    )
+    return shaped
 
 
 def _recompute(grades: list[GradeLine]) -> float | None:

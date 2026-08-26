@@ -16,9 +16,12 @@ import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
 import { NotesBlock } from "@/components/app/notes";
 import { Pager } from "@/components/app/pager";
+import { ListStatus } from "@/components/app/list-status";
 import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
 import { api, ApiError, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
+import { academicRoots, queryKeys } from "@/lib/query-keys";
 import type { paths } from "@/lib/api-schema";
 import { readCourseAssessments } from "@/lib/course-assessments";
 import {
@@ -40,12 +43,21 @@ type CourseCreate = paths["/courses"]["post"]["requestBody"]["content"]["applica
 type CourseUpdate = paths["/courses/{course_id}"]["patch"]["requestBody"]["content"]["application/json"];
 
 /** What can be done to one row of a course register. */
+let uidCounter = 0;
+
+/** Mint a row identity that survives reordering and deletion. */
+function nextUid(): string {
+  uidCounter += 1;
+  return `assessment-${uidCounter}`;
+}
+
 type EnrollmentAction = "enroll" | "complete" | "withdraw" | "remove";
 
 const PAGE_SIZE = 50;
 
 export function CoursesView({ me, locale }: { me: Me; locale: string }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const queryClient = useQueryClient();
   const [selectedId, select] = useSelection();
   const [search, setSearch] = useState("");
@@ -57,7 +69,7 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
   const page = Math.max(1, Number(pageParam) || 1);
 
   const list = useQuery({
-    queryKey: ["courses", { q: query, page }],
+    queryKey: queryKeys.courses.list({ q: query, page }),
     queryFn: () =>
       api<CoursePage>("/courses", { query: { q: query, page, size: PAGE_SIZE } }),
     placeholderData: (previous) => previous,
@@ -68,21 +80,23 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
     // prerequisite is a course somebody completed in the past. Archiving it is
     // exactly what happens when a course stops running, so excluding archived
     // courses here would quietly drop the prerequisites most likely to be real.
-    queryKey: ["courses", "management"],
+    queryKey: queryKeys.courses.picker("management"),
     queryFn: () => api<CoursePage>("/courses", { query: { size: 200 } }),
     enabled: can.createCourse(me),
   });
 
   const detail = useQuery({
-    queryKey: ["course", selectedId],
+    queryKey: queryKeys.courses.detail(selectedId),
     queryFn: () => api<Course>(`/courses/${selectedId}`),
     enabled: selectedId !== null,
   });
 
-  // One call, not a hand-kept list: these three views each maintained their own
-  // and they had already drifted apart — only this one invalidated grade history,
-  // so editing a student left it stale on the other two.
-  const refresh = () => queryClient.invalidateQueries();
+  // `academicRoots` rather than a bare `invalidateQueries()`: one shared list, so
+  // it cannot drift the way three private ones did, and it leaves the AI usage
+  // table and the admin screens alone — no grade edit changes those.
+  const refresh = () => {
+    for (const queryKey of academicRoots) void queryClient.invalidateQueries({ queryKey });
+  };
 
   const create = useMutation({
     mutationFn: (body: CourseCreate) => api<Course>("/courses", { method: "POST", body }),
@@ -93,7 +107,7 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
       select(course.course_id);
       void refresh();
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   function createCourse(event: FormEvent<HTMLFormElement>) {
@@ -200,7 +214,7 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
           {allCourses.isPending && <p className="text-sm text-subtle">{t("stats.loading")}</p>}
           {allCourses.error && (
             <FormError>
-              {t(`error.${allCourses.error instanceof ApiError ? allCourses.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+              {tError(errorCode(allCourses.error))}
             </FormError>
           )}
           {/* Same reason as the roster in `bulk-grades.tsx`: the dialog caps and
@@ -208,7 +222,7 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
           {allCourses.isSuccess ? (
             <form onSubmit={createCourse} className="space-y-4">
               <CourseFields courses={allCourses.data.items} me={me} locale={locale} includeId />
-              {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+              {code && <FormError>{tError(code)}</FormError>}
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -311,12 +325,12 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
               })}
             </tbody>
           </table>
-          {list.isPending && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.loading")}</p>
-          )}
-          {!list.isPending && rows.length === 0 && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.noData")}</p>
-          )}
+          <ListStatus
+            query={list}
+            isEmpty={rows.length === 0}
+            loadingLabel={t("stats.loading")}
+            emptyLabel={t("stats.noData")}
+          />
           <Pager
             page={page}
             size={PAGE_SIZE}
@@ -351,7 +365,7 @@ function TeacherPicker({ course }: { course?: Course }) {
   const t = useTranslations();
 
   const teachers = useQuery({
-    queryKey: ["admin", "users", { role: "teacher" }],
+    queryKey: queryKeys.admin.users.picker("teachers", { role: "teacher" }),
     queryFn: () =>
       api<Accounts>("/admin/users", { query: { role: "teacher", include_inactive: false } }),
     staleTime: 60_000,
@@ -402,6 +416,10 @@ function CourseFields({
   );
   const [assessments, setAssessments] = useState(
     (course?.assessments ?? []).map((assessment) => ({
+      // Local identity, not part of the course. Row keys were the array index, so
+      // deleting a row made React reuse the node at that position for the next one
+      // -- the same class of defect the grading-scale editor fixed with `uid`.
+      uid: nextUid(),
       name: assessment.name,
       // Full precision: these seed an editable field, and the two-digit display
       // cap rewrote the stored weight on any save that did not touch it.
@@ -440,7 +458,7 @@ function CourseFields({
         <div className="mt-3 space-y-3">
           {assessments.map((assessment, index) => (
             <div
-              key={index}
+              key={assessment.uid}
               className="grid gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
             >
               <label className="text-sm text-muted">
@@ -495,7 +513,7 @@ function CourseFields({
           onClick={() =>
             setAssessments((current) => [
               ...current,
-              { name: "", weight: formatNumber(1, locale) },
+              { uid: nextUid(), name: "", weight: formatNumber(1, locale) },
             ])
           }
         >
@@ -553,6 +571,7 @@ function CourseDetail({
   onDeleted: () => void;
 }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const editable = course !== undefined && can.writeCourse(me, course);
   const manageable = course !== undefined && can.writeEnrolment(me, course);
   const [editing, setEditing] = useState(false);
@@ -569,13 +588,13 @@ function CourseDetail({
   } | null>(null);
 
   const register = useQuery({
-    queryKey: ["course", courseId, "enrollments"],
+    queryKey: queryKeys.courses.enrollments(courseId),
     queryFn: () => api<Register>(`/courses/${courseId}/enrollments`),
     enabled: !editing,
   });
 
   const students = useQuery({
-    queryKey: ["students", { q: studentQuery, enrollmentCourse: courseId }],
+    queryKey: queryKeys.students.picker("enrolment", { q: studentQuery, courseId }),
     queryFn: () => api<StudentPage>("/students", { query: { q: studentQuery, size: 20 } }),
     enabled: manageable && register.isSuccess && !editing && studentQuery.length >= 2,
   });
@@ -588,7 +607,7 @@ function CourseDetail({
       setNotice(t("course.saved"));
       void onSaved();
     },
-    onError: (err) => setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR"),
+    onError: (err) => setCode(errorCode(err)),
   });
 
   const removeCourse = useMutation({
@@ -599,7 +618,7 @@ function CourseDetail({
     },
     onError: (err) => {
       setDeleting(false);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -625,7 +644,7 @@ function CourseDetail({
     },
     onError: (err) => {
       setEnrollmentAction(null);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -701,9 +720,9 @@ function CourseDetail({
     <div className="rounded-xl border border-line bg-surface p-6">
       <PanelHeader title={course?.name ?? t("stats.loading")} subtitle={course?.course_id} closeLabel={t("action.close")} onClose={onClose} />
       {loading && <p className="mt-4 text-sm text-subtle">{t("stats.loading")}</p>}
-      {error instanceof ApiError && <FormError>{t(`error.${error.code}` as "error.unknown")}</FormError>}
+      {error instanceof ApiError && <FormError>{tError(error.code)}</FormError>}
       {notice && <p role="status" className="mt-4 text-sm text-pass">{notice}</p>}
-      {code && !editing && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+      {code && !editing && <FormError>{tError(code)}</FormError>}
 
       {course && !editing && (
         <>
@@ -744,7 +763,7 @@ function CourseDetail({
               {coursesLoading && <p className="mt-3 text-sm text-subtle">{t("stats.loading")}</p>}
               {Boolean(coursesError) && (
                 <FormError>
-                  {t(`error.${coursesError instanceof ApiError ? coursesError.code : "NETWORK_ERROR"}` as "error.unknown")}
+                  {tError(errorCode(coursesError))}
                 </FormError>
               )}
             </>
@@ -754,7 +773,7 @@ function CourseDetail({
           {register.isPending && <p className="mt-3 text-sm text-subtle">{t("stats.loading")}</p>}
           {register.error && (
             <FormError>
-              {t(`error.${register.error instanceof ApiError ? register.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+              {tError(errorCode(register.error))}
             </FormError>
           )}
           {register.isSuccess && (
@@ -780,13 +799,13 @@ function CourseDetail({
                   )}
                   {students.error && (
                     <FormError>
-                      {t(`error.${students.error instanceof ApiError ? students.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+                      {tError(errorCode(students.error))}
                     </FormError>
                   )}
                   {!studentSearchUnsettled && studentQuery.length >= 2 && students.isSuccess && candidates.length > 0 && (
                     <form onSubmit={submitEnrollment} className="mt-3 flex items-end gap-2">
                       <div className="min-w-0 flex-1">
-                        <Select name="student_id" label={t("enrollment.student")} value={candidates[0].student_id}>
+                        <Select name="student_id" label={t("enrollment.student")} value={candidates[0]?.student_id ?? ""}>
                           {candidates.map((student) => (
                             <option key={student.student_id} value={student.student_id}>
                               {student.student_id} — {student.first_name} {student.last_name}
@@ -845,10 +864,10 @@ function CourseDetail({
           {coursesLoading && <p className="text-sm text-subtle">{t("stats.loading")}</p>}
           {Boolean(coursesError) && (
             <FormError>
-              {t(`error.${coursesError instanceof ApiError ? coursesError.code : "NETWORK_ERROR"}` as "error.unknown")}
+              {tError(errorCode(coursesError))}
             </FormError>
           )}
-          {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+          {code && <FormError>{tError(code)}</FormError>}
           <div className="flex gap-2">
             <button type="submit" disabled={save.isPending || !coursesReady} className="btn btn-primary">{t("action.save")}</button>
             <button type="button" className="btn btn-ghost" onClick={() => { setEditing(false); setCode(null); }}>{t("action.cancel")}</button>

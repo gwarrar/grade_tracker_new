@@ -12,7 +12,7 @@ from typing import Any
 from notenverwaltung.exceptions import ForbiddenError, GradeNotFoundError, ValidationError
 from notenverwaltung.models import Grade
 from notenverwaltung.storage import GradeStore, transaction
-from notenverwaltung.storage.queries import Page, SortSpec, exists, paginate
+from notenverwaltung.storage.queries import Page, SortSpec, escape_like, exists, paginate
 from notenverwaltung.storage.scope import Scope
 from services import audit
 from services.organization import load_grading_scale
@@ -49,22 +49,6 @@ _JOIN = (
     " JOIN students AS s ON s.student_id = g.student_id"
     " JOIN courses AS c ON c.course_id = g.course_id"
 )
-
-
-def _escape_like(value: str) -> str:
-    r"""Escape the wildcards in a ``LIKE`` pattern.
-
-    Without this a title containing ``%`` matches everything, which is a confusing
-    result rather than a dangerous one — but it is still wrong. Mirrors the escaping
-    in :mod:`notenverwaltung.storage.queries`.
-
-    Args:
-        value: Raw user input.
-
-    Returns:
-        The value with ``\\``, ``%`` and ``_`` escaped.
-    """
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 _SELECT = (
@@ -179,7 +163,7 @@ class GradingService:
         if date_to:
             extra = extra & Scope("g.date <= ?", (date_to,))
         if title:
-            extra = extra & Scope("g.title LIKE ? ESCAPE '\\'", (f"%{_escape_like(title)}%",))
+            extra = extra & Scope("g.title LIKE ? ESCAPE '\\'", (f"%{escape_like(title)}%",))
         if letter:
             extra = extra & self._letter_scope(letter)
 

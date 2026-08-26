@@ -15,7 +15,6 @@ from pydantic import BaseModel, Field
 
 from api.deps import DbConn, SuperAdminUser
 from llm.registry import Feature
-from notenverwaltung.storage import transaction
 from services.ai_admin import AiAdminService
 
 router = APIRouter(prefix="/admin/ai", tags=["AI administration"])
@@ -198,22 +197,18 @@ def list_providers(_: SuperAdminUser, admin: Admin) -> list[ProviderResponse]:
     status_code=status.HTTP_201_CREATED,
     summary="Add a provider",
 )
-def create_provider(
-    body: ProviderRequest, user: SuperAdminUser, admin: Admin, conn: DbConn
-) -> ProviderResponse:
+def create_provider(body: ProviderRequest, user: SuperAdminUser, admin: Admin) -> ProviderResponse:
     """Add a provider.
 
     Args:
         body: The new provider.
         user: The acting superadmin.
         admin: The service.
-        conn: The request's connection, for the transaction.
 
     Returns:
         The stored provider.
     """
-    with transaction(conn):
-        config = admin.create_provider(actor_id=user.user_id, **body.model_dump())
+    config = admin.create_provider(actor_id=user.user_id, **body.model_dump())
     return _with_key_status(admin, config.id)
 
 
@@ -221,7 +216,7 @@ def create_provider(
     "/providers/{provider_id}", response_model=ProviderResponse, summary="Update a provider"
 )
 def update_provider(
-    provider_id: int, body: ProviderPatch, user: SuperAdminUser, admin: Admin, conn: DbConn
+    provider_id: int, body: ProviderPatch, user: SuperAdminUser, admin: Admin
 ) -> ProviderResponse:
     """Change a provider's configuration.
 
@@ -230,15 +225,11 @@ def update_provider(
         body: The changes. Omitted fields are left alone.
         user: The acting superadmin.
         admin: The service.
-        conn: The request's connection.
 
     Returns:
         The updated provider.
     """
-    with transaction(conn):
-        admin.update_provider(
-            provider_id, actor_id=user.user_id, **body.model_dump(exclude_unset=True)
-        )
+    admin.update_provider(provider_id, actor_id=user.user_id, **body.model_dump(exclude_unset=True))
     return _with_key_status(admin, provider_id)
 
 
@@ -252,17 +243,15 @@ def update_provider(
         "than at configuration time."
     ),
 )
-def delete_provider(provider_id: int, user: SuperAdminUser, admin: Admin, conn: DbConn) -> None:
+def delete_provider(provider_id: int, user: SuperAdminUser, admin: Admin) -> None:
     """Remove a provider.
 
     Args:
         provider_id: Which provider.
         user: The acting superadmin.
         admin: The service.
-        conn: The request's connection.
     """
-    with transaction(conn):
-        admin.delete_provider(provider_id, actor_id=user.user_id)
+    admin.delete_provider(provider_id, actor_id=user.user_id)
 
 
 @router.post(
@@ -333,7 +322,7 @@ def get_routing(_: SuperAdminUser, admin: Admin) -> list[RoutingResponse]:
 
 @router.put("/routing/{feature}", response_model=RoutingResponse, summary="Route a feature")
 def set_routing(
-    feature: FeaturePath, body: RoutingRequest, user: SuperAdminUser, admin: Admin, conn: DbConn
+    feature: FeaturePath, body: RoutingRequest, user: SuperAdminUser, admin: Admin
 ) -> RoutingResponse:
     """Point a feature at a provider and model.
 
@@ -342,13 +331,11 @@ def set_routing(
         body: Provider, model and effort.
         user: The acting superadmin.
         admin: The service.
-        conn: The request's connection.
 
     Returns:
         The stored routing.
     """
-    with transaction(conn):
-        route = admin.set_routing(feature, actor_id=user.user_id, **body.model_dump())
+    route = admin.set_routing(feature, actor_id=user.user_id, **body.model_dump())
     return RoutingResponse(**asdict(route))
 
 

@@ -16,11 +16,14 @@ import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
 import { NotesBlock } from "@/components/app/notes";
 import { Pager } from "@/components/app/pager";
+import { ListStatus } from "@/components/app/list-status";
 import { StudentRecord } from "@/components/app/student-record";
 import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
 import { Link } from "@/i18n/navigation";
 import { api, ApiError, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
+import { academicRoots, queryKeys } from "@/lib/query-keys";
 import type { paths } from "@/lib/api-schema";
 import { formatDate, formatNumber } from "@/lib/format";
 import { can } from "@/lib/permissions";
@@ -42,6 +45,7 @@ const PAGE_SIZE = 50;
 
 export function StudentsView({ me, locale }: { me: Me; locale: string }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const queryClient = useQueryClient();
   const [selectedId, select] = useSelection();
   const [search, setSearch] = useState("");
@@ -55,30 +59,32 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
   const editable = can.writeStudent(me);
 
   const list = useQuery({
-    queryKey: ["students", { q: query, page }],
+    queryKey: queryKeys.students.list({ q: query, page }),
     queryFn: () =>
       api<StudentPage>("/students", { query: { q: query, page, size: PAGE_SIZE } }),
     placeholderData: (previous) => previous,
   });
 
   const detail = useQuery({
-    queryKey: ["student", selectedId],
+    queryKey: queryKeys.students.detail(selectedId),
     queryFn: () => api<Student>(`/students/${selectedId}`),
     enabled: selectedId !== null,
   });
 
   const courses = useQuery({
-    queryKey: ["courses", "management", "active"],
+    queryKey: queryKeys.courses.picker("enrolment-active"),
     // Active only: this list is the enrolment picker, and enrolling somebody on an
     // archived course is the thing archiving is supposed to stop.
     queryFn: () => api<CoursePage>("/courses", { query: { size: 200, status: "active" } }),
     enabled: can.createCourse(me),
   });
 
-  // One call, not a hand-kept list: these three views each maintained their own
-  // and they had already drifted apart — only this one invalidated grade history,
-  // so editing a student left it stale on the other two.
-  const refresh = () => queryClient.invalidateQueries();
+  // `academicRoots` rather than a bare `invalidateQueries()`: one shared list, so
+  // it cannot drift the way three private ones did, and it leaves the AI usage
+  // table and the admin screens alone — no grade edit changes those.
+  const refresh = () => {
+    for (const queryKey of academicRoots) void queryClient.invalidateQueries({ queryKey });
+  };
 
   const create = useMutation({
     mutationFn: (body: StudentCreate) => api<Created>("/students", { method: "POST", body }),
@@ -99,7 +105,7 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
       select(student.student_id);
       void refresh();
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   function createStudent(event: FormEvent<HTMLFormElement>) {
@@ -204,7 +210,7 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
                 </span>
               </span>
             </label>
-            {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+            {code && <FormError>{tError(code)}</FormError>}
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
@@ -295,12 +301,12 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
               })}
             </tbody>
           </table>
-          {list.isPending && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.loading")}</p>
-          )}
-          {!list.isPending && rows.length === 0 && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.noData")}</p>
-          )}
+          <ListStatus
+            query={list}
+            isEmpty={rows.length === 0}
+            loadingLabel={t("stats.loading")}
+            emptyLabel={t("stats.noData")}
+          />
           <Pager
             page={page}
             size={PAGE_SIZE}
@@ -384,6 +390,7 @@ export function StudentDetail({
   onDeleted: () => void;
 }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const [editing, setEditing] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -397,13 +404,13 @@ export function StudentDetail({
   const studentId = student?.student_id;
 
   const record = useQuery({
-    queryKey: ["report", "student", studentId],
+    queryKey: queryKeys.reports.student(studentId),
     queryFn: () => api<StudentReport>(`/reports/student/${studentId}`),
     enabled: Boolean(studentId) && !editing,
   });
 
   const enrolled = useQuery({
-    queryKey: ["student", studentId, "courses"],
+    queryKey: queryKeys.students.courses(studentId),
     queryFn: () => api<StudentCourses>(`/students/${studentId}/courses`),
     enabled: Boolean(studentId) && !editing,
   });
@@ -411,7 +418,7 @@ export function StudentDetail({
   // Only while editing, and only for someone who may write: the accounts list is
   // admin-only, and requesting it for every selected student would 403 for teachers.
   const accounts = useQuery({
-    queryKey: ["admin", "users"],
+    queryKey: queryKeys.admin.users.picker("account-link"),
     queryFn: () => api<Accounts>("/admin/users"),
     enabled: editing && can.manageUsers(me),
   });
@@ -431,7 +438,7 @@ export function StudentDetail({
       setNotice(t("student.saved"));
       void onSaved();
     },
-    onError: (err) => setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR"),
+    onError: (err) => setCode(errorCode(err)),
   });
 
   const lifecycle = useMutation({
@@ -445,7 +452,7 @@ export function StudentDetail({
     },
     onError: (err) => {
       setDeactivating(false);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -457,7 +464,7 @@ export function StudentDetail({
     },
     onError: (err) => {
       setDeleting(false);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -490,7 +497,7 @@ export function StudentDetail({
     },
     onError: (err) => {
       setEnrollmentAction(null);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -531,9 +538,9 @@ export function StudentDetail({
       />
 
       {loading && <p className="mt-4 text-sm text-subtle">{t("stats.loading")}</p>}
-      {error instanceof ApiError && <FormError>{t(`error.${error.code}` as "error.unknown")}</FormError>}
+      {error instanceof ApiError && <FormError>{tError(error.code)}</FormError>}
       {notice && <p role="status" className="mt-4 text-sm text-pass">{notice}</p>}
-      {code && !editing && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+      {code && !editing && <FormError>{tError(code)}</FormError>}
 
       {student && !editing && (
         <>
@@ -554,7 +561,7 @@ export function StudentDetail({
             )}
             {enrolled.error && (
               <FormError>
-                {t(`error.${enrolled.error instanceof ApiError ? enrolled.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+                {tError(errorCode(enrolled.error))}
               </FormError>
             )}
             {record.data && enrolled.isSuccess && (
@@ -604,12 +611,12 @@ export function StudentDetail({
               )}
               {Boolean(coursesError) && (
                 <FormError>
-                  {t(`error.${coursesError instanceof ApiError ? coursesError.code : "NETWORK_ERROR"}` as "error.unknown")}
+                  {tError(errorCode(coursesError))}
                 </FormError>
               )}
               {enrolled.error && (
                 <FormError>
-                  {t(`error.${enrolled.error instanceof ApiError ? enrolled.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+                  {tError(errorCode(enrolled.error))}
                 </FormError>
               )}
               {coursesReady && enrolled.isSuccess && (
@@ -617,7 +624,7 @@ export function StudentDetail({
                   {student.is_active && availableCourses.length > 0 ? (
                     <form onSubmit={submitEnrollment} className="mt-3 flex items-end gap-2">
                       <div className="min-w-0 flex-1">
-                        <Select name="course_id" label={t("enrollment.course")} value={availableCourses[0].course_id}>
+                        <Select name="course_id" label={t("enrollment.course")} value={availableCourses[0]?.course_id ?? ""}>
                           {availableCourses.map((course) => <option key={course.course_id} value={course.course_id}>{course.course_id} — {course.name}</option>)}
                         </Select>
                       </div>
@@ -712,7 +719,7 @@ export function StudentDetail({
                 </option>
               ))}
           </Select>
-          {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+          {code && <FormError>{tError(code)}</FormError>}
           <div className="flex gap-2">
             <button type="submit" disabled={save.isPending} className="btn btn-primary">{t("action.save")}</button>
             <button type="button" className="btn btn-ghost" onClick={() => { setEditing(false); setCode(null); }}>{t("action.cancel")}</button>

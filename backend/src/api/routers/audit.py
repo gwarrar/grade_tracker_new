@@ -15,7 +15,13 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from api.deps import AdminUser, DbConn
-from api.schemas.domain import AuditEntryResponse, AuditFeedEntryResponse, PageResponse
+from api.schemas.domain import (
+    PAGE_SIZE,
+    AuditEntryResponse,
+    AuditFeedEntryResponse,
+    PageResponse,
+    SizeQuery,
+)
 from services import audit
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
@@ -50,7 +56,7 @@ def audit_feed(
         str | None, Query(description="Latest day, ISO `YYYY-MM-DD`, inclusive.")
     ] = None,
     page: Annotated[int, Query(ge=1)] = 1,
-    size: Annotated[int, Query(ge=1, le=200)] = 25,
+    size: SizeQuery = PAGE_SIZE,
 ) -> PageResponse[AuditFeedEntryResponse]:
     """Return one page of the activity feed."""
     result = audit.feed(

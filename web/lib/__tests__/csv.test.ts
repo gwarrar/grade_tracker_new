@@ -25,7 +25,7 @@ describe("parseCsv", () => {
 
   it("turns a doubled quote inside a quoted field into one literal quote", () => {
     const parsed = parseCsv('note,score\n"He said ""hello""",5\n');
-    expect(parsed.rows[0][0]).toBe('He said "hello"');
+    expect(parsed.rows[0]?.[0]).toBe('He said "hello"');
   });
 
   it("keeps a newline inside a quoted field as part of the value", () => {

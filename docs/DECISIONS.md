@@ -284,22 +284,27 @@ error boundaries, which is exactly what parallel routes are for.
 
 ---
 
-## 12. Two animation libraries, used where each is stronger
+## 12. One animation library
 
-Not overlap — a split along a real line:
+**Motion, and nothing else.** Layout animation and shared-element transitions are
+its unique capability, and it is driven by React state: the sliding master/detail
+is a `layout` prop and an `AnimatePresence`.
 
-- **Motion** owns the app. Layout animation and shared-element transitions are
-  its unique capability, and it is driven by React state. The sliding
-  master/detail is a `layout` prop and an `AnimatePresence`.
-- **anime.js** owns the landing page. Declarative timelines with stagger and
-  scroll sync are its strength, and the landing page has no React state to
-  synchronise with.
+*Amended 2026-08-26: this said "Two animation libraries, used where each is
+stronger" and gave the landing page to **anime.js** — declarative timelines with
+stagger and scroll sync, on a page with no React state to synchronise with. That
+was a real distinction while the landing page had a self-typing hero to drive.
+The hero was deleted on 2026-08-20 and anime.js went with it; what remains is a
+drifting starfield whose positions are computed once and animated in CSS, which
+needs no timeline engine. The entry is kept rather than deleted because "why is
+there only one animation library" is a question worth having an answer to.*
 
-Both MIT. React Bits and Vengeance UI copy source into the repository, so they
-add no runtime dependency at all.
+React Bits and Vengeance UI copy source into the repository, so they add no
+runtime dependency at all.
 
-**Reversal trigger:** if the landing page ever becomes state-driven, anime.js
-loses its reason to exist and Motion absorbs it.
+**Reversal trigger:** a landing page or report screen that needs orchestrated,
+scroll-synced timelines across many elements. Motion can do it; anime.js is
+pleasanter at it, and that is the trade to re-examine — not before.
 
 ---
 
@@ -337,15 +342,15 @@ query — per-user custom palettes stored server-side, say.
 ## 14. Reduced motion gets the finished state, not a faster animation
 
 `prefers-reduced-motion: reduce` collapses transitions to ~0ms globally in
-`tokens.css`, and the components that loop — the self-typing ⌘K hero — check it
-explicitly and render the settled state instead.
+`tokens.css`, and the components that loop — the drifting starfield behind the
+landing hero — check it explicitly and render the settled state instead.
 
 Shortening an animation is the wrong response: vestibular disorders are triggered
 by the movement, not its duration.
 
 The practical consequence, worth knowing when something "isn't animating": on
 Windows, **Settings → Accessibility → Visual effects → Animation effects** sets
-this media query. With it off, the landing page, the ⌘K hero and the sliding
+this media query. With it off, the landing page, the starfield and the sliding
 detail panel all render statically — correctly.
 
 ---

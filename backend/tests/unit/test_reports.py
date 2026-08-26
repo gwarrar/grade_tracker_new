@@ -10,7 +10,7 @@ from notenverwaltung.exceptions import CourseNotFoundError, StudentNotFoundError
 from notenverwaltung.gradebook import GradeBook
 from notenverwaltung.grading_scale import GradeBand, GradingScale
 from notenverwaltung.models import Course
-from notenverwaltung.reports import CsvReportGenerator, ReportBuilder
+from notenverwaltung.reports import CsvReportGenerator, ReportBuilder, TextReportGenerator
 from notenverwaltung.reports.csv_report import escape_formula
 from notenverwaltung.storage import GradeStore
 
@@ -91,11 +91,69 @@ class TestSummaryReport:
         assert builder.summary_report(at_risk_threshold=70.0).at_risk_threshold == 70.0
 
 
+class TestPolymorphism:
+    """Every generator consumes the same dataclasses — that is the polymorphism.
+
+    `ReportGenerator` is an abstract base with two concrete renderers. Neither knows
+    anything about storage or statistics: they are handed a finished report and asked
+    to format it, which is what makes adding a third format a leaf change.
+    """
+
+    def test_both_generators_accept_the_same_report(self, builder: ReportBuilder) -> None:
+        report = builder.student_report("S001")
+        for generator in (TextReportGenerator(), CsvReportGenerator()):
+            assert generator.render_student(report)
+
+    def test_text_includes_the_key_figures(self, builder: ReportBuilder) -> None:
+        output = TextReportGenerator().render_student(builder.student_report("S001"))
+        assert "Anna Schmidt" in output
+        assert "87.5%" in output
+
+    def test_text_labels_are_overridable(self, builder: ReportBuilder) -> None:
+        output = TextReportGenerator({"average": "Durchschnitt"}).render_student(
+            builder.student_report("S001")
+        )
+        assert "Durchschnitt" in output
+
+    def test_text_handles_an_empty_report(self, builder: ReportBuilder) -> None:
+        assert "No grades recorded." in TextReportGenerator().render_student(
+            builder.student_report("S003")
+        )
+
+    def test_text_course_report(self, builder: ReportBuilder) -> None:
+        output = TextReportGenerator().render_course(builder.course_report("CS101"))
+        assert "Intro to Programming" in output
+        assert "Anna Schmidt" in output
+        assert "50.0%" in output  # pass rate
+        assert "B:1" in output  # distribution
+
+    def test_text_course_report_handles_no_grades(self, gradebook: GradeBook) -> None:
+        gradebook.add_course(Course("CS999", "Empty"))
+        output = TextReportGenerator().render_course(
+            ReportBuilder(gradebook).course_report("CS999")
+        )
+        assert "No grades recorded." in output
+
+    def test_text_summary_report(self, builder: ReportBuilder) -> None:
+        output = TextReportGenerator().render_summary(builder.summary_report())
+        assert "3 students, 2 courses, 3 grades" in output
+        assert "Top students:" in output
+        assert "At risk (< 60%):" in output
+
+    def test_text_summary_omits_empty_sections(self, store: GradeStore) -> None:
+        """An institution with no data should not render an empty 'At risk' heading."""
+        output = TextReportGenerator().render_summary(
+            ReportBuilder(GradeBook(store)).summary_report()
+        )
+        assert "Top students:" not in output
+        assert "At risk" not in output
+
+
 class TestRenderers:
-    """CSV is the one format rendered server-side.
+    """CSV is the one format the *product* renders server-side.
 
     A downloaded file has no frontend to translate it, so headers and delimiter are
-    the renderer's problem. Every other format is JSON over the API, shaped by the
+    the renderer's problem. Every other format the API serves is JSON, shaped by the
     dataclasses themselves.
     """
 

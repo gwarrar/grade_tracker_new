@@ -23,9 +23,9 @@ function declarationsIn(pattern: RegExp): Map<string, string> {
   if (!match) throw new Error(`block not found: ${pattern}`);
 
   const declarations = new Map<string, string>();
-  for (const line of match[1].split("\n")) {
+  for (const line of (match[1] ?? "").split("\n")) {
     const parsed = /^\s*(--[\w-]+)\s*:\s*(.+?);/.exec(line);
-    if (parsed) declarations.set(parsed[1], parsed[2].trim());
+    if (parsed?.[1] && parsed[2]) declarations.set(parsed[1], parsed[2].trim());
   }
   return declarations;
 }

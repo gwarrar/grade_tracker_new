@@ -22,7 +22,9 @@ import { Distribution } from "@/components/app/distribution";
 import { StatTile } from "@/components/app/stat-tile";
 import { StudentRecord } from "@/components/app/student-record";
 import { Link } from "@/i18n/navigation";
-import { API_BASE, ApiError, api, type Response } from "@/lib/api";
+import { API_BASE, api, type Response } from "@/lib/api";
+import { errorCode } from "@/lib/use-api-error";
+import { queryKeys } from "@/lib/query-keys";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { useDebounced, useUrlParam } from "@/lib/use-selection";
 
@@ -93,13 +95,13 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
   const studentQuery = useDebounced(studentSearch.trim());
 
   const courses = useQuery({
-    queryKey: ["courses", "all"],
+    queryKey: queryKeys.courses.picker("reports"),
     queryFn: () => api<Courses>("/courses", { query: { size: 100 } }),
     enabled: kind === "course" || kind === "assessments",
   });
 
   const summary = useQuery({
-    queryKey: ["reports", "summary"],
+    queryKey: queryKeys.reports.summary(),
     queryFn: () => api<Summary>("/reports/summary"),
     enabled: kind === "summary",
   });
@@ -107,57 +109,57 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
   // Searched rather than listed: an institution has far more students than courses,
   // and a picker capped at some round number silently omits the rest.
   const students = useQuery({
-    queryKey: ["students", "report-picker", studentQuery],
+    queryKey: queryKeys.students.picker("reports", { q: studentQuery }),
     queryFn: () => api<StudentPage>("/students", { query: { q: studentQuery, size: 20 } }),
     enabled: kind === "student",
     placeholderData: (previous) => previous,
   });
 
   const studentReport = useQuery({
-    queryKey: ["reports", "student", studentId],
+    queryKey: queryKeys.reports.student(studentId),
     queryFn: () => api<StudentReport>(`/reports/student/${encodeURIComponent(studentId)}`),
     enabled: kind === "student" && studentId !== "",
   });
 
   const studentCourses = useQuery({
-    queryKey: ["student", studentId, "courses"],
+    queryKey: queryKeys.students.courses(studentId),
     queryFn: () => api<StudentCourses>(`/students/${encodeURIComponent(studentId)}/courses`),
     enabled: kind === "student" && studentId !== "",
   });
 
   const course = useQuery({
-    queryKey: ["reports", "course", courseId],
+    queryKey: queryKeys.reports.course(courseId),
     queryFn: () => api<CourseReport>(`/reports/course/${encodeURIComponent(courseId)}`),
     enabled: kind === "course" && courseId !== "",
   });
 
   const teacher = useQuery({
-    queryKey: ["reports", "teacher", teacherId],
+    queryKey: queryKeys.reports.teacher(teacherId),
     queryFn: () => api<TeacherReport>(`/reports/teacher/${encodeURIComponent(teacherId)}`),
     enabled: kind === "teacher" && teacherId !== "",
   });
 
   const termReport = useQuery({
-    queryKey: ["reports", "term", term],
+    queryKey: queryKeys.reports.term(term),
     queryFn: () => api<TermReport>(`/reports/term/${encodeURIComponent(term)}`),
     enabled: kind === "term" && term !== "",
   });
 
   const assessments = useQuery({
-    queryKey: ["reports", "assessments", courseId],
+    queryKey: queryKeys.reports.assessments(courseId),
     queryFn: () =>
       api<Assessments>(`/reports/course/${encodeURIComponent(courseId)}/assessments`),
     enabled: kind === "assessments" && courseId !== "",
   });
 
   const enrollment = useQuery({
-    queryKey: ["reports", "enrollment"],
+    queryKey: queryKeys.reports.enrollment(),
     queryFn: () => api<Enrollment>("/reports/enrollment"),
     enabled: kind === "enrollment",
   });
 
   const distribution = useQuery({
-    queryKey: ["reports", "distribution", bucket],
+    queryKey: queryKeys.reports.distribution(bucket),
     queryFn: () => api<DistributionReport>("/reports/distribution", { query: { bucket } }),
     enabled: kind === "distribution",
   });
@@ -776,7 +778,7 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
       {!pending && failure && (
         <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-center text-sm text-fail">
           {t(
-            `error.${failure instanceof ApiError ? failure.code : "NETWORK_ERROR"}` as "error.unknown",
+            errorCode(failure),
           )}
         </p>
       )}

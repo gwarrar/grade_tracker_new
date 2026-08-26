@@ -25,8 +25,11 @@ import { AuditEntryLine } from "@/components/app/audit";
 import { Field, FormError, Input, PanelHeader } from "@/components/app/detail-fields";
 import { MasterDetail } from "@/components/app/master-detail";
 import { Pager } from "@/components/app/pager";
+import { ListStatus } from "@/components/app/list-status";
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
+import { academicRoots, queryKeys } from "@/lib/query-keys";
 import {
   formatDate,
   formatNumber,
@@ -91,7 +94,7 @@ export function GradesView({
   // For the course filter. Only staff see more than their own courses anyway, and
   // the API scopes this exactly as it scopes the grades themselves.
   const courses = useQuery({
-    queryKey: ["courses", "grade-picker"],
+    queryKey: queryKeys.courses.picker("grade-entry"),
     // Active only. An archived course is one nobody is still teaching, and offering
     // it here is offering to record a mark against a closed register -- which the
     // API had no way to express until it grew a status filter.
@@ -101,7 +104,7 @@ export function GradesView({
   });
 
   const list = useQuery({
-    queryKey: ["grades", { query, courseId, letter, dateFrom, dateTo, sort, page }],
+    queryKey: queryKeys.grades.list({ query, courseId, letter, dateFrom, dateTo, sort, page }),
     queryFn: () =>
       api<Page>("/grades", {
         query: {
@@ -127,15 +130,17 @@ export function GradesView({
     sort === key ? "ascending" : sort === `-${key}` ? "descending" : "none";
 
   const detail = useQuery({
-    queryKey: ["grade", selectedId],
+    queryKey: queryKeys.grades.detail(selectedId),
     queryFn: () => api<Grade>(`/grades/${selectedId}`),
     enabled: selectedId !== null,
   });
 
-  // One call, not a hand-kept list: these three views each maintained their own
-  // and they had already drifted apart — only this one invalidated grade history,
-  // so editing a student left it stale on the other two.
-  const refresh = () => queryClient.invalidateQueries();
+  // `academicRoots` rather than a bare `invalidateQueries()`: one shared list, so
+  // it cannot drift the way three private ones did, and it leaves the AI usage
+  // table and the admin screens alone — no grade edit changes those.
+  const refresh = () => {
+    for (const queryKey of academicRoots) void queryClient.invalidateQueries({ queryKey });
+  };
 
   const rows = list.data?.items ?? [];
 
@@ -413,12 +418,12 @@ export function GradesView({
             </tbody>
           </table>
 
-          {list.isPending && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.loading")}</p>
-          )}
-          {!list.isPending && rows.length === 0 && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.noData")}</p>
-          )}
+          <ListStatus
+            query={list}
+            isEmpty={rows.length === 0}
+            loadingLabel={t("stats.loading")}
+            emptyLabel={t("stats.noData")}
+          />
 
           <Pager
             page={page}
@@ -461,6 +466,7 @@ function GradeDetail({
   onDeleted: () => void;
 }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [code, setCode] = useState<string | null>(null);
@@ -495,7 +501,7 @@ function GradeDetail({
       if (context?.previous) {
         queryClient.setQueryData(["grade", gradeId], context.previous);
       }
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
 
     onSuccess: () => {
@@ -514,14 +520,14 @@ function GradeDetail({
     },
     onError: (err) => {
       setRetiring(false);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
   // The trail for this grade. Read-only by construction: an append-only log gets
   // no write controls, only the record of what happened to this mark.
   const history = useQuery({
-    queryKey: ["grade-history", gradeId],
+    queryKey: queryKeys.grades.history(gradeId),
     queryFn: () => api<History>(`/grades/${gradeId}/history`),
     enabled: Boolean(grade),
   });
@@ -561,10 +567,10 @@ function GradeDetail({
       {loading && <p className="mt-4 text-sm text-subtle">{t("stats.loading")}</p>}
       {error instanceof ApiError && (
         <p role="alert" className="mt-4 text-sm text-fail">
-          {t(`error.${error.code}` as "error.unknown")}
+          {tError(error.code)}
         </p>
       )}
-      {code && !editing && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+      {code && !editing && <FormError>{tError(code)}</FormError>}
 
       {grade && !editing && (
         <>
@@ -626,7 +632,7 @@ function GradeDetail({
             {history.isPending && <p className="pb-2 text-sm text-subtle">{t("stats.loading")}</p>}
             {history.error instanceof ApiError && (
               <p role="alert" className="pb-2 text-sm text-fail">
-                {t(`error.${history.error.code}` as "error.unknown")}
+                {tError(history.error.code)}
               </p>
             )}
             {history.isSuccess && history.data.length === 0 && (
@@ -672,7 +678,7 @@ function GradeDetail({
 
           {code && (
             <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-              {t(`error.${code}` as "error.unknown")}
+              {tError(code)}
             </p>
           )}
 

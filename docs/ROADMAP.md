@@ -11,23 +11,32 @@ work. This file is the current backlog.
 
 ## 1. Component test coverage
 
-Four components have DOM tests out of roughly twenty. Three of the last four
-defects reported from using the application were ones a component test would have
-caught first — a hidden tooltip that a type checker cannot see, a header that
-renders the wrong thing, a form that submits a field it never showed.
+Seven components have DOM tests out of sixteen. Three of the last four defects
+reported from using the application were ones a component test would have caught
+first — a hidden tooltip that a type checker cannot see, a header that renders
+the wrong thing, a form that submits a field it never showed.
 
 Priority is cost-of-failure, not file size. In order:
 
-| Screen | Why it is first |
-|---|---|
-| Student account creation | Generated passwords are stored hashed and shown once. A card that drops a row destroys a credential nobody can recover. |
-| The grade edit panel | It writes to a transcript. |
-| The assessments editor | New, and it round-trips an ordered list through `FormData` — the failure mode is silent reordering. |
-| Branding: grading scale and the contrast refusal | The refusal path is the one that protects readability, and nothing exercises it in a browser. |
-| The import wizard | It is the only bulk write, and its per-row error reporting is what makes a partial import survivable. |
+| Screen | Why it is first | State |
+|---|---|---|
+| Student account creation | Generated passwords are stored hashed and shown once. A card that drops a row destroys a credential nobody can recover. | **Done** — `credentials.dom.test.tsx`, `student-account-link.dom.test.tsx` |
+| The grade edit panel | It writes to a transcript. | Open |
+| The assessments editor | Round-trips an ordered list through `FormData` — the failure mode is silent reordering. | Open |
+| Branding: grading scale and the contrast refusal | The refusal path is the one that protects readability, and nothing exercises it in a browser. | Open |
+| The import wizard | It is the only bulk write, and its per-row error reporting is what makes a partial import survivable. | Open |
 
 Not a coverage target. A component gets a test when being wrong about it is
 expensive, and the table is that list.
+
+**The thing blocking the rest**, as of 2026-08-26: there is no shared render
+helper, so every DOM test rebuilds ~25 lines of `NextIntlClientProvider` +
+`QueryClientProvider` scaffolding by hand. That fixed cost per file is why the
+eight view components — 5,481 lines — have no tests at all. Write the helper
+first; the four rows above get much cheaper afterwards.
+
+The frontend coverage floor in `web/vitest.config.ts` is set just under what the
+suite reaches today. Raise it as these land.
 
 ## 2. Trend chart
 

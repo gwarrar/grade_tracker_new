@@ -33,6 +33,7 @@ from notenverwaltung.exceptions import (
 )
 from notenverwaltung.models.user import Role
 from notenverwaltung.storage import transaction
+from notenverwaltung.storage.queries import escape_like
 from services import audit
 from services.scoping import Principal
 from services.security import MIN_PASSWORD_LENGTH, hash_password, utc_now
@@ -159,7 +160,7 @@ class UserService:
 
         if query:
             where.append("(u.full_name LIKE ? ESCAPE '\\' OR u.email LIKE ? ESCAPE '\\')")
-            pattern = f"%{_escape_like(query)}%"
+            pattern = f"%{escape_like(query)}%"
             params.extend([pattern, pattern])
         if not include_inactive:
             where.append("u.is_active = 1")
@@ -501,8 +502,3 @@ class UserService:
             before=before,
             after=after,
         )
-
-
-def _escape_like(value: str) -> str:
-    r"""Escape LIKE wildcards so a search for "100%" is not a search for everything."""
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

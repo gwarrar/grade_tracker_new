@@ -465,7 +465,8 @@
       "resetTitle": "Réinitialiser ce mot de passe ?",
       "resetDescription": "Un nouveau mot de passe à usage unique est généré et affiché une seule fois. L'ancien cesse immédiatement de fonctionner et toutes les sessions sont fermées.",
       "deactivateTitle": "Désactiver ce compte ?",
-      "deactivateDescription": "La personne est déconnectée partout et ne pourra pas se reconnecter tant que le compte n'est pas réactivé."
+      "deactivateDescription": "La personne est déconnectée partout et ne pourra pas se reconnecter tant que le compte n'est pas réactivé.",
+      "namePlaceholder": "Camille Dubois"
     },
     "audit": {
       "title": "Activité",

@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from notenverwaltung.gradebook import GradeBook, weighted_mean
+from notenverwaltung.grading_scale import AT_RISK_THRESHOLD
 
 
 @dataclass
@@ -192,7 +193,7 @@ class SummaryReport:
     distribution: dict[str, int] = field(default_factory=dict)
     top_students: list[tuple[str, str, float]] = field(default_factory=list)
     at_risk_students: list[tuple[str, str, float]] = field(default_factory=list)
-    at_risk_threshold: float = 60.0
+    at_risk_threshold: float = AT_RISK_THRESHOLD
 
 
 class ReportBuilder:
@@ -336,7 +337,7 @@ class ReportBuilder:
             distribution=self._book.grade_distribution(course_id),
         )
 
-    def summary_report(self, at_risk_threshold: float = 60.0) -> SummaryReport:
+    def summary_report(self, at_risk_threshold: float = AT_RISK_THRESHOLD) -> SummaryReport:
         """Build the institution-wide summary.
 
         Args:

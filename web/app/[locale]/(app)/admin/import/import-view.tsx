@@ -28,7 +28,9 @@ import { CredentialsCard } from "@/components/app/credentials";
 
 import { Select } from "@/components/app/detail-fields";
 import { Confirm } from "@/components/ui/confirm";
-import { api, ApiError, type Response } from "@/lib/api";
+import { api, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
+import { queryKeys } from "@/lib/query-keys";
 import { parseCsv } from "@/lib/csv";
 import { formatNumber } from "@/lib/format";
 
@@ -77,7 +79,7 @@ const ACCEPTED = [".csv", ".tsv", ".xlsx", ".xlsm"] as const;
 export function ImportView({ locale }: { locale: string }) {
   const t = useTranslations("admin.import");
   const tAction = useTranslations("action");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
 
   const [step, setStep] = useState<"file" | "map" | "preview" | "done">("file");
   const [kind, setKind] = useState<ImportKind>("students");
@@ -95,7 +97,7 @@ export function ImportView({ locale }: { locale: string }) {
   const [createAccounts, setCreateAccounts] = useState(true);
 
   const propose = useQuery({
-    queryKey: ["import", "map", kind, headers],
+    queryKey: queryKeys.importMap(kind, headers),
     queryFn: () =>
       api<ImportMap>("/ai/import-map", { method: "POST", body: { headers, samples } }),
     enabled: step === "map" && headers.length > 0,
@@ -116,7 +118,7 @@ export function ImportView({ locale }: { locale: string }) {
       setPreview(result);
       setStep("preview");
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   const commitMutation = useMutation({
@@ -132,7 +134,7 @@ export function ImportView({ locale }: { locale: string }) {
       setConfirmOpen(false);
       setStep("done");
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   async function pick(selected: File) {
@@ -173,7 +175,7 @@ export function ImportView({ locale }: { locale: string }) {
         setSamples(inspected.sample_rows);
         setStep("map");
       } catch (error) {
-        setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
+        setCode(errorCode(error));
       } finally {
         setInspecting(false);
       }
@@ -185,8 +187,9 @@ export function ImportView({ locale }: { locale: string }) {
     const data = new FormData(event.currentTarget);
     const byColumn: Mapping = {};
     for (let i = 0; i < headers.length; i++) {
+      const column = headers[i];
       const field = String(data.get(`column-${i}`) ?? "");
-      if (field) byColumn[headers[i]] = field;
+      if (column && field) byColumn[column] = field;
     }
     const request: Mapping = {};
     for (const [column, field] of Object.entries(byColumn)) request[field] = column;
@@ -311,7 +314,7 @@ export function ImportView({ locale }: { locale: string }) {
           )}
           {code && (
             <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-              {tError(code as "unknown")}
+              {tError(code)}
             </p>
           )}
         </section>
@@ -331,7 +334,7 @@ export function ImportView({ locale }: { locale: string }) {
 
           {code && (
             <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-              {tError(code as "unknown")}
+              {tError(code)}
             </p>
           )}
 
@@ -441,7 +444,7 @@ export function ImportView({ locale }: { locale: string }) {
 
           {code && (
             <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-              {tError(code as "unknown")}
+              {tError(code)}
             </p>
           )}
 
@@ -469,7 +472,7 @@ export function ImportView({ locale }: { locale: string }) {
                     <td className="numeric text-muted">{formatNumber(row.line, locale)}</td>
                     <td>
                       <span className="badge badge-fail">
-                        {tError(row.code as "unknown")}
+                        {tError(row.code)}
                       </span>
                     </td>
                   </tr>

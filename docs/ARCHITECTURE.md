@@ -21,7 +21,7 @@ those.
 |---|---|---|
 | `src/api/` | Routing, cookies, serialisation, status codes | Business rules, SQL |
 | `src/services/` | Use cases, transactions, audit writes, policy | HTTP types, `Request`/`Response` |
-| `src/notenverwaltung/storage/` | Every SQL statement in the product | Anything above it |
+| `src/notenverwaltung/storage/` | Entity CRUD, pagination, the connection | Anything above it |
 | `src/notenverwaltung/models/` | Dataclasses and their validation | Everything else |
 
 `src/llm/` sits beside the services layer: `services/ai.py` calls into it, and it
@@ -44,6 +44,15 @@ A second test greps `src/api/routers/**.py` for `SELECT `, `INSERT INTO`,
 `UPDATE `, `DELETE FROM` after stripping comments and string-literal lines. SQL
 in a router fails the suite. `api/migrate.py` and `api/seed.py` are the two
 deliberate exemptions.
+
+A third forbids every router from importing `sqlite3` or the storage layer at all.
+Writing SQL is not the only way to take on work that belongs below: a router holding
+a connection owns the transaction boundary, and the audit row that has to commit with
+the change it describes. Services own both; no router is exempt.
+
+Note what the table above does **not** say: services contain SQL, and that is by
+design. `queries.py` composes the scoped, paginated reads, `GradeStore` holds the
+per-entity statements, and a service writes the SQL for its own use case.
 
 `notenverwaltung/` also stays importable on its own, with no FastAPI in sight —
 that is what keeps the coursework core demonstrable independently of the product

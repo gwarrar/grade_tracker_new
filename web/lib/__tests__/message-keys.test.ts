@@ -52,11 +52,11 @@ function resolves(path: string): boolean {
  * and never reports one that exists nowhere, which is the failure worth catching.
  */
 function keysIn(source: string): string[] {
-  const namespaces = [...source.matchAll(/useTranslations\(\s*"([^"]*)"\s*\)/g)].map((m) => m[1]);
+  const namespaces = [...source.matchAll(/useTranslations\(\s*"([^"]*)"\s*\)/g)].map((m) => m[1] ?? "");
   if (/useTranslations\(\s*\)/.test(source)) namespaces.push("");
   if (namespaces.length === 0) return [];
 
-  const calls = [...source.matchAll(/\bt[A-Za-z]*\(\s*"([a-zA-Z0-9_.]+)"/g)].map((m) => m[1]);
+  const calls = [...source.matchAll(/\bt[A-Za-z]*\(\s*"([a-zA-Z0-9_.]+)"/g)].map((m) => m[1] ?? "");
   return calls.filter(
     (key) => !namespaces.some((ns) => resolves(ns ? `${ns}.${key}` : key)),
   );
@@ -72,12 +72,12 @@ function keysIn(source: string): string[] {
  * happened, and is silent about an individual member being absent.
  */
 function dynamicPrefixesIn(source: string): string[] {
-  const namespaces = [...source.matchAll(/useTranslations\(\s*"([^"]*)"\s*\)/g)].map((m) => m[1]);
+  const namespaces = [...source.matchAll(/useTranslations\(\s*"([^"]*)"\s*\)/g)].map((m) => m[1] ?? "");
   if (/useTranslations\(\s*\)/.test(source)) namespaces.push("");
   if (namespaces.length === 0) return [];
 
   const branches = [...source.matchAll(/\bt[A-Za-z]*\(\s*`([a-zA-Z0-9_.]*)\$\{/g)]
-    .map((m) => m[1].replace(/\.$/, ""))
+    .map((m) => (m[1] ?? "").replace(/\.$/, ""))
     // A template starting straight at the interpolation names no branch to check.
     .filter((prefix) => prefix.length > 0);
 

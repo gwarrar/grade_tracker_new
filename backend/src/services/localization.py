@@ -21,6 +21,7 @@ from typing import Any
 
 from notenverwaltung.exceptions import ForbiddenError, ValidationError
 from notenverwaltung.models import SUPPORTED_LOCALES
+from notenverwaltung.storage import transaction
 from services.audit import record
 from services.scoping import Principal
 from services.security import utc_now
@@ -146,34 +147,35 @@ class LocalizationService:
                 max_length=MAX_VALUE_LENGTH,
             )
 
-        before = self._conn.execute(
-            "SELECT value FROM i18n_overrides WHERE locale = ? AND key = ?", (locale, key)
-        ).fetchone()
+        with transaction(self._conn):
+            before = self._conn.execute(
+                "SELECT value FROM i18n_overrides WHERE locale = ? AND key = ?", (locale, key)
+            ).fetchone()
 
-        # Two statements rather than INSERT OR REPLACE, which is SQLite-specific and
-        # banned by the portability rules in docs/DECISIONS.md.
-        if before is None:
-            self._conn.execute(
-                "INSERT INTO i18n_overrides (locale, key, value, updated_by, updated_at)"
-                " VALUES (?, ?, ?, ?, ?)",
-                (locale, key, value, principal.user_id, utc_now()),
-            )
-        else:
-            self._conn.execute(
-                "UPDATE i18n_overrides SET value = ?, updated_by = ?, updated_at = ?"
-                " WHERE locale = ? AND key = ?",
-                (value, principal.user_id, utc_now(), locale, key),
-            )
+            # Two statements rather than INSERT OR REPLACE, which is SQLite-specific and
+            # banned by the portability rules in docs/DECISIONS.md.
+            if before is None:
+                self._conn.execute(
+                    "INSERT INTO i18n_overrides (locale, key, value, updated_by, updated_at)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    (locale, key, value, principal.user_id, utc_now()),
+                )
+            else:
+                self._conn.execute(
+                    "UPDATE i18n_overrides SET value = ?, updated_by = ?, updated_at = ?"
+                    " WHERE locale = ? AND key = ?",
+                    (value, principal.user_id, utc_now(), locale, key),
+                )
 
-        record(
-            self._conn,
-            actor_user_id=principal.user_id,
-            entity="i18n_override",
-            entity_id=f"{locale}:{key}",
-            action="create" if before is None else "update",
-            before={"value": before["value"]} if before else None,
-            after={"value": value},
-        )
+            record(
+                self._conn,
+                actor_user_id=principal.user_id,
+                entity="i18n_override",
+                entity_id=f"{locale}:{key}",
+                action="create" if before is None else "update",
+                before={"value": before["value"]} if before else None,
+                after={"value": value},
+            )
         return {"locale": locale, "key": key, "value": value}
 
     def delete_override(self, principal: Principal, locale: str, key: str) -> None:
@@ -191,24 +193,27 @@ class LocalizationService:
         self._assert_admin(principal)
         _check_locale(locale)
 
-        before = self._conn.execute(
-            "SELECT value FROM i18n_overrides WHERE locale = ? AND key = ?", (locale, key)
-        ).fetchone()
-        if before is None:
-            error = ValidationError(f"No override for {key!r} in {locale!r}.", field="key")
-            error.code = "OVERRIDE_NOT_FOUND"
-            error.http_status = 404
-            raise error
+        with transaction(self._conn):
+            before = self._conn.execute(
+                "SELECT value FROM i18n_overrides WHERE locale = ? AND key = ?", (locale, key)
+            ).fetchone()
+            if before is None:
+                error = ValidationError(f"No override for {key!r} in {locale!r}.", field="key")
+                error.code = "OVERRIDE_NOT_FOUND"
+                error.http_status = 404
+                raise error
 
-        self._conn.execute("DELETE FROM i18n_overrides WHERE locale = ? AND key = ?", (locale, key))
-        record(
-            self._conn,
-            actor_user_id=principal.user_id,
-            entity="i18n_override",
-            entity_id=f"{locale}:{key}",
-            action="delete",
-            before={"value": before["value"]},
-        )
+            self._conn.execute(
+                "DELETE FROM i18n_overrides WHERE locale = ? AND key = ?", (locale, key)
+            )
+            record(
+                self._conn,
+                actor_user_id=principal.user_id,
+                entity="i18n_override",
+                entity_id=f"{locale}:{key}",
+                action="delete",
+                before={"value": before["value"]},
+            )
 
     @staticmethod
     def _assert_admin(principal: Principal) -> None:

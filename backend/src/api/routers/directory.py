@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from api.deps import AdminUser, CurrentUser, DbConn, TeacherUser
 from api.schemas.domain import (
+    PAGE_SIZE,
     CourseCreateRequest,
     CourseResponse,
     CourseUpdateRequest,
@@ -20,12 +21,12 @@ from api.schemas.domain import (
     EnrollmentStatusRequest,
     EnrollRequest,
     PageResponse,
+    SizeQuery,
     StudentCourseResponse,
     StudentCreateRequest,
     StudentResponse,
     StudentUpdateRequest,
 )
-from services.academic_records import AcademicRecords
 from services.directory import DirectoryService
 
 students_router = APIRouter(prefix="/students", tags=["Students"])
@@ -55,14 +56,6 @@ def directory(conn: DbConn, principal: CurrentUser) -> DirectoryService:
 Directory = Annotated[DirectoryService, Depends(directory)]
 
 
-def academic_records(conn: DbConn, principal: CurrentUser) -> AcademicRecords:
-    """Build the enrollment capability for this request."""
-    return DirectoryService(conn, principal)
-
-
-Records = Annotated[AcademicRecords, Depends(academic_records)]
-
-
 # ── Students ─────────────────────────────────────────────────────────────────
 @students_router.get(
     "",
@@ -73,7 +66,7 @@ Records = Annotated[AcademicRecords, Depends(academic_records)]
 def list_students(
     service: Directory,
     page: Annotated[int, Query(ge=1, description="1-based page number.")] = 1,
-    size: Annotated[int, Query(ge=1, le=200, description="Rows per page.")] = 25,
+    size: SizeQuery = PAGE_SIZE,
     sort: Annotated[
         str | None,
         Query(description="`id`, `first_name`, `last_name`, `email` or `created`; `-` to reverse."),
@@ -169,7 +162,7 @@ def delete_student(student_id: str, service: Directory, _: AdminUser) -> None:
     summary="List a student's courses",
     responses={404: {"description": "`STUDENT_NOT_FOUND`."}},
 )
-def student_courses(student_id: str, service: Records) -> list[StudentCourseResponse]:
+def student_courses(student_id: str, service: Directory) -> list[StudentCourseResponse]:
     """List the courses a student is enrolled on."""
     return [StudentCourseResponse(**row) for row in service.student_courses(student_id)]
 
@@ -184,7 +177,7 @@ def student_courses(student_id: str, service: Records) -> list[StudentCourseResp
 def list_courses(
     service: Directory,
     page: Annotated[int, Query(ge=1)] = 1,
-    size: Annotated[int, Query(ge=1, le=200)] = 25,
+    size: SizeQuery = PAGE_SIZE,
     sort: Annotated[
         str | None, Query(description="`id`, `name`, `term`, `credits` or `created`.")
     ] = None,
@@ -286,7 +279,7 @@ def delete_course(course_id: str, service: Directory, _: TeacherUser) -> None:
     ),
     responses={404: {"description": "`COURSE_NOT_FOUND`."}},
 )
-def list_enrollments(course_id: str, service: Records) -> list[EnrollmentResponse]:
+def list_enrollments(course_id: str, service: Directory) -> list[EnrollmentResponse]:
     """List a course's enrolments."""
     return [EnrollmentResponse(**row) for row in service.list_enrollments(course_id)]
 
@@ -302,7 +295,7 @@ def list_enrollments(course_id: str, service: Records) -> list[EnrollmentRespons
     },
 )
 def enroll(
-    course_id: str, payload: EnrollRequest, service: Records, _: TeacherUser
+    course_id: str, payload: EnrollRequest, service: Directory, _: TeacherUser
 ) -> EnrollmentResponse:
     """Enrol a student on a course."""
     return EnrollmentResponse(**service.enroll(course_id, payload.student_id))
@@ -321,7 +314,7 @@ def set_enrollment_status(
     course_id: str,
     student_id: str,
     payload: EnrollmentStatusRequest,
-    service: Records,
+    service: Directory,
     _: TeacherUser,
 ) -> EnrollmentResponse:
     """Change an enrolment's status."""
@@ -339,6 +332,6 @@ def set_enrollment_status(
         "setting the status to `withdrawn` so the record survives."
     ),
 )
-def unenroll(course_id: str, student_id: str, service: Records, _: TeacherUser) -> None:
+def unenroll(course_id: str, student_id: str, service: Directory, _: TeacherUser) -> None:
     """Remove an enrolment outright."""
     service.unenroll(course_id, student_id)

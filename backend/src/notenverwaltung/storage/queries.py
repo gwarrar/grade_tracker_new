@@ -1,9 +1,9 @@
 """Scoped, paginated read queries.
 
-Separate from :class:`~notenverwaltung.storage.base.GradeStore` because the store's
-job is entity CRUD, while list endpoints need filtering, sorting, paging and a total
-count. Bolting all of that onto the ABC would force every implementation to
-reimplement pagination.
+Separate from :class:`~notenverwaltung.storage.sqlite_store.GradeStore` because the
+store's job is entity CRUD, while list endpoints need filtering, sorting, paging and a
+total count. Keeping them apart is what stops every store method growing a second
+signature that takes a page number.
 
 Still inside the storage layer, so SQL stays in one place. The :class:`Scope` these
 functions take is built by :mod:`services.scoping`; a caller that forgets to pass one
@@ -25,6 +25,13 @@ MAX_PAGE_SIZE = 200
 
 Without it, ``?size=1000000`` is a one-request denial of service against a
 single-writer database.
+"""
+
+DEFAULT_PAGE_SIZE = 25
+"""Rows per page when the caller does not say.
+
+Declared once here rather than as a literal in each route signature: four routers
+spelled `le=200 ... = 25` by hand while both numbers already had a home.
 """
 
 
@@ -100,6 +107,25 @@ class SortSpec:
         return cls(column=allowed[field], descending=descending)
 
 
+def escape_like(value: str) -> str:
+    r"""Escape the wildcards in a ``LIKE`` pattern.
+
+    Without this, a search for ``100%`` matches every row -- a working-looking search
+    returning wrong answers, which is worse than an error. ``\`` is escaped first, or
+    escaping the other two would double-escape their new backslashes.
+
+    Callers must pair this with ``ESCAPE '\'`` in the SQL; the escape character is
+    not implied.
+
+    Args:
+        value: Raw user input.
+
+    Returns:
+        The value with ``\``, ``%`` and ``_`` escaped.
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def _search_clause(query: str | None, columns: list[str]) -> Scope:
     """Build a case-insensitive substring match across several columns.
 
@@ -117,9 +143,7 @@ def _search_clause(query: str | None, columns: list[str]) -> Scope:
     if not query or not query.strip():
         return Scope("1=1")
 
-    # Escape the LIKE wildcards, or a search for "100%" silently matches everything.
-    escaped = query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    pattern = f"%{escaped}%"
+    pattern = f"%{escape_like(query.strip())}%"
     clause = " OR ".join(f"{c} LIKE ? ESCAPE '\\'" for c in columns)
     return Scope(f"({clause})", tuple(pattern for _ in columns))
 

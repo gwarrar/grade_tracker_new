@@ -19,6 +19,8 @@ import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { api, ApiError, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
+import { academicRoots } from "@/lib/query-keys";
 
 type Answer = Response<"/ai/ask", "post">;
 type Proposal = Response<"/ai/command", "post">;
@@ -31,7 +33,7 @@ type ToolRecord = Answer["records"][number];
  */
 export function AssistantPanel({ onClose }: { onClose: () => void }) {
   const t = useTranslations("assistant");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const tAction = useTranslations("action");
   const reduced = useReducedMotion();
   const [code, setCode] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   const ask = useMutation({
     mutationFn: (question: string) =>
       api<Answer>("/ai/ask", { method: "POST", body: { question } }),
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
     onSuccess: () => setCode(null),
   });
 
@@ -92,7 +94,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
 
       {code && (
         <p role="alert" className="mt-4 rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-          {tError(code as "unknown")}
+          {tError(code)}
         </p>
       )}
 
@@ -204,7 +206,11 @@ function ResultTable({ result }: { result: Record<string, unknown> }) {
   }
 
   const rows = rowsEntry[1] as Record<string, unknown>[];
-  const columns = Object.keys(rows[0]);
+  const first = rows[0];
+  // A tool can legitimately return zero rows -- "which students are failing" with
+  // nobody failing -- and reading columns off row zero threw when it did.
+  if (!first) return null;
+  const columns = Object.keys(first);
 
   return (
     <div className="mt-1 overflow-x-auto rounded-lg border border-line">
@@ -258,7 +264,7 @@ export function ConfirmCard({
   onCancel: () => void;
 }) {
   const t = useTranslations("assistant");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const tAction = useTranslations("action");
   const queryClient = useQueryClient();
   const [code, setCode] = useState<string | null>(null);
@@ -282,10 +288,13 @@ export function ConfirmCard({
       }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries();
+      // The palette can propose a write to any academic entity, so it refreshes the
+      // same set a list screen does -- but still not the admin screens, which no
+      // proposed action can reach.
+      for (const queryKey of academicRoots) void queryClient.invalidateQueries({ queryKey });
       onDone();
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   if (!proposal.action) {
@@ -310,7 +319,7 @@ export function ConfirmCard({
 
       {code && (
         <p role="alert" className="mt-3 rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-          {tError(code as "unknown")}
+          {tError(code)}
         </p>
       )}
 
