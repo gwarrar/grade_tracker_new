@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from api.deps import CurrentUser, DbConn, TeacherUser
 from api.schemas.domain import (
+    PAGE_SIZE,
     AuditEntryResponse,
     BulkGradeRequest,
     BulkGradeResponse,
@@ -15,6 +16,7 @@ from api.schemas.domain import (
     GradeResponse,
     GradeUpdateRequest,
     PageResponse,
+    SizeQuery,
 )
 from services.grading import GradingService
 
@@ -51,7 +53,7 @@ Grading = Annotated[GradingService, Depends(grading)]
 def list_grades(
     service: Grading,
     page: Annotated[int, Query(ge=1)] = 1,
-    size: Annotated[int, Query(ge=1, le=200)] = 25,
+    size: SizeQuery = PAGE_SIZE,
     sort: Annotated[
         str | None,
         Query(

@@ -16,6 +16,7 @@ from typing import Any
 
 from notenverwaltung.exceptions import ForbiddenError, ValidationError
 from notenverwaltung.gradebook import GradeBook, weighted_mean
+from notenverwaltung.grading_scale import AT_RISK_THRESHOLD
 from notenverwaltung.models import Role
 from notenverwaltung.reports import CsvReportGenerator, ReportBuilder
 from notenverwaltung.reports.base import (
@@ -230,7 +231,7 @@ class ReportingService:
             grades=[g for g in report.grades if g.student_id == self._principal.student_id],
         )
 
-    def summary_report(self, at_risk_threshold: float = 60.0) -> dict[str, Any]:
+    def summary_report(self, at_risk_threshold: float = AT_RISK_THRESHOLD) -> dict[str, Any]:
         """Build the institution-wide summary.
 
         Args:
@@ -297,7 +298,7 @@ class ReportingService:
         """
         return self._ranked(descending=True)[:limit]
 
-    def at_risk_students(self, threshold: float = 60.0) -> list[dict[str, Any]]:
+    def at_risk_students(self, threshold: float = AT_RISK_THRESHOLD) -> list[dict[str, Any]]:
         """List students averaging below a threshold, worst first.
 
         Students with no grades are excluded: no data is not the same as poor

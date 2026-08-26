@@ -183,6 +183,17 @@ class GradingScale:
         return cls(bands=tuple(parsed))
 
 
+AT_RISK_THRESHOLD = 60.0
+"""Average percentage below which a student is flagged for intervention.
+
+Policy, not arithmetic, which is why it lives here beside the bands rather than as a
+default argument repeated at every call site. It was written out seven times across
+the gradebook, the report builder, the reporting service and two route signatures --
+and a threshold that means "who needs help" is exactly the kind of number an
+institution asks to change.
+"""
+
+
 DEFAULT_SCALE = GradingScale(
     bands=(
         GradeBand(90.0, "A", 4.0),

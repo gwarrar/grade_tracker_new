@@ -32,7 +32,6 @@ export interface paths {
          *         body: The new provider.
          *         user: The acting superadmin.
          *         admin: The service.
-         *         conn: The request's connection, for the transaction.
          *
          *     Returns:
          *         The stored provider.
@@ -70,7 +69,6 @@ export interface paths {
          *         body: The changes. Omitted fields are left alone.
          *         user: The acting superadmin.
          *         admin: The service.
-         *         conn: The request's connection.
          *
          *     Returns:
          *         The updated provider.
@@ -166,7 +164,6 @@ export interface paths {
          *         body: Provider, model and effort.
          *         user: The acting superadmin.
          *         admin: The service.
-         *         conn: The request's connection.
          *
          *     Returns:
          *         The stored routing.
@@ -298,7 +295,6 @@ export interface paths {
          *         body: The new role.
          *         _: Enforces the admin role.
          *         users: The service.
-         *         conn: The request's connection.
          *
          *     Returns:
          *         The updated account.
@@ -4551,6 +4547,7 @@ export interface operations {
                 /** @description Latest day, ISO `YYYY-MM-DD`, inclusive. */
                 date_to?: string | null;
                 page?: number;
+                /** @description Rows per page, capped at 200. */
                 size?: number;
             };
             header?: never;
@@ -4730,6 +4727,7 @@ export interface operations {
         parameters: {
             query?: {
                 page?: number;
+                /** @description Rows per page, capped at 200. */
                 size?: number;
                 /** @description `id`, `name`, `term`, `credits` or `created`. */
                 sort?: string | null;
@@ -5159,6 +5157,7 @@ export interface operations {
         parameters: {
             query?: {
                 page?: number;
+                /** @description Rows per page, capped at 200. */
                 size?: number;
                 /** @description `date`, `score`, `percentage`, `student`, `course`, `title` or `created`; `-` reverses. */
                 sort?: string | null;
@@ -6451,7 +6450,7 @@ export interface operations {
             query?: {
                 /** @description 1-based page number. */
                 page?: number;
-                /** @description Rows per page. */
+                /** @description Rows per page, capped at 200. */
                 size?: number;
                 /** @description `id`, `first_name`, `last_name`, `email` or `created`; `-` to reverse. */
                 sort?: string | null;

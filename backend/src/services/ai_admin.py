@@ -22,6 +22,7 @@ from llm.registry import Feature, ProviderConfig, Registry, build
 from notenverwaltung.exceptions import DuplicateEntryError, ValidationError
 from notenverwaltung.storage import transaction
 from services import audit
+from services.security import utc_now
 
 VALID_KINDS = frozenset({"anthropic", "openai_compatible"})
 VALID_EFFORTS = frozenset({"low", "medium", "high", "xhigh", "max"})
@@ -285,7 +286,7 @@ class AiAdminService:
                 self._conn.execute(
                     f"UPDATE ai_providers SET {assignments}, updated_at = ?"  # noqa: S608
                     " WHERE id = ?",
-                    (*changes.values(), _now(), provider_id),
+                    (*changes.values(), utc_now(), provider_id),
                 )
             except sqlite3.IntegrityError as error:
                 raise DuplicateEntryError(f"a provider named {name!r} already exists") from error
@@ -436,7 +437,7 @@ class AiAdminService:
                 "   model = excluded.model,"
                 "   effort = excluded.effort,"
                 "   updated_at = excluded.updated_at",
-                (feature.value, provider_id, model, effort, _now()),
+                (feature.value, provider_id, model, effort, utc_now()),
             )
             audit.record(
                 self._conn,
@@ -562,11 +563,6 @@ class AiAdminService:
             raise ValidationError(
                 f"kind must be one of {sorted(VALID_KINDS)}", field="kind", value=kind
             )
-
-
-def _now() -> str:
-    """Return the current UTC time as an ISO-8601 string."""
-    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
 def _days_ago(days: int) -> str:

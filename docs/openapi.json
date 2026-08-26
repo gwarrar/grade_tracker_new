@@ -4889,7 +4889,7 @@
         ]
       },
       "post": {
-        "description": "Add a provider.\n\nArgs:\n    body: The new provider.\n    user: The acting superadmin.\n    admin: The service.\n    conn: The request's connection, for the transaction.\n\nReturns:\n    The stored provider.",
+        "description": "Add a provider.\n\nArgs:\n    body: The new provider.\n    user: The acting superadmin.\n    admin: The service.\n\nReturns:\n    The stored provider.",
         "operationId": "create_provider_admin_ai_providers_post",
         "requestBody": {
           "content": {
@@ -4965,7 +4965,7 @@
         ]
       },
       "patch": {
-        "description": "Change a provider's configuration.\n\nArgs:\n    provider_id: Which provider.\n    body: The changes. Omitted fields are left alone.\n    user: The acting superadmin.\n    admin: The service.\n    conn: The request's connection.\n\nReturns:\n    The updated provider.",
+        "description": "Change a provider's configuration.\n\nArgs:\n    provider_id: Which provider.\n    body: The changes. Omitted fields are left alone.\n    user: The acting superadmin.\n    admin: The service.\n\nReturns:\n    The updated provider.",
         "operationId": "update_provider_admin_ai_providers__provider_id__patch",
         "parameters": [
           {
@@ -5134,7 +5134,7 @@
     },
     "/admin/ai/routing/{feature}": {
       "put": {
-        "description": "Point a feature at a provider and model.\n\nArgs:\n    feature: Which capability.\n    body: Provider, model and effort.\n    user: The acting superadmin.\n    admin: The service.\n    conn: The request's connection.\n\nReturns:\n    The stored routing.",
+        "description": "Point a feature at a provider and model.\n\nArgs:\n    feature: Which capability.\n    body: Provider, model and effort.\n    user: The acting superadmin.\n    admin: The service.\n\nReturns:\n    The stored routing.",
         "operationId": "set_routing_admin_ai_routing__feature__put",
         "parameters": [
           {
@@ -5468,7 +5468,7 @@
     },
     "/admin/users/{user_id}/role": {
       "put": {
-        "description": "Change what an account may do.\n\nArgs:\n    user_id: Which account.\n    body: The new role.\n    _: Enforces the admin role.\n    users: The service.\n    conn: The request's connection.\n\nReturns:\n    The updated account.",
+        "description": "Change what an account may do.\n\nArgs:\n    user_id: Which account.\n    body: The new role.\n    _: Enforces the admin role.\n    users: The service.\n\nReturns:\n    The updated account.",
         "operationId": "set_role_admin_users__user_id__role_put",
         "parameters": [
           {
@@ -5932,11 +5932,13 @@
             }
           },
           {
+            "description": "Rows per page, capped at 200.",
             "in": "query",
             "name": "size",
             "required": false,
             "schema": {
               "default": 25,
+              "description": "Rows per page, capped at 200.",
               "maximum": 200,
               "minimum": 1,
               "title": "Size",
@@ -6149,11 +6151,13 @@
             }
           },
           {
+            "description": "Rows per page, capped at 200.",
             "in": "query",
             "name": "size",
             "required": false,
             "schema": {
               "default": 25,
+              "description": "Rows per page, capped at 200.",
               "maximum": 200,
               "minimum": 1,
               "title": "Size",
@@ -6776,11 +6780,13 @@
             }
           },
           {
+            "description": "Rows per page, capped at 200.",
             "in": "query",
             "name": "size",
             "required": false,
             "schema": {
               "default": 25,
+              "description": "Rows per page, capped at 200.",
               "maximum": 200,
               "minimum": 1,
               "title": "Size",
@@ -8534,13 +8540,13 @@
             }
           },
           {
-            "description": "Rows per page.",
+            "description": "Rows per page, capped at 200.",
             "in": "query",
             "name": "size",
             "required": false,
             "schema": {
               "default": 25,
-              "description": "Rows per page.",
+              "description": "Rows per page, capped at 200.",
               "maximum": 200,
               "minimum": 1,
               "title": "Size",

@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from api.deps import AdminUser, CurrentUser, DbConn, TeacherUser
 from api.schemas.domain import (
+    PAGE_SIZE,
     CourseCreateRequest,
     CourseResponse,
     CourseUpdateRequest,
@@ -20,6 +21,7 @@ from api.schemas.domain import (
     EnrollmentStatusRequest,
     EnrollRequest,
     PageResponse,
+    SizeQuery,
     StudentCourseResponse,
     StudentCreateRequest,
     StudentResponse,
@@ -64,7 +66,7 @@ Directory = Annotated[DirectoryService, Depends(directory)]
 def list_students(
     service: Directory,
     page: Annotated[int, Query(ge=1, description="1-based page number.")] = 1,
-    size: Annotated[int, Query(ge=1, le=200, description="Rows per page.")] = 25,
+    size: SizeQuery = PAGE_SIZE,
     sort: Annotated[
         str | None,
         Query(description="`id`, `first_name`, `last_name`, `email` or `created`; `-` to reverse."),
@@ -175,7 +177,7 @@ def student_courses(student_id: str, service: Directory) -> list[StudentCourseRe
 def list_courses(
     service: Directory,
     page: Annotated[int, Query(ge=1)] = 1,
-    size: Annotated[int, Query(ge=1, le=200)] = 25,
+    size: SizeQuery = PAGE_SIZE,
     sort: Annotated[
         str | None, Query(description="`id`, `name`, `term`, `credits` or `created`.")
     ] = None,

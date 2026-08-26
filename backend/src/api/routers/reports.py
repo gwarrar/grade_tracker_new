@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from api.deps import CurrentUser, DbConn, TeacherUser
 from api.schemas.domain import DashboardResponse, RankedStudentResponse
+from notenverwaltung.grading_scale import AT_RISK_THRESHOLD
 from notenverwaltung.models import SUPPORTED_LOCALES
 from services.reporting import ReportingService, load_organization
 
@@ -402,7 +403,7 @@ def summary_report(
     _: TeacherUser,
     at_risk_threshold: Annotated[
         float, Query(ge=0, le=100, description="Percentage below which a student is at risk.")
-    ] = 60.0,
+    ] = AT_RISK_THRESHOLD,
 ) -> SummaryReportResponse:
     """Build the institution-wide summary.
 
@@ -649,7 +650,7 @@ def top_students(
 def at_risk(
     service: Reporting,
     _: TeacherUser,
-    threshold: Annotated[float, Query(ge=0, le=100)] = 60.0,
+    threshold: Annotated[float, Query(ge=0, le=100)] = AT_RISK_THRESHOLD,
 ) -> list[RankedStudentResponse]:
     """List at-risk students in scope."""
     return [RankedStudentResponse(**row) for row in service.at_risk_students(threshold)]

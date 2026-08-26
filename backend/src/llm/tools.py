@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from llm.base import ToolSpec
+from notenverwaltung.storage.queries import escape_like
 from notenverwaltung.storage.scope import Scope
 from services.scoping import Principal, course_scope, grade_scope, student_scope
 
@@ -131,8 +132,7 @@ def _like(value: str) -> str:
     Returns:
         A pattern for ``LIKE ... ESCAPE '\\'``.
     """
-    escaped = value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    return f"%{escaped}%"
+    return f"%{escape_like(value)}%"
 
 
 # ── The tools ────────────────────────────────────────────────────────────────

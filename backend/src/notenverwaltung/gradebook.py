@@ -18,7 +18,7 @@ from notenverwaltung.exceptions import (
     NoGradesRecordedError,
     ValidationError,
 )
-from notenverwaltung.grading_scale import DEFAULT_SCALE, GradingScale
+from notenverwaltung.grading_scale import AT_RISK_THRESHOLD, DEFAULT_SCALE, GradingScale
 from notenverwaltung.models.course import Course
 from notenverwaltung.models.grade import Grade
 from notenverwaltung.models.student import Student
@@ -303,7 +303,7 @@ class GradeBook:
         ranked.sort(key=lambda pair: pair[1], reverse=True)
         return ranked[:n]
 
-    def students_at_risk(self, threshold: float = 60.0) -> list[tuple[Student, float]]:
+    def students_at_risk(self, threshold: float = AT_RISK_THRESHOLD) -> list[tuple[Student, float]]:
         """Return students averaging below a threshold.
 
         Args:
