@@ -44,11 +44,6 @@ class Scope:
             return self
         return Scope(f"({self.sql}) AND ({other.sql})", self.params + other.params)
 
-    @property
-    def is_unrestricted(self) -> bool:
-        """Whether this scope permits every row."""
-        return self.sql == "1=1"
-
 
 ALLOW_ALL = Scope("1=1")
 """Permits every row. For administrators only."""

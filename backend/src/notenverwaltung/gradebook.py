@@ -7,9 +7,17 @@ it can be exercised directly from a test or a REPL.
 
 from __future__ import annotations
 
+import csv
+import json
+import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
+from notenverwaltung.exceptions import (
+    NoGradesRecordedError,
+    ValidationError,
+)
 from notenverwaltung.grading_scale import DEFAULT_SCALE, GradingScale
 from notenverwaltung.models.course import Course
 from notenverwaltung.models.grade import Grade
@@ -199,6 +207,68 @@ class GradeBook:
 
     # ── Statistics ───────────────────────────────────────────────────────────
 
+    def student_average(self, student_id: str) -> float:
+        """Return a student's weighted average **percentage** across all their courses.
+
+        Percentages, not raw scores: a course marked out of 10 and one marked out of
+        100 are not comparable as raw numbers. Averaging 80/100 with 8/10 as raw
+        scores gives 44, which describes nothing. As percentages both are 80%.
+
+        Args:
+            student_id: Whose average to compute.
+
+        Returns:
+            The weighted mean percentage, 0-100.
+
+        Raises:
+            StudentNotFoundError: If the student does not exist.
+            NoGradesRecordedError: If the student has no grades.
+        """
+        grades = self.get_student_grades(student_id)
+        if not grades:
+            raise NoGradesRecordedError(
+                f"Student {student_id!r} has no grades.", student_id=student_id
+            )
+        return weighted_mean([(g.percentage, g.weight) for g in grades])
+
+    def course_average(self, course_id: str) -> float:
+        """Return a course's weighted average score.
+
+        Raw scores are correct here — every grade shares one course maximum.
+
+        Args:
+            course_id: Whose average to compute.
+
+        Returns:
+            The weighted mean score.
+
+        Raises:
+            CourseNotFoundError: If the course does not exist.
+            NoGradesRecordedError: If the course has no grades.
+        """
+        grades = self.get_course_grades(course_id)
+        if not grades:
+            raise NoGradesRecordedError(f"Course {course_id!r} has no grades.", course_id=course_id)
+        return weighted_mean([(g.score, g.weight) for g in grades])
+
+    def course_pass_rate(self, course_id: str) -> float:
+        """Return the percentage of a course's grades that are passing.
+
+        Args:
+            course_id: Whose pass rate to compute.
+
+        Returns:
+            The pass rate, 0-100.
+
+        Raises:
+            CourseNotFoundError: If the course does not exist.
+            NoGradesRecordedError: If the course has no grades.
+        """
+        grades = self.get_course_grades(course_id)
+        if not grades:
+            raise NoGradesRecordedError(f"Course {course_id!r} has no grades.", course_id=course_id)
+        return sum(1 for g in grades if g.is_passing) / len(grades) * 100
+
     def grade_distribution(self, course_id: str | None = None) -> dict[str, int]:
         """Count grades per band label.
 
@@ -277,11 +347,252 @@ class GradeBook:
             if student_id in students and values
         ]
 
+    def graded_student_count(self, course_id: str) -> int:
+        """Return how many **distinct students** hold a grade in a course.
+
+        Named for what it measures. The coursework version called this
+        ``course_enrollment_count`` and returned ``len(grades)``, which double-counts
+        anyone with more than one grade and says nothing about enrolment — a student
+        can be enrolled and ungraded. True enrolment lives in the ``enrollments``
+        table and is served by the enrolment service.
+
+        Args:
+            course_id: Which course to count.
+
+        Returns:
+            The number of distinct graded students.
+
+        Raises:
+            CourseNotFoundError: If the course does not exist.
+        """
+        return len({g.student.student_id for g in self.get_course_grades(course_id)})
+
     # ── Search ───────────────────────────────────────────────────────────────
+    @staticmethod
+    def _compile(query: str) -> re.Pattern[str]:
+        """Compile a user-supplied search pattern.
+
+        Args:
+            query: The raw search string.
+
+        Returns:
+            A case-insensitive compiled pattern.
+
+        Raises:
+            ValidationError: If the pattern is not valid regex. The coursework
+                version passed the raw string to :func:`re.search`, so a query of
+                ``"["`` raised :class:`re.error` and surfaced as a server error.
+        """
+        try:
+            return re.compile(query, re.IGNORECASE)
+        except re.error as exc:
+            raise ValidationError(
+                f"Invalid search pattern: {exc}", field="query", value=query
+            ) from exc
+
+    def search_students(self, query: str) -> list[Student]:
+        """Find students whose name or email matches a pattern.
+
+        Args:
+            query: A regular expression, matched case-insensitively.
+
+        Returns:
+            Matching students, ordered by id.
+
+        Raises:
+            ValidationError: If the pattern is invalid regex.
+        """
+        pattern = self._compile(query)
+        return [
+            s
+            for s in self.store.get_all_students()
+            if pattern.search(s.first_name)
+            or pattern.search(s.last_name)
+            or pattern.search(s.email)
+        ]
+
+    def search_courses(self, query: str) -> list[Course]:
+        """Find courses whose name or id matches a pattern.
+
+        Args:
+            query: A regular expression, matched case-insensitively.
+
+        Returns:
+            Matching courses, ordered by id.
+
+        Raises:
+            ValidationError: If the pattern is invalid regex.
+        """
+        pattern = self._compile(query)
+        return [
+            c
+            for c in self.store.get_all_courses()
+            if pattern.search(c.name) or pattern.search(c.course_id)
+        ]
 
     # ── JSON interchange ─────────────────────────────────────────────────────
+    def to_dict(self) -> dict[str, Any]:
+        """Return the whole grade book as a JSON-serialisable structure."""
+        return {
+            "version": 2,
+            "students": [s.to_dict() for s in self.store.get_all_students()],
+            "courses": [c.to_dict() for c in self.store.get_all_courses()],
+            "grades": [g.to_dict() for g in self.store.get_all_grades()],
+        }
+
+    def load_dict(self, data: dict[str, Any]) -> None:
+        """Populate the store from :meth:`to_dict` output.
+
+        Students and courses are loaded before grades, since grades reference them.
+
+        Args:
+            data: A structure produced by :meth:`to_dict`.
+
+        Raises:
+            ValidationError: If the structure is malformed or a grade references an
+                unknown student or course.
+        """
+        for raw in data.get("students", []):
+            self.store.add_student(Student.from_dict(raw))
+        for raw in data.get("courses", []):
+            self.store.add_course(Course.from_dict(raw))
+        for raw in data.get("grades", []):
+            try:
+                self.record_grade(
+                    student_id=raw["student_id"],
+                    course_id=raw["course_id"],
+                    score=raw["score"],
+                    date=raw["date"],
+                    notes=raw.get("notes", ""),
+                    title=raw.get("title", ""),
+                    weight=raw.get("weight", 1.0),
+                )
+            except KeyError as exc:
+                raise ValidationError(
+                    f"Missing grade field: {exc.args[0]}", field=exc.args[0]
+                ) from exc
+
+    def save_json(self, filepath: str | Path) -> None:
+        """Write the whole grade book to a JSON file.
+
+        Args:
+            filepath: Destination path. Parent directories must exist.
+        """
+        Path(filepath).write_text(
+            json.dumps(self.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
+    def load_json(self, filepath: str | Path) -> None:
+        """Read a grade book from a JSON file written by :meth:`save_json`.
+
+        Args:
+            filepath: Source path.
+
+        Raises:
+            ValidationError: If the file is not valid JSON or has the wrong shape.
+            FileNotFoundError: If the file does not exist.
+        """
+        try:
+            data = json.loads(Path(filepath).read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValidationError(f"{filepath} is not valid JSON: {exc}") from exc
+        if not isinstance(data, dict):
+            raise ValidationError(f"{filepath} does not contain a grade book object.")
+        self.load_dict(data)
 
     # ── CSV interchange ──────────────────────────────────────────────────────
+    def export_csv(self, filepath: str | Path) -> None:
+        """Write every grade to a spreadsheet-friendly CSV file.
+
+        Args:
+            filepath: Destination path.
+        """
+        with Path(filepath).open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(
+                [
+                    "student_id",
+                    "student_name",
+                    "course_id",
+                    "course_name",
+                    "title",
+                    "score",
+                    "max_grade",
+                    "percentage",
+                    "letter",
+                    "weight",
+                    "date",
+                    "notes",
+                ]
+            )
+            for grade in self.store.get_all_grades():
+                writer.writerow(
+                    [
+                        grade.student.student_id,
+                        grade.student.full_name,
+                        grade.course.course_id,
+                        grade.course.name,
+                        grade.title,
+                        grade.score,
+                        grade.course.max_grade,
+                        f"{grade.percentage:.1f}",
+                        grade.letter_for(self.scale),
+                        grade.weight,
+                        grade.date,
+                        grade.notes,
+                    ]
+                )
+
+    def import_csv(self, filepath: str | Path) -> ImportReport:
+        """Bulk-import grades from a CSV file.
+
+        Requires ``student_id``, ``course_id``, ``score`` and ``date`` columns;
+        ``title``, ``weight`` and ``notes`` are optional. Invalid rows are collected
+        and reported rather than aborting the run, so one typo in row 4 does not cost
+        the other 299 rows.
+
+        Args:
+            filepath: Source path.
+
+        Returns:
+            Counts and per-row failures.
+
+        Raises:
+            ValidationError: If the file has no header or is missing a required column.
+            FileNotFoundError: If the file does not exist.
+        """
+        report = ImportReport()
+        with Path(filepath).open(newline="", encoding="utf-8-sig") as handle:
+            reader = csv.DictReader(handle)
+            if reader.fieldnames is None:
+                raise ValidationError("CSV file is empty or has no header row.")
+
+            missing = [c for c in _CSV_GRADE_FIELDS if c not in reader.fieldnames]
+            if missing:
+                raise ValidationError(
+                    f"CSV is missing required columns: {', '.join(missing)}",
+                    missing_columns=missing,
+                )
+
+            for line_number, row in enumerate(reader, start=2):  # line 1 is the header
+                try:
+                    self.record_grade(
+                        student_id=(row["student_id"] or "").strip(),
+                        course_id=(row["course_id"] or "").strip(),
+                        score=float((row["score"] or "").strip()),
+                        date=(row["date"] or "").strip(),
+                        notes=(row.get("notes") or "").strip(),
+                        title=(row.get("title") or "").strip(),
+                        weight=float((row.get("weight") or "1").strip() or 1),
+                    )
+                    report.imported += 1
+                except ValueError as exc:
+                    # Covers ValidationError, the *NotFoundError family, and the
+                    # plain ValueError float() raises on unparseable numbers.
+                    code = getattr(exc, "code", "INVALID_NUMBER")
+                    report.skipped += 1
+                    report.errors.append((line_number, code))
+        return report
 
     def calculate_statistics(self) -> dict[str, Any]:
         """Return a summary of the whole grade book, for a dashboard.

@@ -1,4 +1,4 @@
-"""Report generation: structured builders plus the CSV renderer."""
+"""Report generation: structured builders plus the text and CSV renderers."""
 
 from notenverwaltung.reports.base import (
     CourseReport,
@@ -9,6 +9,7 @@ from notenverwaltung.reports.base import (
     SummaryReport,
 )
 from notenverwaltung.reports.csv_report import CsvReportGenerator
+from notenverwaltung.reports.text_report import TextReportGenerator
 
 __all__ = [
     "CourseReport",
@@ -18,4 +19,5 @@ __all__ = [
     "ReportGenerator",
     "StudentReport",
     "SummaryReport",
+    "TextReportGenerator",
 ]
