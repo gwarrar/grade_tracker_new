@@ -1,0 +1,21 @@
+{
+  "name": "grade-tracker-overview",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The animated project overview embedded in the root README. Deliberately its own package: nothing here is a dependency of the application, and CI never builds it.",
+  "scripts": {
+    "studio": "remotion studio",
+    "render:mp4": "remotion render Overview ../media/overview.mp4 --codec=h264",
+    "render:gif": "remotion render Overview ../media/overview.gif --codec=gif --every-nth-frame=5 --width=720"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.400",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "4.0.400"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "^5"
+  }
+}
