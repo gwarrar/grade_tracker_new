@@ -7,8 +7,8 @@
     as detached background processes and reports when both actually answer.
 
     Detached on purpose. Started as children of an interactive shell, both servers
-    die the moment that shell receives Ctrl-C -- including the Ctrl-C an agent
-    session broadcasts when it recycles. Each gets its own console instead, so
+    die the moment that shell receives Ctrl-C -- including a Ctrl-C aimed at
+    something else sharing that terminal. Each gets its own console instead, so
     closing the terminal that launched them leaves them running.
 
     Because they have no visible window, their output goes to .dev-logs/ under
