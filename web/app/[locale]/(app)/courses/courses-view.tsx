@@ -16,6 +16,7 @@ import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
 import { NotesBlock } from "@/components/app/notes";
 import { Pager } from "@/components/app/pager";
+import { ListStatus } from "@/components/app/list-status";
 import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
 import { api, ApiError, type Response } from "@/lib/api";
@@ -42,6 +43,14 @@ type CourseCreate = paths["/courses"]["post"]["requestBody"]["content"]["applica
 type CourseUpdate = paths["/courses/{course_id}"]["patch"]["requestBody"]["content"]["application/json"];
 
 /** What can be done to one row of a course register. */
+let uidCounter = 0;
+
+/** Mint a row identity that survives reordering and deletion. */
+function nextUid(): string {
+  uidCounter += 1;
+  return `assessment-${uidCounter}`;
+}
+
 type EnrollmentAction = "enroll" | "complete" | "withdraw" | "remove";
 
 const PAGE_SIZE = 50;
@@ -316,12 +325,12 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
               })}
             </tbody>
           </table>
-          {list.isPending && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.loading")}</p>
-          )}
-          {!list.isPending && rows.length === 0 && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.noData")}</p>
-          )}
+          <ListStatus
+            query={list}
+            isEmpty={rows.length === 0}
+            loadingLabel={t("stats.loading")}
+            emptyLabel={t("stats.noData")}
+          />
           <Pager
             page={page}
             size={PAGE_SIZE}
@@ -407,6 +416,10 @@ function CourseFields({
   );
   const [assessments, setAssessments] = useState(
     (course?.assessments ?? []).map((assessment) => ({
+      // Local identity, not part of the course. Row keys were the array index, so
+      // deleting a row made React reuse the node at that position for the next one
+      // -- the same class of defect the grading-scale editor fixed with `uid`.
+      uid: nextUid(),
       name: assessment.name,
       // Full precision: these seed an editable field, and the two-digit display
       // cap rewrote the stored weight on any save that did not touch it.
@@ -445,7 +458,7 @@ function CourseFields({
         <div className="mt-3 space-y-3">
           {assessments.map((assessment, index) => (
             <div
-              key={index}
+              key={assessment.uid}
               className="grid gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
             >
               <label className="text-sm text-muted">
@@ -500,7 +513,7 @@ function CourseFields({
           onClick={() =>
             setAssessments((current) => [
               ...current,
-              { name: "", weight: formatNumber(1, locale) },
+              { uid: nextUid(), name: "", weight: formatNumber(1, locale) },
             ])
           }
         >

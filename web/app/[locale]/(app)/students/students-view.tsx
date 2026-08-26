@@ -16,6 +16,7 @@ import { InsightBlock } from "@/components/app/insight";
 import { MasterDetail } from "@/components/app/master-detail";
 import { NotesBlock } from "@/components/app/notes";
 import { Pager } from "@/components/app/pager";
+import { ListStatus } from "@/components/app/list-status";
 import { StudentRecord } from "@/components/app/student-record";
 import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
@@ -300,12 +301,12 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
               })}
             </tbody>
           </table>
-          {list.isPending && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.loading")}</p>
-          )}
-          {!list.isPending && rows.length === 0 && (
-            <p className="px-4 py-8 text-center text-sm text-subtle">{t("stats.noData")}</p>
-          )}
+          <ListStatus
+            query={list}
+            isEmpty={rows.length === 0}
+            loadingLabel={t("stats.loading")}
+            emptyLabel={t("stats.noData")}
+          />
           <Pager
             page={page}
             size={PAGE_SIZE}

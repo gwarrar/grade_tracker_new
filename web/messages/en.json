@@ -465,7 +465,8 @@
       "resetTitle": "Reset this password?",
       "resetDescription": "A new one-time password is generated and shown once. The current password stops working immediately and every session is signed out.",
       "deactivateTitle": "Deactivate this account?",
-      "deactivateDescription": "They are signed out everywhere and cannot sign in again until the account is reactivated."
+      "deactivateDescription": "They are signed out everywhere and cannot sign in again until the account is reactivated.",
+      "namePlaceholder": "Alex Morgan"
     },
     "audit": {
       "title": "Activity",

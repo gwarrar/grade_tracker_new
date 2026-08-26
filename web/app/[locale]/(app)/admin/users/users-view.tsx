@@ -196,7 +196,7 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
             <input
               name="full_name"
               required
-              placeholder="Katrin Weber"
+              placeholder={t("namePlaceholder")}
               className="mt-1.5 w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-text outline-none focus-visible:border-brand"
             />
           </label>
