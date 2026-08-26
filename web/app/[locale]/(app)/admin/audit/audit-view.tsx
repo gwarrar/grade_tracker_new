@@ -18,6 +18,7 @@ import { useTranslations } from "next-intl";
 import { AuditEntryLine } from "@/components/app/audit";
 import { Pager } from "@/components/app/pager";
 import { api, ApiError, type Response } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import { formatNumber } from "@/lib/format";
 import { useUrlParam } from "@/lib/use-selection";
 
@@ -54,7 +55,7 @@ export function AuditView({ locale }: { locale: string }) {
   const filtered = Boolean(entity || action || dateFrom || dateTo);
 
   const feed = useQuery({
-    queryKey: ["audit", { entity, action, dateFrom, dateTo, page }],
+    queryKey: queryKeys.audit.list({ entity, action, dateFrom, dateTo, page }),
     queryFn: () =>
       api<Feed>("/audit", {
         query: {

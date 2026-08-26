@@ -27,6 +27,7 @@ import { MasterDetail } from "@/components/app/master-detail";
 import { Pager } from "@/components/app/pager";
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
+import { academicRoots, queryKeys } from "@/lib/query-keys";
 import {
   formatDate,
   formatNumber,
@@ -91,7 +92,7 @@ export function GradesView({
   // For the course filter. Only staff see more than their own courses anyway, and
   // the API scopes this exactly as it scopes the grades themselves.
   const courses = useQuery({
-    queryKey: ["courses", "grade-picker"],
+    queryKey: queryKeys.courses.picker("grade-entry"),
     // Active only. An archived course is one nobody is still teaching, and offering
     // it here is offering to record a mark against a closed register -- which the
     // API had no way to express until it grew a status filter.
@@ -101,7 +102,7 @@ export function GradesView({
   });
 
   const list = useQuery({
-    queryKey: ["grades", { query, courseId, letter, dateFrom, dateTo, sort, page }],
+    queryKey: queryKeys.grades.list({ query, courseId, letter, dateFrom, dateTo, sort, page }),
     queryFn: () =>
       api<Page>("/grades", {
         query: {
@@ -127,15 +128,17 @@ export function GradesView({
     sort === key ? "ascending" : sort === `-${key}` ? "descending" : "none";
 
   const detail = useQuery({
-    queryKey: ["grade", selectedId],
+    queryKey: queryKeys.grades.detail(selectedId),
     queryFn: () => api<Grade>(`/grades/${selectedId}`),
     enabled: selectedId !== null,
   });
 
-  // One call, not a hand-kept list: these three views each maintained their own
-  // and they had already drifted apart — only this one invalidated grade history,
-  // so editing a student left it stale on the other two.
-  const refresh = () => queryClient.invalidateQueries();
+  // `academicRoots` rather than a bare `invalidateQueries()`: one shared list, so
+  // it cannot drift the way three private ones did, and it leaves the AI usage
+  // table and the admin screens alone — no grade edit changes those.
+  const refresh = () => {
+    for (const queryKey of academicRoots) void queryClient.invalidateQueries({ queryKey });
+  };
 
   const rows = list.data?.items ?? [];
 
@@ -521,7 +524,7 @@ function GradeDetail({
   // The trail for this grade. Read-only by construction: an append-only log gets
   // no write controls, only the record of what happened to this mark.
   const history = useQuery({
-    queryKey: ["grade-history", gradeId],
+    queryKey: queryKeys.grades.history(gradeId),
     queryFn: () => api<History>(`/grades/${gradeId}/history`),
     enabled: Boolean(grade),
   });

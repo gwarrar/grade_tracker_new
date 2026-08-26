@@ -23,6 +23,7 @@ import { useState, type FormEvent } from "react";
 import { FieldHelp, FormError, Input } from "@/components/app/detail-fields";
 import { Modal } from "@/components/ui/modal";
 import { api, ApiError, type Response } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import type { paths } from "@/lib/api-schema";
 import { formatNumber, parseLocaleNumber } from "@/lib/format";
 
@@ -70,7 +71,7 @@ export function BulkGrades({
 
   const register = useQuery({
     // The same key the single-grade dialog uses, so the two share a cache entry.
-    queryKey: ["course", courseId, "enrollments"],
+    queryKey: queryKeys.courses.enrollments(courseId),
     queryFn: () => api<Register>(`/courses/${courseId}/enrollments`),
     enabled: courseId !== "",
   });

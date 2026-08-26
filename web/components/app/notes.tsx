@@ -7,6 +7,7 @@ import { useState, type FormEvent } from "react";
 import { FormError, Select, Textarea } from "@/components/app/detail-fields";
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import type { paths } from "@/lib/api-schema";
 import { formatDate } from "@/lib/format";
 import { can } from "@/lib/permissions";
@@ -43,11 +44,13 @@ export function NotesBlock({
   const writable = entityType === "student" ? can.writeStudentNote(me) : can.writeCourseNote();
 
   const notes = useQuery({
-    queryKey: ["notes", entityType, entityId],
+    queryKey: queryKeys.notes.forEntity(entityType, entityId),
     queryFn: () => api<NoteList>(notesPath),
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["notes", entityType, entityId] });
+  const refresh = () => queryClient.invalidateQueries({
+      queryKey: queryKeys.notes.forEntity(entityType, entityId),
+    });
 
   const create = useMutation({
     mutationFn: (body: NoteCreate) => api<Note>(notesPath, { method: "POST", body }),

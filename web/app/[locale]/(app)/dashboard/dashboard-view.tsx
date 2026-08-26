@@ -15,6 +15,7 @@ import { Distribution } from "@/components/app/distribution";
 import { StatTile } from "@/components/app/stat-tile";
 import { Link } from "@/i18n/navigation";
 import { api, type Response } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import { formatNumber, formatPercent } from "@/lib/format";
 
 type Dashboard = Response<"/analytics/dashboard", "get">;
@@ -24,17 +25,17 @@ export function DashboardView({ locale, bands }: { locale: string; bands: string
   const t = useTranslations();
 
   const summary = useQuery({
-    queryKey: ["analytics", "dashboard"],
+    queryKey: queryKeys.analytics.dashboard(),
     queryFn: () => api<Dashboard>("/analytics/dashboard"),
   });
 
   const atRisk = useQuery({
-    queryKey: ["analytics", "at-risk"],
+    queryKey: queryKeys.analytics.atRisk(),
     queryFn: () => api<Ranked>("/analytics/at-risk"),
   });
 
   const top = useQuery({
-    queryKey: ["analytics", "top-students"],
+    queryKey: queryKeys.analytics.topStudents(),
     queryFn: () => api<Ranked>("/analytics/top-students", { query: { limit: 5 } }),
   });
 

@@ -18,6 +18,7 @@ import { useTranslations } from "next-intl";
 
 import { StudentRecord } from "@/components/app/student-record";
 import { API_BASE, api, ApiError, type Response } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import { formatDate } from "@/lib/format";
 
 type Report = Response<"/reports/student/{student_id}", "get">;
@@ -33,12 +34,12 @@ export function StudentReportView({
   const t = useTranslations();
 
   const report = useQuery({
-    queryKey: ["report", "student", studentId],
+    queryKey: queryKeys.reports.student(studentId),
     queryFn: () => api<Report>(`/reports/student/${studentId}`),
   });
 
   const courses = useQuery({
-    queryKey: ["student", studentId, "courses"],
+    queryKey: queryKeys.students.courses(studentId),
     queryFn: () => api<Courses>(`/students/${studentId}/courses`),
   });
 

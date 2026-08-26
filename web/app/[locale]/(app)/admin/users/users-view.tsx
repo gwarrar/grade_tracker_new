@@ -19,6 +19,7 @@ import { useState, type FormEvent } from "react";
 import { CredentialsCard, type Credential } from "@/components/app/credentials";
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import { formatNumber } from "@/lib/format";
 import { atLeast, type Me, type Role } from "@/lib/session";
 import { useDebounced } from "@/lib/use-selection";
@@ -54,7 +55,7 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
   const query = useDebounced(search.trim());
 
   const users = useQuery({
-    queryKey: ["admin", "users", { q: query, includeInactive, roleFilter }],
+    queryKey: queryKeys.admin.users.list({ q: query, includeInactive, roleFilter }),
     queryFn: () =>
       api<User[]>("/admin/users", {
         query: {
@@ -68,7 +69,7 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
     placeholderData: (previous) => previous,
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+  const refresh = () => queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.root });
   const onError = (error: unknown) =>
     setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
 

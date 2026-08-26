@@ -19,6 +19,7 @@ import { Pager } from "@/components/app/pager";
 import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
 import { api, ApiError, type Response } from "@/lib/api";
+import { academicRoots, queryKeys } from "@/lib/query-keys";
 import type { paths } from "@/lib/api-schema";
 import { readCourseAssessments } from "@/lib/course-assessments";
 import {
@@ -57,7 +58,7 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
   const page = Math.max(1, Number(pageParam) || 1);
 
   const list = useQuery({
-    queryKey: ["courses", { q: query, page }],
+    queryKey: queryKeys.courses.list({ q: query, page }),
     queryFn: () =>
       api<CoursePage>("/courses", { query: { q: query, page, size: PAGE_SIZE } }),
     placeholderData: (previous) => previous,
@@ -68,21 +69,23 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
     // prerequisite is a course somebody completed in the past. Archiving it is
     // exactly what happens when a course stops running, so excluding archived
     // courses here would quietly drop the prerequisites most likely to be real.
-    queryKey: ["courses", "management"],
+    queryKey: queryKeys.courses.picker("management"),
     queryFn: () => api<CoursePage>("/courses", { query: { size: 200 } }),
     enabled: can.createCourse(me),
   });
 
   const detail = useQuery({
-    queryKey: ["course", selectedId],
+    queryKey: queryKeys.courses.detail(selectedId),
     queryFn: () => api<Course>(`/courses/${selectedId}`),
     enabled: selectedId !== null,
   });
 
-  // One call, not a hand-kept list: these three views each maintained their own
-  // and they had already drifted apart — only this one invalidated grade history,
-  // so editing a student left it stale on the other two.
-  const refresh = () => queryClient.invalidateQueries();
+  // `academicRoots` rather than a bare `invalidateQueries()`: one shared list, so
+  // it cannot drift the way three private ones did, and it leaves the AI usage
+  // table and the admin screens alone — no grade edit changes those.
+  const refresh = () => {
+    for (const queryKey of academicRoots) void queryClient.invalidateQueries({ queryKey });
+  };
 
   const create = useMutation({
     mutationFn: (body: CourseCreate) => api<Course>("/courses", { method: "POST", body }),
@@ -351,7 +354,7 @@ function TeacherPicker({ course }: { course?: Course }) {
   const t = useTranslations();
 
   const teachers = useQuery({
-    queryKey: ["admin", "users", { role: "teacher" }],
+    queryKey: queryKeys.admin.users.picker("teachers", { role: "teacher" }),
     queryFn: () =>
       api<Accounts>("/admin/users", { query: { role: "teacher", include_inactive: false } }),
     staleTime: 60_000,
@@ -569,13 +572,13 @@ function CourseDetail({
   } | null>(null);
 
   const register = useQuery({
-    queryKey: ["course", courseId, "enrollments"],
+    queryKey: queryKeys.courses.enrollments(courseId),
     queryFn: () => api<Register>(`/courses/${courseId}/enrollments`),
     enabled: !editing,
   });
 
   const students = useQuery({
-    queryKey: ["students", { q: studentQuery, enrollmentCourse: courseId }],
+    queryKey: queryKeys.students.picker("enrolment", { q: studentQuery, courseId }),
     queryFn: () => api<StudentPage>("/students", { query: { q: studentQuery, size: 20 } }),
     enabled: manageable && register.isSuccess && !editing && studentQuery.length >= 2,
   });

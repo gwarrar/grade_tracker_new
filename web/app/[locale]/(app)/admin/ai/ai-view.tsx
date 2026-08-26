@@ -19,6 +19,7 @@ import { useId, useState, type FormEvent } from "react";
 
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import { formatNumber } from "@/lib/format";
 
 type Provider = Response<"/admin/ai/providers", "get">[number];
@@ -59,12 +60,12 @@ function Providers() {
   const [deleting, setDeleting] = useState<Provider | null>(null);
 
   const providers = useQuery({
-    queryKey: ["admin", "ai", "providers"],
+    queryKey: queryKeys.admin.ai.providers(),
     queryFn: () => api<Provider[]>("/admin/ai/providers"),
   });
 
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: ["admin", "ai"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.ai.root });
 
   const create = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
@@ -272,7 +273,7 @@ function ProviderCard({
       }),
     onSuccess: () => {
       setCode(null);
-      void queryClient.invalidateQueries({ queryKey: ["admin", "ai", "providers"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.ai.providers() });
     },
     onError: (error) =>
       setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
@@ -403,12 +404,12 @@ function Routing() {
   const queryClient = useQueryClient();
 
   const providers = useQuery({
-    queryKey: ["admin", "ai", "providers"],
+    queryKey: queryKeys.admin.ai.providers(),
     queryFn: () => api<Provider[]>("/admin/ai/providers"),
   });
 
   const routing = useQuery({
-    queryKey: ["admin", "ai", "routing"],
+    queryKey: queryKeys.admin.ai.routing(),
     queryFn: () => api<Route[]>("/admin/ai/routing"),
   });
 
@@ -419,7 +420,7 @@ function Routing() {
       api(`/admin/ai/routing/${feature}`, { method: "PUT", body }),
     onSuccess: () => {
       setRoutingCode(null);
-      void queryClient.invalidateQueries({ queryKey: ["admin", "ai", "routing"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.ai.routing() });
     },
     onError: (error) =>
       setRoutingCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
@@ -539,7 +540,7 @@ function UsageTable({ locale }: { locale: string }) {
   const tStats = useTranslations("stats");
 
   const usage = useQuery({
-    queryKey: ["admin", "ai", "usage"],
+    queryKey: queryKeys.admin.ai.usage(),
     queryFn: () => api<Usage[]>("/admin/ai/usage", { query: { days: 30 } }),
   });
 
@@ -628,7 +629,7 @@ function ModelField({
 }) {
   const listId = useId();
   const models = useQuery({
-    queryKey: ["admin", "ai", "models", providerId],
+    queryKey: queryKeys.admin.ai.models(providerId),
     queryFn: () => api<string[]>(`/admin/ai/providers/${providerId}/models`),
     enabled: providerId !== null,
     staleTime: 5 * 60 * 1000,

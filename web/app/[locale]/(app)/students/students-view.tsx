@@ -21,6 +21,7 @@ import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
 import { Link } from "@/i18n/navigation";
 import { api, ApiError, type Response } from "@/lib/api";
+import { academicRoots, queryKeys } from "@/lib/query-keys";
 import type { paths } from "@/lib/api-schema";
 import { formatDate, formatNumber } from "@/lib/format";
 import { can } from "@/lib/permissions";
@@ -55,30 +56,32 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
   const editable = can.writeStudent(me);
 
   const list = useQuery({
-    queryKey: ["students", { q: query, page }],
+    queryKey: queryKeys.students.list({ q: query, page }),
     queryFn: () =>
       api<StudentPage>("/students", { query: { q: query, page, size: PAGE_SIZE } }),
     placeholderData: (previous) => previous,
   });
 
   const detail = useQuery({
-    queryKey: ["student", selectedId],
+    queryKey: queryKeys.students.detail(selectedId),
     queryFn: () => api<Student>(`/students/${selectedId}`),
     enabled: selectedId !== null,
   });
 
   const courses = useQuery({
-    queryKey: ["courses", "management", "active"],
+    queryKey: queryKeys.courses.picker("enrolment-active"),
     // Active only: this list is the enrolment picker, and enrolling somebody on an
     // archived course is the thing archiving is supposed to stop.
     queryFn: () => api<CoursePage>("/courses", { query: { size: 200, status: "active" } }),
     enabled: can.createCourse(me),
   });
 
-  // One call, not a hand-kept list: these three views each maintained their own
-  // and they had already drifted apart — only this one invalidated grade history,
-  // so editing a student left it stale on the other two.
-  const refresh = () => queryClient.invalidateQueries();
+  // `academicRoots` rather than a bare `invalidateQueries()`: one shared list, so
+  // it cannot drift the way three private ones did, and it leaves the AI usage
+  // table and the admin screens alone — no grade edit changes those.
+  const refresh = () => {
+    for (const queryKey of academicRoots) void queryClient.invalidateQueries({ queryKey });
+  };
 
   const create = useMutation({
     mutationFn: (body: StudentCreate) => api<Created>("/students", { method: "POST", body }),
@@ -397,13 +400,13 @@ export function StudentDetail({
   const studentId = student?.student_id;
 
   const record = useQuery({
-    queryKey: ["report", "student", studentId],
+    queryKey: queryKeys.reports.student(studentId),
     queryFn: () => api<StudentReport>(`/reports/student/${studentId}`),
     enabled: Boolean(studentId) && !editing,
   });
 
   const enrolled = useQuery({
-    queryKey: ["student", studentId, "courses"],
+    queryKey: queryKeys.students.courses(studentId),
     queryFn: () => api<StudentCourses>(`/students/${studentId}/courses`),
     enabled: Boolean(studentId) && !editing,
   });
@@ -411,7 +414,7 @@ export function StudentDetail({
   // Only while editing, and only for someone who may write: the accounts list is
   // admin-only, and requesting it for every selected student would 403 for teachers.
   const accounts = useQuery({
-    queryKey: ["admin", "users"],
+    queryKey: queryKeys.admin.users.picker("account-link"),
     queryFn: () => api<Accounts>("/admin/users"),
     enabled: editing && can.manageUsers(me),
   });

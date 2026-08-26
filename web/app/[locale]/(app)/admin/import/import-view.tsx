@@ -29,6 +29,7 @@ import { CredentialsCard } from "@/components/app/credentials";
 import { Select } from "@/components/app/detail-fields";
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import { parseCsv } from "@/lib/csv";
 import { formatNumber } from "@/lib/format";
 
@@ -95,7 +96,7 @@ export function ImportView({ locale }: { locale: string }) {
   const [createAccounts, setCreateAccounts] = useState(true);
 
   const propose = useQuery({
-    queryKey: ["import", "map", kind, headers],
+    queryKey: queryKeys.importMap(kind, headers),
     queryFn: () =>
       api<ImportMap>("/ai/import-map", { method: "POST", body: { headers, samples } }),
     enabled: step === "map" && headers.length > 0,

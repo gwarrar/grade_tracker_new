@@ -19,6 +19,7 @@ import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { api, ApiError, type Response } from "@/lib/api";
+import { academicRoots } from "@/lib/query-keys";
 
 type Answer = Response<"/ai/ask", "post">;
 type Proposal = Response<"/ai/command", "post">;
@@ -282,7 +283,10 @@ export function ConfirmCard({
       }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries();
+      // The palette can propose a write to any academic entity, so it refreshes the
+      // same set a list screen does -- but still not the admin screens, which no
+      // proposed action can reach.
+      for (const queryKey of academicRoots) void queryClient.invalidateQueries({ queryKey });
       onDone();
     },
     onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),

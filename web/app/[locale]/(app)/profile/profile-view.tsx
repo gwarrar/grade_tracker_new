@@ -16,6 +16,7 @@ import { useState, type FormEvent } from "react";
 import { Field } from "@/components/app/detail-fields";
 import { useRouter } from "@/i18n/navigation";
 import { api, ApiError, type Response } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import type { Me } from "@/lib/session";
 import { formatDate } from "@/lib/format";
 
@@ -142,11 +143,11 @@ function SessionsSection({ locale }: { locale: string }) {
   const queryClient = useQueryClient();
 
   const sessions = useQuery({
-    queryKey: ["profile", "sessions"],
+    queryKey: queryKeys.profile.sessions(),
     queryFn: () => api<Session[]>("/profile/sessions"),
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["profile", "sessions"] });
+  const refresh = () => queryClient.invalidateQueries({ queryKey: queryKeys.profile.sessions() });
 
   // Both report failure. Without it, revoking a device that is still signed in
   // produced nothing at all -- `onSuccess` never ran, so the row simply stayed,

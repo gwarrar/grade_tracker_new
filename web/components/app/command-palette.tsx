@@ -24,6 +24,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { ConfirmCard } from "@/components/app/assistant";
 import { api, ApiError, type Response } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import { APP_ROUTES } from "@/lib/app-routes";
 import { atLeast, type Me } from "@/lib/session";
 import { useDebounced } from "@/lib/use-selection";
@@ -88,13 +89,13 @@ export function CommandPalette({ me }: { me: Me }) {
   const enabled = open && query.length >= MIN_QUERY;
 
   const students = useQuery({
-    queryKey: ["palette", "students", query],
+    queryKey: queryKeys.palette.students(query),
     queryFn: () => api<Students>("/students", { query: { q: query, size: LIMIT } }),
     enabled,
   });
 
   const courses = useQuery({
-    queryKey: ["palette", "courses", query],
+    queryKey: queryKeys.palette.courses(query),
     queryFn: () => api<Courses>("/courses", { query: { q: query, size: LIMIT } }),
     enabled,
   });
