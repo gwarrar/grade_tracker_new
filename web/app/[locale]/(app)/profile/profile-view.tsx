@@ -15,7 +15,8 @@ import { useState, type FormEvent } from "react";
 
 import { Field } from "@/components/app/detail-fields";
 import { useRouter } from "@/i18n/navigation";
-import { api, ApiError, type Response } from "@/lib/api";
+import { api, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { queryKeys } from "@/lib/query-keys";
 import type { Me } from "@/lib/session";
 import { formatDate } from "@/lib/format";
@@ -57,6 +58,7 @@ export function ProfileView({ me, locale }: { me: Me; locale: string }) {
 
 function PasswordSection() {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [code, setCode] = useState<string | null>(null);
@@ -78,7 +80,7 @@ function PasswordSection() {
     },
     onError: (err) => {
       setDone(false);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -117,7 +119,7 @@ function PasswordSection() {
           <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
             {code === "__mismatch"
               ? t("profile.mismatch")
-              : t(`error.${code}` as "error.unknown")}
+              : tError(code)}
           </p>
         )}
         {done && (
@@ -140,6 +142,7 @@ function PasswordSection() {
 
 function SessionsSection({ locale }: { locale: string }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const queryClient = useQueryClient();
 
   const sessions = useQuery({
@@ -154,7 +157,7 @@ function SessionsSection({ locale }: { locale: string }) {
   // which reads as a slow list rather than a session that is still live.
   const [sessionCode, setSessionCode] = useState<string | null>(null);
   const onSessionError = (error: unknown) =>
-    setSessionCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
+    setSessionCode(errorCode(error));
 
   const revoke = useMutation({
     mutationFn: (token: string) =>
@@ -184,7 +187,7 @@ function SessionsSection({ locale }: { locale: string }) {
 
       {sessionCode && (
         <p role="alert" className="mt-3 rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-          {t(`error.${sessionCode}` as "error.unknown")}
+          {tError(sessionCode)}
         </p>
       )}
 

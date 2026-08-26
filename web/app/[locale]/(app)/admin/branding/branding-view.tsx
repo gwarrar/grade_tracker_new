@@ -9,7 +9,8 @@ import { refreshBranding } from "./actions";
 import { assetUrl, type Branding } from "@/components/branding/branding";
 import { FormError, Input, Select } from "@/components/app/detail-fields";
 import { Confirm } from "@/components/ui/confirm";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import {
   checkBackground,
   checkBothModes,
@@ -77,7 +78,7 @@ function AssetEditor({
 }) {
   const t = useTranslations("admin.branding");
   const tAction = useTranslations("action");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const [previews, setPreviews] = useState<Record<AssetKind, string | null>>({
     logo: null,
     favicon: null,
@@ -100,7 +101,7 @@ function AssetEditor({
       });
       onChange(stored);
     } catch (error) {
-      setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
+      setCode(errorCode(error));
     } finally {
       URL.revokeObjectURL(preview);
       setPreviews((current) => ({ ...current, [kind]: null }));
@@ -114,7 +115,7 @@ function AssetEditor({
     try {
       onChange(await api<Branding>(`/org/assets/${kind}`, { method: "DELETE" }));
     } catch (error) {
-      setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
+      setCode(errorCode(error));
     } finally {
       setPending(null);
     }
@@ -176,7 +177,7 @@ function AssetEditor({
         })}
       </div>
 
-      {code && <FormError>{tError(code as "unknown")}</FormError>}
+      {code && <FormError>{tError(code)}</FormError>}
     </section>
   );
 }
@@ -192,7 +193,7 @@ function BrandingForm({
 }) {
   const t = useTranslations("admin.branding");
   const tAction = useTranslations("action");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const tLocale = useTranslations("locale");
   const tTheme = useTranslations("theme");
   const [colors, setColors] = useState(branding.colors);
@@ -271,7 +272,7 @@ function BrandingForm({
       router.refresh();
       setSaved(true);
     } catch (error) {
-      setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
+      setCode(errorCode(error));
     } finally {
       setPending(false);
     }
@@ -385,7 +386,7 @@ function BrandingForm({
         </div>
       </section>
 
-      {code && <FormError>{tError(code as "unknown")}</FormError>}
+      {code && <FormError>{tError(code)}</FormError>}
       {saved && <p role="status" className="text-sm text-pass">{t("saved")}</p>}
       <button type="submit" className="btn btn-primary" disabled={pending}>
         {tAction("save")}
@@ -522,7 +523,7 @@ function GradingScaleEditor({
 }) {
   const t = useTranslations("admin.branding");
   const tAction = useTranslations("action");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   // A row carries an identity the API does not: `uid` exists only so React can
   // follow a band through a reorder. It is stripped before the scale is sent.
   const [bands, setBands] = useState<Row[]>(() => branding.grading_scale.map(withUid));
@@ -567,7 +568,7 @@ function GradingScaleEditor({
       onChange(stored);
       setSaved(true);
     } catch (error) {
-      setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
+      setCode(errorCode(error));
     } finally {
       setPending(false);
       setConfirming(false);
@@ -692,7 +693,7 @@ function GradingScaleEditor({
       {validation && (
         <FormError>{t(`scaleError.${validation}` as `scaleError.${GradingScaleError}`)}</FormError>
       )}
-      {code && <FormError>{tError(code as "unknown")}</FormError>}
+      {code && <FormError>{tError(code)}</FormError>}
       {saved && <p role="status" className="mt-3 text-sm text-pass">{t("saved")}</p>}
 
       <button

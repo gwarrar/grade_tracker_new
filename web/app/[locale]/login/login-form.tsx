@@ -18,10 +18,12 @@ import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { useRouter } from "@/i18n/navigation";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 
 export function LoginForm() {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const router = useRouter();
   const [code, setCode] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -49,7 +51,7 @@ export function LoginForm() {
       router.replace("/dashboard");
       router.refresh();
     } catch (error) {
-      setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
+      setCode(errorCode(error));
       setPending(false);
     }
   }
@@ -92,7 +94,7 @@ export function LoginForm() {
           reader user nothing, and this is the one message they most need. */}
       {code && (
         <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-          {t(`error.${code}` as "error.unknown")}
+          {tError(code)}
         </p>
       )}
 

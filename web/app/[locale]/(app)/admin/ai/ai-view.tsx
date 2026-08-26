@@ -19,6 +19,7 @@ import { useId, useState, type FormEvent } from "react";
 
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { queryKeys } from "@/lib/query-keys";
 import { formatNumber } from "@/lib/format";
 
@@ -51,7 +52,7 @@ export function AiView({ locale }: { locale: string }) {
 
 function Providers() {
   const t = useTranslations("admin.ai");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const tAction = useTranslations("action");
   const tStats = useTranslations("stats");
   const queryClient = useQueryClient();
@@ -75,7 +76,7 @@ function Providers() {
       setCode(null);
       void refresh();
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   // Both carry an onError. Without one a failed request did nothing observable at
@@ -85,13 +86,13 @@ function Providers() {
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api(`/admin/ai/providers/${id}`, { method: "PATCH", body: { is_enabled: enabled } }),
     onSuccess: refresh,
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => api(`/admin/ai/providers/${id}`, { method: "DELETE" }),
     onSuccess: refresh,
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -179,7 +180,7 @@ function Providers() {
 
           {code && (
             <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail sm:col-span-2">
-              {tError(code as "unknown")}
+              {tError(code)}
             </p>
           )}
 
@@ -230,7 +231,7 @@ function Providers() {
             {tError(
               (providers.error instanceof ApiError
                 ? providers.error.code
-                : "NETWORK_ERROR") as "unknown",
+                : "NETWORK_ERROR"),
             )}
           </li>
         )}
@@ -254,7 +255,7 @@ function ProviderCard({
   onDelete: () => void;
 }) {
   const t = useTranslations("admin.ai");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const tAction = useTranslations("action");
   const queryClient = useQueryClient();
   const [result, setResult] = useState<TestResult | null>(null);
@@ -276,7 +277,7 @@ function ProviderCard({
       void queryClient.invalidateQueries({ queryKey: queryKeys.admin.ai.providers() });
     },
     onError: (error) =>
-      setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+      setCode(errorCode(error)),
   });
 
   function onParametersSubmit(event: FormEvent<HTMLFormElement>) {
@@ -368,7 +369,7 @@ function ProviderCard({
           <p className="mt-1 text-xs text-subtle">{t("parametersHint")}</p>
           {code && (
             <p role="alert" className="mt-2 rounded-lg bg-fail-bg px-3 py-2 text-xs text-fail">
-              {tError(code as "unknown")}
+              {tError(code)}
             </p>
           )}
           <button
@@ -388,7 +389,7 @@ function ProviderCard({
             result.ok ? "bg-pass-bg text-pass" : "bg-fail-bg text-fail"
           }`}
         >
-          {tError(result.code as "unknown")}
+          {tError(result.code)}
           {result.ok && ` (${result.detail})`}
         </p>
       )}
@@ -400,7 +401,7 @@ function ProviderCard({
 
 function Routing() {
   const t = useTranslations("admin.ai");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const queryClient = useQueryClient();
 
   const providers = useQuery({
@@ -423,7 +424,7 @@ function Routing() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.admin.ai.routing() });
     },
     onError: (error) =>
-      setRoutingCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+      setRoutingCode(errorCode(error)),
   });
 
   const byFeature = new Map((routing.data ?? []).map((route) => [route.feature, route]));
@@ -436,7 +437,7 @@ function Routing() {
 
       {routingCode && (
         <p role="alert" className="mt-3 rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-          {tError(routingCode as "unknown")}
+          {tError(routingCode)}
         </p>
       )}
 

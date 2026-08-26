@@ -6,7 +6,8 @@ import { useState, type FormEvent } from "react";
 
 import { FormError, Select, Textarea } from "@/components/app/detail-fields";
 import { Confirm } from "@/components/ui/confirm";
-import { api, ApiError, type Response } from "@/lib/api";
+import { api,  type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { queryKeys } from "@/lib/query-keys";
 import type { paths } from "@/lib/api-schema";
 import { formatDate } from "@/lib/format";
@@ -33,7 +34,7 @@ export function NotesBlock({
   const t = useTranslations("notes");
   const tAction = useTranslations("action");
   const tStats = useTranslations("stats");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const queryClient = useQueryClient();
   const [code, setCode] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
@@ -59,7 +60,7 @@ export function NotesBlock({
       setFormKey((key) => key + 1);
       void refresh();
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   const remove = useMutation({
@@ -71,7 +72,7 @@ export function NotesBlock({
     },
     onError: (error) => {
       setDeleting(null);
-      setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
+      setCode(errorCode(error));
     },
   });
 
@@ -114,7 +115,7 @@ export function NotesBlock({
       {notes.isPending && <p className="mt-3 text-sm text-subtle">{tStats("loading")}</p>}
       {notes.error && (
         <FormError>
-          {tError(`${notes.error instanceof ApiError ? notes.error.code : "NETWORK_ERROR"}` as "unknown")}
+          {tError(errorCode(notes.error))}
         </FormError>
       )}
       {notes.isSuccess && notes.data.length === 0 && (
@@ -145,7 +146,7 @@ export function NotesBlock({
           ))}
         </ul>
       )}
-      {code && <FormError>{tError(code as "unknown")}</FormError>}
+      {code && <FormError>{tError(code)}</FormError>}
 
       <Confirm
         open={deleting !== null}

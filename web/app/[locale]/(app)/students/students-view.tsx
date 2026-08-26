@@ -21,6 +21,7 @@ import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
 import { Link } from "@/i18n/navigation";
 import { api, ApiError, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { academicRoots, queryKeys } from "@/lib/query-keys";
 import type { paths } from "@/lib/api-schema";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -43,6 +44,7 @@ const PAGE_SIZE = 50;
 
 export function StudentsView({ me, locale }: { me: Me; locale: string }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const queryClient = useQueryClient();
   const [selectedId, select] = useSelection();
   const [search, setSearch] = useState("");
@@ -102,7 +104,7 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
       select(student.student_id);
       void refresh();
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   function createStudent(event: FormEvent<HTMLFormElement>) {
@@ -207,7 +209,7 @@ export function StudentsView({ me, locale }: { me: Me; locale: string }) {
                 </span>
               </span>
             </label>
-            {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+            {code && <FormError>{tError(code)}</FormError>}
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
@@ -387,6 +389,7 @@ export function StudentDetail({
   onDeleted: () => void;
 }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const [editing, setEditing] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -434,7 +437,7 @@ export function StudentDetail({
       setNotice(t("student.saved"));
       void onSaved();
     },
-    onError: (err) => setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR"),
+    onError: (err) => setCode(errorCode(err)),
   });
 
   const lifecycle = useMutation({
@@ -448,7 +451,7 @@ export function StudentDetail({
     },
     onError: (err) => {
       setDeactivating(false);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -460,7 +463,7 @@ export function StudentDetail({
     },
     onError: (err) => {
       setDeleting(false);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -493,7 +496,7 @@ export function StudentDetail({
     },
     onError: (err) => {
       setEnrollmentAction(null);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -534,9 +537,9 @@ export function StudentDetail({
       />
 
       {loading && <p className="mt-4 text-sm text-subtle">{t("stats.loading")}</p>}
-      {error instanceof ApiError && <FormError>{t(`error.${error.code}` as "error.unknown")}</FormError>}
+      {error instanceof ApiError && <FormError>{tError(error.code)}</FormError>}
       {notice && <p role="status" className="mt-4 text-sm text-pass">{notice}</p>}
-      {code && !editing && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+      {code && !editing && <FormError>{tError(code)}</FormError>}
 
       {student && !editing && (
         <>
@@ -557,7 +560,7 @@ export function StudentDetail({
             )}
             {enrolled.error && (
               <FormError>
-                {t(`error.${enrolled.error instanceof ApiError ? enrolled.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+                {tError(errorCode(enrolled.error))}
               </FormError>
             )}
             {record.data && enrolled.isSuccess && (
@@ -607,12 +610,12 @@ export function StudentDetail({
               )}
               {Boolean(coursesError) && (
                 <FormError>
-                  {t(`error.${coursesError instanceof ApiError ? coursesError.code : "NETWORK_ERROR"}` as "error.unknown")}
+                  {tError(errorCode(coursesError))}
                 </FormError>
               )}
               {enrolled.error && (
                 <FormError>
-                  {t(`error.${enrolled.error instanceof ApiError ? enrolled.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+                  {tError(errorCode(enrolled.error))}
                 </FormError>
               )}
               {coursesReady && enrolled.isSuccess && (
@@ -715,7 +718,7 @@ export function StudentDetail({
                 </option>
               ))}
           </Select>
-          {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+          {code && <FormError>{tError(code)}</FormError>}
           <div className="flex gap-2">
             <button type="submit" disabled={save.isPending} className="btn btn-primary">{t("action.save")}</button>
             <button type="button" className="btn btn-ghost" onClick={() => { setEditing(false); setCode(null); }}>{t("action.cancel")}</button>

@@ -22,7 +22,8 @@ import { useState, type FormEvent } from "react";
 
 import { FieldHelp, FormError, Input } from "@/components/app/detail-fields";
 import { Modal } from "@/components/ui/modal";
-import { api, ApiError, type Response } from "@/lib/api";
+import { api, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { queryKeys } from "@/lib/query-keys";
 import type { paths } from "@/lib/api-schema";
 import { formatNumber, parseLocaleNumber } from "@/lib/format";
@@ -53,6 +54,7 @@ export function BulkGrades({
   onSaved: () => void;
 }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const [courseId, setCourseId] = useState(initialCourseId || courses[0]?.course_id || "");
   const [code, setCode] = useState<string | null>(null);
   const [invalid, setInvalid] = useState<string[]>([]);
@@ -87,7 +89,7 @@ export function BulkGrades({
       setCode(null);
       onSaved();
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -270,7 +272,7 @@ export function BulkGrades({
 
           {invalid.length > 0 && <FormError>{t("grade.invalidScore")}</FormError>}
           {code && invalid.length === 0 && (
-            <FormError>{t(`error.${code}` as "error.unknown")}</FormError>
+            <FormError>{tError(code)}</FormError>
           )}
 
           <div className="flex justify-end gap-2 pt-2">
@@ -308,6 +310,7 @@ function BulkReportView({
   onClose: () => void;
 }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
 
   return (
     <div className="space-y-4">
@@ -323,7 +326,7 @@ function BulkReportView({
           <ul className="mt-2 space-y-1 text-xs text-fail">
             {report.errors.map((error) => (
               <li key={error.student_id} className="numeric">
-                {error.student_id} — {t(`error.${error.code}` as "error.unknown")}
+                {error.student_id} — {tError(error.code)}
               </li>
             ))}
           </ul>

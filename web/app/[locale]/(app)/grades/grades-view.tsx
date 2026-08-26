@@ -27,6 +27,7 @@ import { MasterDetail } from "@/components/app/master-detail";
 import { Pager } from "@/components/app/pager";
 import { Confirm } from "@/components/ui/confirm";
 import { api, ApiError, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { academicRoots, queryKeys } from "@/lib/query-keys";
 import {
   formatDate,
@@ -464,6 +465,7 @@ function GradeDetail({
   onDeleted: () => void;
 }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [code, setCode] = useState<string | null>(null);
@@ -498,7 +500,7 @@ function GradeDetail({
       if (context?.previous) {
         queryClient.setQueryData(["grade", gradeId], context.previous);
       }
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
 
     onSuccess: () => {
@@ -517,7 +519,7 @@ function GradeDetail({
     },
     onError: (err) => {
       setRetiring(false);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -564,10 +566,10 @@ function GradeDetail({
       {loading && <p className="mt-4 text-sm text-subtle">{t("stats.loading")}</p>}
       {error instanceof ApiError && (
         <p role="alert" className="mt-4 text-sm text-fail">
-          {t(`error.${error.code}` as "error.unknown")}
+          {tError(error.code)}
         </p>
       )}
-      {code && !editing && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+      {code && !editing && <FormError>{tError(code)}</FormError>}
 
       {grade && !editing && (
         <>
@@ -629,7 +631,7 @@ function GradeDetail({
             {history.isPending && <p className="pb-2 text-sm text-subtle">{t("stats.loading")}</p>}
             {history.error instanceof ApiError && (
               <p role="alert" className="pb-2 text-sm text-fail">
-                {t(`error.${history.error.code}` as "error.unknown")}
+                {tError(history.error.code)}
               </p>
             )}
             {history.isSuccess && history.data.length === 0 && (
@@ -675,7 +677,7 @@ function GradeDetail({
 
           {code && (
             <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-              {t(`error.${code}` as "error.unknown")}
+              {tError(code)}
             </p>
           )}
 

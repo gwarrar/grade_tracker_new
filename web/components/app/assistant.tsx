@@ -19,6 +19,7 @@ import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { api, ApiError, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { academicRoots } from "@/lib/query-keys";
 
 type Answer = Response<"/ai/ask", "post">;
@@ -32,7 +33,7 @@ type ToolRecord = Answer["records"][number];
  */
 export function AssistantPanel({ onClose }: { onClose: () => void }) {
   const t = useTranslations("assistant");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const tAction = useTranslations("action");
   const reduced = useReducedMotion();
   const [code, setCode] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   const ask = useMutation({
     mutationFn: (question: string) =>
       api<Answer>("/ai/ask", { method: "POST", body: { question } }),
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
     onSuccess: () => setCode(null),
   });
 
@@ -93,7 +94,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
 
       {code && (
         <p role="alert" className="mt-4 rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-          {tError(code as "unknown")}
+          {tError(code)}
         </p>
       )}
 
@@ -259,7 +260,7 @@ export function ConfirmCard({
   onCancel: () => void;
 }) {
   const t = useTranslations("assistant");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const tAction = useTranslations("action");
   const queryClient = useQueryClient();
   const [code, setCode] = useState<string | null>(null);
@@ -289,7 +290,7 @@ export function ConfirmCard({
       for (const queryKey of academicRoots) void queryClient.invalidateQueries({ queryKey });
       onDone();
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   if (!proposal.action) {
@@ -314,7 +315,7 @@ export function ConfirmCard({
 
       {code && (
         <p role="alert" className="mt-3 rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-          {tError(code as "unknown")}
+          {tError(code)}
         </p>
       )}
 

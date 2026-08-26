@@ -22,7 +22,8 @@ import { Distribution } from "@/components/app/distribution";
 import { StatTile } from "@/components/app/stat-tile";
 import { StudentRecord } from "@/components/app/student-record";
 import { Link } from "@/i18n/navigation";
-import { API_BASE, ApiError, api, type Response } from "@/lib/api";
+import { API_BASE, api, type Response } from "@/lib/api";
+import { errorCode } from "@/lib/use-api-error";
 import { queryKeys } from "@/lib/query-keys";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { useDebounced, useUrlParam } from "@/lib/use-selection";
@@ -777,7 +778,7 @@ export function ReportsView({ locale, bands }: { locale: string; bands: string[]
       {!pending && failure && (
         <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-center text-sm text-fail">
           {t(
-            `error.${failure instanceof ApiError ? failure.code : "NETWORK_ERROR"}` as "error.unknown",
+            errorCode(failure),
           )}
         </p>
       )}

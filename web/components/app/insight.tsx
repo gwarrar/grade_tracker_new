@@ -15,7 +15,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import { api, ApiError, type Response } from "@/lib/api";
+import { api, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 
 type Insight = Response<"/ai/insight/{entity_type}/{entity_id}", "get">;
 
@@ -34,13 +35,13 @@ export function InsightBlock({
   entityId: string;
 }) {
   const t = useTranslations("assistant");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const [code, setCode] = useState<string | null>(null);
 
   const generate = useMutation({
     mutationFn: () => api<Insight>(`/ai/insight/${entityType}/${entityId}`),
     onSuccess: () => setCode(null),
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   const insight = generate.data;
@@ -65,7 +66,7 @@ export function InsightBlock({
 
       {code && (
         <p role="alert" className="mt-3 rounded-lg bg-fail-bg px-3 py-2 text-xs text-fail">
-          {tError(code as "unknown")}
+          {tError(code)}
         </p>
       )}
 

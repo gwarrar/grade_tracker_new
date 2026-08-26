@@ -18,6 +18,7 @@ import { useTranslations } from "next-intl";
 
 import { StudentRecord } from "@/components/app/student-record";
 import { API_BASE, api, ApiError, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { queryKeys } from "@/lib/query-keys";
 import { formatDate } from "@/lib/format";
 
@@ -32,6 +33,7 @@ export function StudentReportView({
   locale: string;
 }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
 
   const report = useQuery({
     queryKey: queryKeys.reports.student(studentId),
@@ -46,7 +48,7 @@ export function StudentReportView({
   if (report.error instanceof ApiError) {
     return (
       <p role="alert" className="rounded-lg bg-fail-bg px-4 py-3 text-sm text-fail">
-        {t(`error.${report.error.code}` as "error.unknown")}
+        {tError(errorCode(report.error))}
       </p>
     );
   }

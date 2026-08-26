@@ -18,7 +18,8 @@ import { useState, type FormEvent } from "react";
 
 import { CredentialsCard, type Credential } from "@/components/app/credentials";
 import { Confirm } from "@/components/ui/confirm";
-import { api, ApiError, type Response } from "@/lib/api";
+import { api,  type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { queryKeys } from "@/lib/query-keys";
 import { formatNumber } from "@/lib/format";
 import { atLeast, type Me, type Role } from "@/lib/session";
@@ -31,7 +32,7 @@ const ROLES: Role[] = ["student", "teacher", "admin", "superadmin"];
 
 export function UsersView({ me, locale }: { me: Me; locale: string }) {
   const t = useTranslations("admin.users");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const tAction = useTranslations("action");
   const tRole = useTranslations("role");
   const tAuth = useTranslations("auth");
@@ -71,7 +72,7 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.root });
   const onError = (error: unknown) =>
-    setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR");
+    setCode(errorCode(error));
 
   const create = useMutation({
     mutationFn: (body: Record<string, string>) =>
@@ -181,7 +182,7 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
 
       {code && (
         <p role="alert" className="rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
-          {tError(code as "unknown")}
+          {tError(code)}
         </p>
       )}
 
@@ -393,7 +394,7 @@ export function UsersView({ me, locale }: { me: Me; locale: string }) {
         {users.isError && (
           <p role="alert" className="mx-4 my-4 rounded-lg bg-fail-bg px-3 py-2 text-sm text-fail">
             {tError(
-              (users.error instanceof ApiError ? users.error.code : "NETWORK_ERROR") as "unknown",
+              errorCode(users.error),
             )}
           </p>
         )}

@@ -18,6 +18,7 @@ import { useTranslations } from "next-intl";
 import { AuditEntryLine } from "@/components/app/audit";
 import { Pager } from "@/components/app/pager";
 import { api, ApiError, type Response } from "@/lib/api";
+import { useErrorMessage } from "@/lib/use-api-error";
 import { queryKeys } from "@/lib/query-keys";
 import { formatNumber } from "@/lib/format";
 import { useUrlParam } from "@/lib/use-selection";
@@ -44,6 +45,7 @@ const ACTIONS = ["create", "update", "delete"] as const;
 
 export function AuditView({ locale }: { locale: string }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
 
   const [entity, setEntity] = useUrlParam("entity");
   const [action, setAction] = useUrlParam("action");
@@ -169,7 +171,7 @@ export function AuditView({ locale }: { locale: string }) {
         )}
         {feed.error instanceof ApiError && (
           <p role="alert" className="px-4 py-8 text-center text-sm text-fail">
-            {t(`error.${feed.error.code}` as "error.unknown")}
+            {tError(feed.error.code)}
           </p>
         )}
         {feed.isSuccess && feed.data.items.length === 0 && (

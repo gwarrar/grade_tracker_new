@@ -23,7 +23,8 @@ import { useEffect, useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
 import { ConfirmCard } from "@/components/app/assistant";
-import { api, ApiError, type Response } from "@/lib/api";
+import { api, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { queryKeys } from "@/lib/query-keys";
 import { APP_ROUTES } from "@/lib/app-routes";
 import { atLeast, type Me } from "@/lib/session";
@@ -40,7 +41,7 @@ const LIMIT = 5;
 export function CommandPalette({ me }: { me: Me }) {
   const t = useTranslations();
   const tAssistant = useTranslations("assistant");
-  const tError = useTranslations("error");
+  const tError = useErrorMessage();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -58,7 +59,7 @@ export function CommandPalette({ me }: { me: Me }) {
       setProposal(result);
       setCode(null);
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   function reset() {
@@ -222,7 +223,7 @@ export function CommandPalette({ me }: { me: Me }) {
 
           {code && (
             <p role="alert" className="mx-2 mt-2 rounded-lg bg-fail-bg px-3 py-2 text-xs text-fail">
-              {tError(code as "unknown")}
+              {tError(code)}
             </p>
           )}
         </Command.List>

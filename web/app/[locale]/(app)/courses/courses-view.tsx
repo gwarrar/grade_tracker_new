@@ -19,6 +19,7 @@ import { Pager } from "@/components/app/pager";
 import { Confirm } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
 import { api, ApiError, type Response } from "@/lib/api";
+import { errorCode, useErrorMessage } from "@/lib/use-api-error";
 import { academicRoots, queryKeys } from "@/lib/query-keys";
 import type { paths } from "@/lib/api-schema";
 import { readCourseAssessments } from "@/lib/course-assessments";
@@ -47,6 +48,7 @@ const PAGE_SIZE = 50;
 
 export function CoursesView({ me, locale }: { me: Me; locale: string }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const queryClient = useQueryClient();
   const [selectedId, select] = useSelection();
   const [search, setSearch] = useState("");
@@ -96,7 +98,7 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
       select(course.course_id);
       void refresh();
     },
-    onError: (error) => setCode(error instanceof ApiError ? error.code : "NETWORK_ERROR"),
+    onError: (error) => setCode(errorCode(error)),
   });
 
   function createCourse(event: FormEvent<HTMLFormElement>) {
@@ -203,7 +205,7 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
           {allCourses.isPending && <p className="text-sm text-subtle">{t("stats.loading")}</p>}
           {allCourses.error && (
             <FormError>
-              {t(`error.${allCourses.error instanceof ApiError ? allCourses.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+              {tError(errorCode(allCourses.error))}
             </FormError>
           )}
           {/* Same reason as the roster in `bulk-grades.tsx`: the dialog caps and
@@ -211,7 +213,7 @@ export function CoursesView({ me, locale }: { me: Me; locale: string }) {
           {allCourses.isSuccess ? (
             <form onSubmit={createCourse} className="space-y-4">
               <CourseFields courses={allCourses.data.items} me={me} locale={locale} includeId />
-              {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+              {code && <FormError>{tError(code)}</FormError>}
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -556,6 +558,7 @@ function CourseDetail({
   onDeleted: () => void;
 }) {
   const t = useTranslations();
+  const tError = useErrorMessage();
   const editable = course !== undefined && can.writeCourse(me, course);
   const manageable = course !== undefined && can.writeEnrolment(me, course);
   const [editing, setEditing] = useState(false);
@@ -591,7 +594,7 @@ function CourseDetail({
       setNotice(t("course.saved"));
       void onSaved();
     },
-    onError: (err) => setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR"),
+    onError: (err) => setCode(errorCode(err)),
   });
 
   const removeCourse = useMutation({
@@ -602,7 +605,7 @@ function CourseDetail({
     },
     onError: (err) => {
       setDeleting(false);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -628,7 +631,7 @@ function CourseDetail({
     },
     onError: (err) => {
       setEnrollmentAction(null);
-      setCode(err instanceof ApiError ? err.code : "NETWORK_ERROR");
+      setCode(errorCode(err));
     },
   });
 
@@ -704,9 +707,9 @@ function CourseDetail({
     <div className="rounded-xl border border-line bg-surface p-6">
       <PanelHeader title={course?.name ?? t("stats.loading")} subtitle={course?.course_id} closeLabel={t("action.close")} onClose={onClose} />
       {loading && <p className="mt-4 text-sm text-subtle">{t("stats.loading")}</p>}
-      {error instanceof ApiError && <FormError>{t(`error.${error.code}` as "error.unknown")}</FormError>}
+      {error instanceof ApiError && <FormError>{tError(error.code)}</FormError>}
       {notice && <p role="status" className="mt-4 text-sm text-pass">{notice}</p>}
-      {code && !editing && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+      {code && !editing && <FormError>{tError(code)}</FormError>}
 
       {course && !editing && (
         <>
@@ -747,7 +750,7 @@ function CourseDetail({
               {coursesLoading && <p className="mt-3 text-sm text-subtle">{t("stats.loading")}</p>}
               {Boolean(coursesError) && (
                 <FormError>
-                  {t(`error.${coursesError instanceof ApiError ? coursesError.code : "NETWORK_ERROR"}` as "error.unknown")}
+                  {tError(errorCode(coursesError))}
                 </FormError>
               )}
             </>
@@ -757,7 +760,7 @@ function CourseDetail({
           {register.isPending && <p className="mt-3 text-sm text-subtle">{t("stats.loading")}</p>}
           {register.error && (
             <FormError>
-              {t(`error.${register.error instanceof ApiError ? register.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+              {tError(errorCode(register.error))}
             </FormError>
           )}
           {register.isSuccess && (
@@ -783,7 +786,7 @@ function CourseDetail({
                   )}
                   {students.error && (
                     <FormError>
-                      {t(`error.${students.error instanceof ApiError ? students.error.code : "NETWORK_ERROR"}` as "error.unknown")}
+                      {tError(errorCode(students.error))}
                     </FormError>
                   )}
                   {!studentSearchUnsettled && studentQuery.length >= 2 && students.isSuccess && candidates.length > 0 && (
@@ -848,10 +851,10 @@ function CourseDetail({
           {coursesLoading && <p className="text-sm text-subtle">{t("stats.loading")}</p>}
           {Boolean(coursesError) && (
             <FormError>
-              {t(`error.${coursesError instanceof ApiError ? coursesError.code : "NETWORK_ERROR"}` as "error.unknown")}
+              {tError(errorCode(coursesError))}
             </FormError>
           )}
-          {code && <FormError>{t(`error.${code}` as "error.unknown")}</FormError>}
+          {code && <FormError>{tError(code)}</FormError>}
           <div className="flex gap-2">
             <button type="submit" disabled={save.isPending || !coursesReady} className="btn btn-primary">{t("action.save")}</button>
             <button type="button" className="btn btn-ghost" onClick={() => { setEditing(false); setCode(null); }}>{t("action.cancel")}</button>
