@@ -1,8 +1,13 @@
-"""Superadmin writes for organisation branding and grading policy."""
+"""Organisation branding and grading policy.
+
+Superadmin writes, plus the one public read: `GET /org/branding` is what the sign-in
+page needs before anyone has signed in. It used to live in `routers/reports.py`, which
+declared a second `/org` router to hold it -- branding is not a report.
+"""
 
 from __future__ import annotations
 
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
 from fastapi import APIRouter, Depends, File, Path, UploadFile
 from pydantic import BaseModel, Field, model_validator
@@ -10,7 +15,7 @@ from pydantic import BaseModel, Field, model_validator
 from api.config import Settings, get_settings
 from api.deps import DbConn, SuperAdminUser
 from notenverwaltung.models import Organization, Theme
-from services.organization import AssetKind, remove_asset, update, upload_asset
+from services.organization import AssetKind, load_organization, remove_asset, update, upload_asset
 
 router = APIRouter(prefix="/org", tags=["Organisation"])
 
@@ -193,3 +198,21 @@ def delete_asset(
 def _response(organization: Organization) -> OrganizationResponse:
     """Convert the domain model to the documented wire shape."""
     return OrganizationResponse.model_validate(organization.to_dict())
+
+
+@router.get(
+    "/branding",
+    summary="Organisation branding and configuration",
+    description=(
+        "**Public** — the sign-in page needs the logo and colours before anyone has "
+        "signed in.\n\n"
+        "Colours carry a `light` and a `dark` variant. The client injects them as CSS "
+        "custom properties, so re-theming needs no rebuild; two variants because a "
+        "colour legible on white is frequently illegible on near-black.\n\n"
+        "Also carries the enabled locales, the default theme, and the grading scale — "
+        "the A/B/C/D/F bands are configuration, not code."
+    ),
+)
+def branding(conn: DbConn) -> dict[str, Any]:
+    """Return the organisation's public configuration."""
+    return load_organization(conn).to_dict()
