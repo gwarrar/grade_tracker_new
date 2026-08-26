@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState, type CSSProperties, type FormEvent } from "react";
 
@@ -83,43 +84,44 @@ function AssetEditor({
     logo: null,
     favicon: null,
   });
-  const [pending, setPending] = useState<AssetKind | null>(null);
   const [code, setCode] = useState<string | null>(null);
 
-  async function upload(kind: AssetKind, file: File) {
-    const preview = URL.createObjectURL(file);
-    setPreviews((current) => ({ ...current, [kind]: preview }));
-    setPending(kind);
-    setCode(null);
-
-    const form = new FormData();
-    form.set("file", file);
-    try {
-      const stored = await api<Branding>(`/org/assets/${kind}`, {
-        method: "POST",
-        body: form,
-      });
-      onChange(stored);
-    } catch (error) {
-      setCode(errorCode(error));
-    } finally {
-      URL.revokeObjectURL(preview);
+  const uploading = useMutation({
+    mutationFn: ({ kind, file }: { kind: AssetKind; file: File }) => {
+      const form = new FormData();
+      form.set("file", file);
+      return api<Branding>(`/org/assets/${kind}`, { method: "POST", body: form });
+    },
+    onMutate: ({ kind, file }) => {
+      setCode(null);
+      // Show the chosen file immediately; the server round-trip is slower than the
+      // user's expectation of having picked something.
+      const preview = URL.createObjectURL(file);
+      setPreviews((current) => ({ ...current, [kind]: preview }));
+      return { preview };
+    },
+    onSuccess: onChange,
+    onError: (error) => setCode(errorCode(error)),
+    onSettled: (_data, _error, { kind }, context) => {
+      // Revoking is not optional: an object URL holds the whole file in memory
+      // until it is released, and this form can be used repeatedly.
+      if (context?.preview) URL.revokeObjectURL(context.preview);
       setPreviews((current) => ({ ...current, [kind]: null }));
-      setPending(null);
-    }
-  }
+    },
+  });
 
-  async function remove(kind: AssetKind) {
-    setPending(kind);
-    setCode(null);
-    try {
-      onChange(await api<Branding>(`/org/assets/${kind}`, { method: "DELETE" }));
-    } catch (error) {
-      setCode(errorCode(error));
-    } finally {
-      setPending(null);
-    }
-  }
+  const removing = useMutation({
+    mutationFn: (kind: AssetKind) => api<Branding>(`/org/assets/${kind}`, { method: "DELETE" }),
+    onMutate: () => setCode(null),
+    onSuccess: onChange,
+    onError: (error) => setCode(errorCode(error)),
+  });
+
+  const upload = (kind: AssetKind, file: File) => uploading.mutate({ kind, file });
+  const remove = (kind: AssetKind) => removing.mutate(kind);
+  const pending: AssetKind | null =
+    (uploading.isPending ? uploading.variables.kind : null) ??
+    (removing.isPending ? removing.variables : null);
 
   return (
     <section>
@@ -199,7 +201,6 @@ function BrandingForm({
   const [colors, setColors] = useState(branding.colors);
   const [enabledLocales, setEnabledLocales] = useState(branding.enabled_locales);
   const [defaultLocale, setDefaultLocale] = useState(branding.default_locale);
-  const [pending, setPending] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const router = useRouter();
@@ -231,23 +232,9 @@ function BrandingForm({
     setSaved(false);
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    // Refuse the write rather than disabling the button. A disabled Save cannot
-    // explain itself, and because one unreadable colour would block the name, the
-    // logo and the locales too, the whole page looked broken to anyone who nudged
-    // a swatch past the threshold.
-    if (!usable) {
-      setSaved(false);
-      setCode("CONTRAST_TOO_LOW");
-      return;
-    }
-    const form = new FormData(event.currentTarget);
-    setPending(true);
-    setCode(null);
-    setSaved(false);
-    try {
-      const stored = await api<Branding>("/org/branding", {
+  const saving = useMutation({
+    mutationFn: (form: FormData) =>
+      api<Branding>("/org/branding", {
         method: "PATCH",
         body: {
           name: String(form.get("name") ?? ""),
@@ -263,7 +250,8 @@ function BrandingForm({
           default_theme: String(form.get("default_theme") ?? "system"),
           timezone: String(form.get("timezone") ?? "UTC"),
         },
-      });
+      }),
+    onSuccess: async (stored) => {
       onChange(stored);
       // The layout's branding read is cached, so without dropping the tag and
       // re-rendering the server components the page keeps showing the old values
@@ -271,15 +259,28 @@ function BrandingForm({
       await refreshBranding();
       router.refresh();
       setSaved(true);
-    } catch (error) {
-      setCode(errorCode(error));
-    } finally {
-      setPending(false);
+    },
+    onError: (error) => setCode(errorCode(error)),
+  });
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    // Refuse the write rather than disabling the button. A disabled Save cannot
+    // explain itself, and because one unreadable colour would block the name, the
+    // logo and the locales too, the whole page looked broken to anyone who nudged
+    // a swatch past the threshold.
+    if (!usable) {
+      setSaved(false);
+      setCode("CONTRAST_TOO_LOW");
+      return;
     }
+    setCode(null);
+    setSaved(false);
+    saving.mutate(new FormData(event.currentTarget));
   }
 
   return (
-    <form onSubmit={(event) => void submit(event)} className="space-y-10">
+    <form onSubmit={submit} className="space-y-10">
       <section>
         <h2 className="text-lg font-medium text-text">{t("identity")}</h2>
         <div className="mt-4 grid gap-4 rounded-xl border border-line bg-surface p-6 sm:grid-cols-2">
@@ -388,7 +389,7 @@ function BrandingForm({
 
       {code && <FormError>{tError(code)}</FormError>}
       {saved && <p role="status" className="text-sm text-pass">{t("saved")}</p>}
-      <button type="submit" className="btn btn-primary" disabled={pending}>
+      <button type="submit" className="btn btn-primary" disabled={saving.isPending}>
         {tAction("save")}
       </button>
     </form>
@@ -528,7 +529,6 @@ function GradingScaleEditor({
   // follow a band through a reorder. It is stripped before the scale is sent.
   const [bands, setBands] = useState<Row[]>(() => branding.grading_scale.map(withUid));
   const [confirming, setConfirming] = useState(false);
-  const [pending, setPending] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const validation = validateGradingScale(bands);
@@ -551,11 +551,9 @@ function GradingScaleEditor({
     setSaved(false);
   }
 
-  async function save() {
-    setPending(true);
-    setCode(null);
-    try {
-      const stored = await api<Branding>("/org/grading-scale", {
+  const saving = useMutation({
+    mutationFn: () =>
+      api<Branding>("/org/grading-scale", {
         method: "PUT",
         // `uid` is local identity for React, not part of the scale.
         body: bands.map((row) => ({
@@ -563,17 +561,18 @@ function GradingScaleEditor({
           label: row.label,
           points: row.points,
         })),
-      });
+      }),
+    onMutate: () => setCode(null),
+    onSuccess: (stored) => {
       setBands(stored.grading_scale.map(withUid));
       onChange(stored);
       setSaved(true);
-    } catch (error) {
-      setCode(errorCode(error));
-    } finally {
-      setPending(false);
-      setConfirming(false);
-    }
-  }
+    },
+    onError: (error) => setCode(errorCode(error)),
+    onSettled: () => setConfirming(false),
+  });
+
+  const save = () => saving.mutate();
 
   return (
     <section>
@@ -699,7 +698,7 @@ function GradingScaleEditor({
       <button
         type="button"
         className="btn btn-primary mt-4"
-        disabled={validation !== null || pending}
+        disabled={validation !== null || saving.isPending}
         onClick={() => setConfirming(true)}
       >
         {tAction("save")}
