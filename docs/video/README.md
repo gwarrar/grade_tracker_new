@@ -22,9 +22,15 @@ corepack pnpm studio         # preview and scrub while editing
 ```
 
 The GIF is the one the README embeds: GitHub renders an animated GIF inline from a
-repository path and will not play an MP4 from one. It is deliberately small —
-720px wide at every fifth frame, about 3.7 MB — because the whole repository was
-2 MB before it arrived.
+repository path and will not play an MP4 from one. It is deliberately small — half
+scale at every fifth frame, 960x540 and about 2.3 MB — because the whole repository
+was 2 MB before it arrived.
+
+**Use `--scale`, never `--width`.** `--width=720` sets the output width and leaves
+the height at the composition's 1080, so a 1920-wide frame is *cropped* to its left
+720 pixels rather than scaled down. The first GIF shipped that way: the right-hand
+third of every scene was missing, and the file was larger for it. `--scale=0.5`
+resizes the whole frame and keeps the aspect ratio.
 
 ## What it shows, and what it does not
 

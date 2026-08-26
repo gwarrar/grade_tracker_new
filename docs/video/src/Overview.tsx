@@ -49,9 +49,9 @@ function Scene({ children }: { children: React.ReactNode }) {
   return (
     <AbsoluteFill
       style={{
-        padding: 90,
+        padding: 76,
         justifyContent: "center",
-        gap: 34,
+        gap: 40,
         opacity: out,
       }}
     >
@@ -70,7 +70,7 @@ function Title() {
         <div
           style={{
             fontFamily: font.sans,
-            fontSize: 104,
+            fontSize: 132,
             fontWeight: 700,
             color: theme.text,
             letterSpacing: -3,
@@ -81,7 +81,7 @@ function Title() {
         </div>
       </Reveal>
       <Reveal delay={14}>
-        <div style={{ fontFamily: font.sans, fontSize: 34, color: theme.muted, maxWidth: 1180 }}>
+        <div style={{ fontFamily: font.sans, fontSize: 44, color: theme.muted, maxWidth: 1500 }}>
           Academic records, reporting and AI-assisted workflows — for the people who
           actually have to enter the marks.
         </div>
@@ -93,11 +93,11 @@ function Title() {
               key={tag}
               style={{
                 fontFamily: font.mono,
-                fontSize: 22,
+                fontSize: 28,
                 color: theme.muted,
                 border: `1px solid ${theme.line}`,
                 borderRadius: 999,
-                padding: "8px 20px",
+                padding: "10px 26px",
               }}
             >
               {tag}
@@ -123,7 +123,7 @@ function Dashboard() {
       </div>
       <Reveal delay={30}>
         <Card style={{ marginTop: 8 }}>
-          <div style={{ fontFamily: font.sans, fontSize: 22, color: theme.muted, marginBottom: 20 }}>
+          <div style={{ fontFamily: font.sans, fontSize: 30, color: theme.muted, marginBottom: 24 }}>
             Grade distribution
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -146,7 +146,7 @@ function Layers() {
         <Eyebrow>Layers that only depend downward</Eyebrow>
       </Reveal>
       <Reveal delay={5}>
-        <div style={{ fontFamily: font.sans, fontSize: 34, color: theme.muted }}>
+        <div style={{ fontFamily: font.sans, fontSize: 46, color: theme.muted }}>
           The rule is tested, not documented.
         </div>
       </Reveal>
@@ -170,9 +170,9 @@ function Layers() {
         <div
           style={{
             fontFamily: font.mono,
-            fontSize: 24,
+            fontSize: 32,
             color: theme.subtle,
-            marginTop: 20,
+            marginTop: 26,
             borderLeft: `2px solid ${theme.line}`,
             paddingLeft: 22,
           }}
@@ -191,8 +191,8 @@ function Scope() {
         <Eyebrow>Authorization is a value, not a branch</Eyebrow>
       </Reveal>
       <Reveal delay={6}>
-        <Card padding={38}>
-          <div style={{ fontFamily: font.mono, fontSize: 34, lineHeight: 1.85 }}>
+        <Card padding={48}>
+          <div style={{ fontFamily: font.mono, fontSize: 46, lineHeight: 1.8 }}>
             <div style={{ color: theme.subtle }}># the default</div>
             <div style={{ color: theme.text }}>
               DENY_ALL = Scope(<span style={{ color: theme.accent }}>&quot;1=0&quot;</span>)
@@ -204,11 +204,11 @@ function Scope() {
         <div
           style={{
             fontFamily: font.sans,
-            fontSize: 32,
+            fontSize: 42,
             color: theme.muted,
-            maxWidth: 1180,
+            maxWidth: 1560,
             lineHeight: 1.5,
-            marginTop: 10,
+            marginTop: 12,
           }}
         >
           A query handed no scope returns <span style={{ color: theme.text }}>nothing</span>. A
@@ -227,23 +227,23 @@ function Assistant() {
         <Eyebrow>The model never writes</Eyebrow>
       </Reveal>
       <Reveal delay={6}>
-        <Card padding={34}>
-          <div style={{ fontFamily: font.sans, fontSize: 30, color: theme.text }}>
+        <Card padding={44}>
+          <div style={{ fontFamily: font.sans, fontSize: 40, color: theme.text }}>
             &ldquo;Which students are failing Databases?&rdquo;
           </div>
           <div
             style={{
               fontFamily: font.mono,
-              fontSize: 23,
+              fontSize: 30,
               color: theme.accent,
-              marginTop: 20,
+              marginTop: 24,
               paddingTop: 20,
               borderTop: `1px solid ${theme.line}`,
             }}
           >
             query_grades(course_id=&quot;CS201&quot;, passing=false)
           </div>
-          <div style={{ fontFamily: font.mono, fontSize: 22, color: theme.subtle, marginTop: 10 }}>
+          <div style={{ fontFamily: font.mono, fontSize: 28, color: theme.subtle, marginTop: 14 }}>
             → 3 rows, composed with the caller&apos;s own scope
           </div>
         </Card>
@@ -252,9 +252,9 @@ function Assistant() {
         <div
           style={{
             fontFamily: font.sans,
-            fontSize: 30,
+            fontSize: 40,
             color: theme.muted,
-            maxWidth: 1180,
+            maxWidth: 1560,
             lineHeight: 1.5,
           }}
         >
@@ -284,11 +284,11 @@ function Gates() {
           <div
             style={{
               fontFamily: font.mono,
-              fontSize: 25,
+              fontSize: 32,
               color: theme.muted,
               display: "flex",
               flexWrap: "wrap",
-              gap: "14px 34px",
+              gap: "18px 40px",
             }}
           >
             {[
@@ -307,7 +307,7 @@ function Gates() {
         </Card>
       </Reveal>
       <Reveal delay={44}>
-        <div style={{ fontFamily: font.sans, fontSize: 28, color: theme.subtle, marginTop: 12 }}>
+        <div style={{ fontFamily: font.sans, fontSize: 36, color: theme.subtle, marginTop: 16 }}>
           Three locales · WCAG contrast enforced at save time · append-only audit trail
         </div>
       </Reveal>

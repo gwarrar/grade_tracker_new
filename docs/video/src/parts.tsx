@@ -42,7 +42,7 @@ export function Reveal({
 export function Card({
   children,
   style,
-  padding = 28,
+  padding = 34,
 }: {
   children: ReactNode;
   style?: CSSProperties;
@@ -69,7 +69,7 @@ export function Eyebrow({ children }: { children: ReactNode }) {
     <div
       style={{
         fontFamily: font.sans,
-        fontSize: 20,
+        fontSize: 28,
         letterSpacing: 3,
         textTransform: "uppercase",
         color: theme.subtle,
@@ -127,11 +127,11 @@ export function Stat({
   return (
     <Reveal delay={delay} style={{ flex: 1 }}>
       <Card style={{ minWidth: 240 }}>
-        <div style={{ fontFamily: font.sans, fontSize: 22, color: theme.muted }}>{label}</div>
+        <div style={{ fontFamily: font.sans, fontSize: 30, color: theme.muted }}>{label}</div>
         <div
           style={{
             fontFamily: font.sans,
-            fontSize: 64,
+            fontSize: 84,
             fontWeight: 600,
             color: accent,
             marginTop: 6,
@@ -164,13 +164,13 @@ export function Bar({
   const grow = spring({ frame: frame - delay, fps, config: { damping: 200 } });
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
       <div
         style={{
           fontFamily: font.mono,
-          fontSize: 26,
+          fontSize: 34,
           color: theme.muted,
-          width: 32,
+          width: 42,
           textAlign: "right",
         }}
       >
@@ -179,7 +179,7 @@ export function Bar({
       <div
         style={{
           flex: 1,
-          height: 30,
+          height: 40,
           background: theme.surfaceRaised,
           borderRadius: 8,
           overflow: "hidden",
@@ -197,9 +197,9 @@ export function Bar({
       <div
         style={{
           fontFamily: font.mono,
-          fontSize: 24,
+          fontSize: 32,
           color: theme.subtle,
-          width: 44,
+          width: 58,
           fontVariantNumeric: "tabular-nums",
         }}
       >
@@ -228,13 +228,13 @@ export function Node({
           background: theme.surface,
           border: `1px solid ${color}`,
           borderRadius: 14,
-          padding: "18px 26px",
-          minWidth: 250,
+          padding: "24px 30px",
+          minWidth: 300,
           textAlign: "center",
         }}
       >
-        <div style={{ fontFamily: font.mono, fontSize: 26, color, fontWeight: 600 }}>{title}</div>
-        <div style={{ fontFamily: font.sans, fontSize: 19, color: theme.subtle, marginTop: 6 }}>
+        <div style={{ fontFamily: font.mono, fontSize: 34, color, fontWeight: 600 }}>{title}</div>
+        <div style={{ fontFamily: font.sans, fontSize: 26, color: theme.subtle, marginTop: 8 }}>
           {subtitle}
         </div>
       </div>

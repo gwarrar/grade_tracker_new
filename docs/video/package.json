@@ -6,7 +6,7 @@
   "scripts": {
     "studio": "remotion studio",
     "render:mp4": "remotion render Overview ../media/overview.mp4 --codec=h264",
-    "render:gif": "remotion render Overview ../media/overview.gif --codec=gif --every-nth-frame=5 --width=720"
+    "render:gif": "remotion render Overview ../media/overview.gif --codec=gif --every-nth-frame=5 --scale=0.5"
   },
   "dependencies": {
     "@remotion/cli": "4.0.400",
