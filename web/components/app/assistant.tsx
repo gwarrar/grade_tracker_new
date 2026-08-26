@@ -26,6 +26,18 @@ type Answer = Response<"/ai/ask", "post">;
 type Proposal = Response<"/ai/command", "post">;
 type ToolRecord = Answer["records"][number];
 
+/** One exchange in the thread: what was asked, and what came back. */
+type Turn = { question: string; answer: Answer };
+
+/**
+ * Prior messages sent with a follow-up.
+ *
+ * Six, matching `MAX_HISTORY_TURNS` in `services/ai.py`, which rejects more rather
+ * than truncating: a client sending twenty has misunderstood something, and quietly
+ * dropping fourteen hides it.
+ */
+const MAX_HISTORY_TURNS = 6;
+
 /**
  * Ask a question and show the answer with its sources.
  *
@@ -37,21 +49,44 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   const tAction = useTranslations("action");
   const reduced = useReducedMotion();
   const [code, setCode] = useState<string | null>(null);
+  const [turns, setTurns] = useState<Turn[]>([]);
 
   const ask = useMutation({
     mutationFn: (question: string) =>
-      api<Answer>("/ai/ask", { method: "POST", body: { question } }),
+      api<Answer>("/ai/ask", {
+        method: "POST",
+        body: {
+          question,
+          // The transcript lives here, not on the server: no conversation table, no
+          // retention policy, nothing to clean up. Safe because it reaches nothing
+          // -- the model holds no write privilege, and every tool composes the
+          // caller's own scope server-side, so a tampered history changes only the
+          // wording of the answer. Trimmed to the backend's cap, which rejects more.
+          history: turns
+            .flatMap((turn) => [
+              { role: "user" as const, content: turn.question },
+              { role: "assistant" as const, content: turn.answer.text },
+            ])
+            .slice(-MAX_HISTORY_TURNS),
+        },
+      }),
     onError: (error) => setCode(errorCode(error)),
-    onSuccess: () => setCode(null),
+    onSuccess: (answer, question) => {
+      setCode(null);
+      setTurns((current) => [...current, { question, answer }]);
+    },
   });
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const question = String(new FormData(event.currentTarget).get("question") ?? "").trim();
-    if (question) ask.mutate(question);
+    const form = event.currentTarget;
+    const question = String(new FormData(form).get("question") ?? "").trim();
+    if (!question) return;
+    ask.mutate(question);
+    // Cleared immediately: the question is about to appear in the thread above, and
+    // leaving it in the box invites sending it twice.
+    form.reset();
   }
-
-  const answer = ask.data;
 
   return (
     <div className="rounded-xl border border-line bg-surface p-6">
@@ -98,33 +133,40 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
         </p>
       )}
 
-      <AnimatePresence mode="wait">
-        {answer && (
+      <AnimatePresence initial={false}>
+        {turns.map((turn, index) => (
           <motion.div
-            key={answer.text}
+            key={`${index}-${turn.question}`}
             initial={reduced ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-5"
+            className="mt-5 border-t border-line pt-5 first:border-0 first:pt-0"
           >
+            <p className="text-sm font-medium text-muted">{turn.question}</p>
+
             {/* aria-live, because the answer arrives without any focus change —
-                a screen-reader user would otherwise never learn it had. */}
-            <p aria-live="polite" className="text-sm leading-relaxed text-text">
-              {answer.text}
+                a screen-reader user would otherwise never learn it had. Only the
+                newest turn announces; re-announcing the whole thread on every
+                answer would be unusable. */}
+            <p
+              aria-live={index === turns.length - 1 ? "polite" : "off"}
+              className="mt-2 text-sm leading-relaxed text-text"
+            >
+              {turn.answer.text}
             </p>
 
-            {answer.reasoning && (
+            {turn.answer.reasoning && (
               <details className="mt-4 rounded-lg border border-line bg-bg-subtle px-3 py-2">
                 <summary className="cursor-pointer text-xs font-medium text-muted hover:text-text">
                   {t("reasoning")}
                 </summary>
                 <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-subtle">
-                  {answer.reasoning}
+                  {turn.answer.reasoning}
                 </p>
               </details>
             )}
 
-            {answer.truncated && (
+            {turn.answer.truncated && (
               <p
                 role="note"
                 className="mt-3 rounded-lg border border-warn/40 bg-warn-bg px-3 py-2 text-xs text-warn"
@@ -133,9 +175,9 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
               </p>
             )}
 
-            {answer.records.length > 0 && <Sources records={answer.records} />}
+            {turn.answer.records.length > 0 && <Sources records={turn.answer.records} />}
           </motion.div>
-        )}
+        ))}
       </AnimatePresence>
     </div>
   );

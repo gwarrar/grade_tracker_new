@@ -1414,9 +1414,20 @@ export interface components {
         };
         /**
          * AskRequest
-         * @description A question about the gradebook.
+         * @description A question about the gradebook, and optionally what came before it.
          */
         AskRequest: {
+            /**
+             * History
+             * @description Earlier turns, oldest first, so a follow-up can resolve against them. Held by the client rather than the server: there is no conversation table, no retention policy and nothing to clean up. Safe because a forged transcript reaches nothing — the model cannot write, and every tool composes the caller's own scope server-side.
+             * @example [
+             *       {
+             *         "content": "What is Anna's average in CS101?",
+             *         "role": "user"
+             *       }
+             *     ]
+             */
+            history?: components["schemas"]["HistoryTurn"][];
             /**
              * Question
              * @example Which students are failing Databases?
@@ -2655,6 +2666,19 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HistoryTurn
+         * @description One earlier turn of the same conversation.
+         */
+        HistoryTurn: {
+            /** Content */
+            content: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
         };
         /**
          * ImportCommitModel

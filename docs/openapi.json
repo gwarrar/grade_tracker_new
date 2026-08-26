@@ -16,8 +16,25 @@
         "type": "object"
       },
       "AskRequest": {
-        "description": "A question about the gradebook.",
+        "description": "A question about the gradebook, and optionally what came before it.",
         "properties": {
+          "history": {
+            "description": "Earlier turns, oldest first, so a follow-up can resolve against them. Held by the client rather than the server: there is no conversation table, no retention policy and nothing to clean up. Safe because a forged transcript reaches nothing — the model cannot write, and every tool composes the caller's own scope server-side.",
+            "examples": [
+              [
+                {
+                  "content": "What is Anna's average in CS101?",
+                  "role": "user"
+                }
+              ]
+            ],
+            "items": {
+              "$ref": "#/components/schemas/HistoryTurn"
+            },
+            "maxItems": 6,
+            "title": "History",
+            "type": "array"
+          },
           "question": {
             "examples": [
               "Which students are failing Databases?"
@@ -2527,6 +2544,31 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HistoryTurn": {
+        "description": "One earlier turn of the same conversation.",
+        "properties": {
+          "content": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "HistoryTurn",
         "type": "object"
       },
       "ImportCommitModel": {

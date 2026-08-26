@@ -35,6 +35,14 @@ from services.scoping import Principal
 
 MAX_QUESTION_LENGTH = 500
 
+MAX_HISTORY_TURNS = 6
+"""Prior turns replayed to the model, newest kept.
+
+Every turn is re-sent on every follow-up, so an uncapped transcript is an uncapped
+bill: `_record` tracks the cost precisely because it is real. Six is two or three
+exchanges, which is what a pronoun ever needs to resolve against.
+"""
+
 #: Locale tag to the language name used in the prompt. A tag like "de" is not
 #: reliably understood as an instruction; "German" is.
 _LANGUAGE = {"en": "English", "de": "German", "fr": "French"}
@@ -160,20 +168,25 @@ class AiService:
 
     # ── Ask ──────────────────────────────────────────────────────────────────
 
-    def ask(self, question: str) -> Answer:
+    def ask(self, question: str, history: list[tuple[str, str]] | None = None) -> Answer:
         """Answer a question about the gradebook.
 
         Args:
             question: What the user typed.
+            history: Earlier turns as ``(role, content)`` pairs, oldest first, so a
+                follow-up can resolve against them. Roles other than ``user`` and
+                ``assistant`` are dropped.
 
         Returns:
             The answer and the tool transcript behind it.
 
         Raises:
-            ValidationError: If the question is empty or absurdly long.
+            ValidationError: If the question is empty or absurdly long, or if any
+                prior turn is.
             LLMError: If the feature is unconfigured or the provider fails.
         """
         text = self._check_question(question)
+        prior = self._prior_turns(history)
         provider = self._registry.resolve(Feature.ASK)
 
         result = self._record(
@@ -184,6 +197,7 @@ class AiService:
                 question=text,
                 system=self._system(_ASK_SYSTEM),
                 tools=READ_TOOLS,
+                prior=prior,
             ),
         )
 
@@ -369,6 +383,39 @@ class AiService:
             The prompt, instructing the model which language to answer in.
         """
         return template.format(language=_LANGUAGE.get(self._principal.locale, "English"))
+
+    def _prior_turns(self, history: list[tuple[str, str]] | None) -> list[Message]:
+        """Turn the client's transcript into messages, capped and validated.
+
+        **The history is client-supplied**, and that is safe here for a specific
+        reason worth stating rather than assuming: a forged transcript cannot reach
+        anything. The model still holds no write privilege -- `WRITE_TOOLS` has no
+        entry in `HANDLERS` -- and every read tool composes *this caller's* `Scope`
+        server-side, so the worst a tampered history achieves is a confusing answer
+        about rows this user could already read.
+
+        What it must not do is cost money without limit, hence the cap.
+
+        Args:
+            history: ``(role, content)`` pairs, oldest first, or ``None``.
+
+        Returns:
+            Messages for the agent loop, oldest first.
+
+        Raises:
+            ValidationError: If a turn is empty or over the length cap. The same
+                validator as the question, because a prior turn is one.
+        """
+        if not history:
+            return []
+
+        roles = {"user": Role.USER, "assistant": Role.ASSISTANT}
+        recent = history[-MAX_HISTORY_TURNS:]
+        return [
+            Message(role=roles[role], content=self._check_question(content))
+            for role, content in recent
+            if role in roles
+        ]
 
     def _check_question(self, text: str) -> str:
         """Validate free text before it reaches a provider.

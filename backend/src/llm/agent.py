@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -96,6 +97,7 @@ def converse(
     question: str,
     system: str,
     tools: list[ToolSpec],
+    prior: Sequence[Message] | None = None,
     max_turns: int = MAX_TURNS,
 ) -> AgentResult:
     """Run the model until it answers, or until the turn cap.
@@ -106,6 +108,9 @@ def converse(
         question: What the user asked.
         system: The system prompt.
         tools: Tools the model may call.
+        prior: Earlier turns of this conversation, oldest first, so a follow-up can
+            resolve "and in CS102?" against what came before. ``None`` rather than
+            ``[]``: a mutable default is shared across every call.
         max_turns: Most model calls to make.
 
     Returns:
@@ -117,7 +122,10 @@ def converse(
             it would produce a confident empty response.
     """
     started = time.monotonic()
-    history: list[Message] = [Message(role=Role.USER, content=question)]
+    # Prior turns carry no tool calls -- only the prose either side said. Replaying
+    # the tool transcript would re-assert results computed under an older scope, and
+    # the model does not need it to resolve a pronoun.
+    history: list[Message] = [*(prior or []), Message(role=Role.USER, content=question)]
     result = AgentResult()
 
     for turn in range(1, max_turns + 1):
