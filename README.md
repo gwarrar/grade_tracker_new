@@ -190,12 +190,8 @@ build rather than producing a client that describes an API which no longer exist
 | [Frontend guide](web/README.md) | Routing, the data layer, the design system, testing |
 | [Security](SECURITY.md) | Sessions, password storage, the scope model, reporting a vulnerability |
 | [OpenAPI document](docs/openapi.json) | 60 paths, generated and drift-gated |
-| [SaaS and LMS plan](PROJECT_IMPLEMENTATION_PLAN.md) | **On hold** — reference material, not the backlog |
 
-`docs/ROADMAP.md` is the current backlog. The SaaS and LMS plan remains the reference
-for security posture, backup, tenancy and billing *when that work begins*, but
-nothing in it is being worked on, and reading it as the backlog sends you to the
-wrong work.
+`docs/ROADMAP.md` is the current backlog.
 
 ---
 

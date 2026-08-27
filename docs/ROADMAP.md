@@ -1,11 +1,7 @@
 # Roadmap
 
-What is actually open, in the order it will be built.
-
-`PROJECT_IMPLEMENTATION_PLAN.md` — the SaaS and LMS pivot — is **on hold with no
-start date**. It is a real plan and it has not been abandoned, but nothing in it
-is being worked on, and reading it as the current backlog sends you to the wrong
-work. This file is the current backlog.
+What is actually open, in the order it will be built. This file is the backlog;
+nothing else is.
 
 ---
 
