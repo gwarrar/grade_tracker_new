@@ -113,10 +113,18 @@ jobs:
       - name: Test
         run: pnpm vitest run --coverage
 
-      # `--audit-level=high` rather than everything: a low-severity advisory in a
-      # transitive dev dependency should not stop a grade being recorded.
-      - name: Audit dependencies
+      # Blocking: what actually reaches a browser. A high-severity advisory in
+      # something this application serves is worth stopping a release for.
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=high
+
+      # Reporting only, deliberately. The first version of this gate audited the
+      # whole tree and blocked, which meant an advisory inside eslint's transitive
+      # dependencies failed a build where nobody had touched shipping code -- and
+      # it did, on its very first run. Worth seeing; not worth failing on.
+      - name: Audit the full dependency tree
         run: pnpm audit --audit-level=high
+        continue-on-error: true
 
       # The generated client must match the committed spec. Regenerating and
       # diffing catches the case where the spec moved and nobody re-ran gen:api.
